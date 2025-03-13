@@ -1,0 +1,3 @@
+[submodule "backend.getqo.az"]
+	path = backend.getqo.az
+	url = git@github.com:Getqo/getqo-backend.git
