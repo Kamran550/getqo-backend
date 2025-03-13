@@ -1,0 +1,21 @@
+<IfModule mod_rewrite.c>
+   RewriteEngine On
+   RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Disable directory browsing
+Options -Indexes
+
+# PROTECT .ENV FILE
+<Files .env>
+    Order allow,deny
+    Deny from all
+</Files>
+
+# PROTECT .HTACCESS FILE
+<Files .htaccess>
+    Order allow,deny
+    Deny from all
+</Files>
+
+
