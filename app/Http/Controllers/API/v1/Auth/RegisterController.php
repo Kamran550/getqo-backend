@@ -9,6 +9,7 @@ use App\Services\AuthService\AuthByEmail;
 use App\Services\AuthService\AuthByMobilePhone;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class RegisterController extends Controller
 {
@@ -16,14 +17,14 @@ class RegisterController extends Controller
 
     public function register(RegisterRequest $request): JsonResponse
     {
+
+        Log::info('salam register');
         if ($request->input('phone')) {
 
             return (new AuthByMobilePhone)->authentication($request->validated());
-
         } else if ($request->input('email')) {
 
             return (new AuthByEmail)->authentication($request->validated());
-
         }
 
         return $this->onErrorResponse([
