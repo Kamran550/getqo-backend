@@ -16,6 +16,7 @@ use App\Services\AuthService\AuthByMobilePhone;
 use App\Services\UserServices\UserWalletService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class VerifyAuthController extends Controller
@@ -24,6 +25,7 @@ class VerifyAuthController extends Controller
 
     public function verifyPhone(PhoneVerifyRequest $request): JsonResponse
     {
+        Log::info('all body:', ['all:', $request->all()]);
         return (new AuthByMobilePhone)->confirmOPTCode($request->all());
     }
 
@@ -77,7 +79,7 @@ class VerifyAuthController extends Controller
     public function afterVerifyEmail(AfterVerifyRequest $request): JsonResponse
     {
         $user = User::where('email', $request->input('email'))
-//            ->where('verify_token',  $request->input('verify_token'))
+            //            ->where('verify_token',  $request->input('verify_token'))
             ->first();
 
         if (empty($user)) {
@@ -91,7 +93,7 @@ class VerifyAuthController extends Controller
             'firstname' => $request->input('firstname', $user->email),
             'lastname'  => $request->input('lastname', $user->lastname),
             'referral'  => $request->input('referral', $user->referral),
-            'gender'    => $request->input('gender','male'),
+            'gender'    => $request->input('gender', 'male'),
             'password'  => bcrypt($request->input('password', 'password')),
         ]);
 
@@ -125,9 +127,9 @@ class VerifyAuthController extends Controller
             'active' => true
         ]);
 
-		if (empty($user->wallet?->uuid)) {
-			$user = (new UserWalletService)->create($user);
-		}
+        if (empty($user->wallet?->uuid)) {
+            $user = (new UserWalletService)->create($user);
+        }
 
         $token = $user->createToken('api_token')->plainTextToken;
 
@@ -136,5 +138,4 @@ class VerifyAuthController extends Controller
             ['token' => $token, 'user'  => UserResource::make($user)]
         );
     }
-
 }

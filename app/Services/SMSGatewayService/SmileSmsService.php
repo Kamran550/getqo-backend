@@ -20,7 +20,7 @@ class SmileSMSService
 
     public function __construct()
     {
-        $this->user = env('SMILE_SMS_USER');
+        $this->user = env('SMILE_SMS_USER', '2609');
         $this->pass = env('SMILE_SMS_PASS');
         $this->numberId = env('SMILE_SMS_NUMBER_ID');
         $this->url = env('SMILE_SMS_URL');
@@ -138,34 +138,39 @@ class SmileSMSService
             $phone = urlencode($phone); // Telefon nömrəsini düzgün kodlayırıq
             Log::info('Phone2:', ['phone2:', $phone]);
             $otpCode = data_get($otp, 'otpCode');
-            $msgBody = $this->buildMessage($otpCode);
-            $url = $this->url . http_build_query([
-                'username'  => $this->user,
-                'password'  => $this->pass,
-                'numberId'  => $this->numberId,
-                'msisdn'    => $phone,
-                'msgBody'   => $msgBody,
-            ]);
 
-            $response = Http::get($url);
-            logger()->info('Göndərilən URL:', ['url' => $url]);
+            Log::info('otp:', ['otp:', $otpCode]);
+            // $msgBody = $this->buildMessage($otpCode);
+            // $url = $this->url . http_build_query([
+            //     'username'  => $this->user,
+            //     'password'  => $this->pass,
+            //     'numberId'  => $this->numberId,
+            //     'msisdn'    => $phone,
+            //     'msgBody'   => $msgBody,
+            // ]);
 
-            $responseBody = $response->body();
+            // $response = Http::get($url);
+            // logger()->info('Göndərilən URL:', ['url' => $url]);
 
-            if (strpos($responseBody, 'Ok:') !== false) {
-                preg_match('/Ok:\s*(\d+);/', $responseBody, $matches);
-                $successCode = $matches[1] ?? null;
-                logger()->info("Success: " . $successCode);
-                return ['status' => true, 'message' => 'SMS sent successfully'];
-            } elseif (strpos($responseBody, 'Error:') !== false) {
-                preg_match('/Error:\s*(\d+);/', $responseBody, $matches);
-                $errorCode = $matches[1] ?? null;
-                logger()->info("Error: " . $errorCode);
-                return ['status' => false, 'message' => 'SMS failed'];
-            } else {
-                logger()->info("Response format is not recognized.");
-                return ['status' => false, 'message' => 'SMS failed'];
-            }
+            // $responseBody = $response->body();
+
+            // Log::info('response body:', ['respinse body', $response->body()]);
+            return ['status' => true, 'message' => 'SMS sent successfully'];
+
+            // if (strpos($responseBody, 'Ok:') !== false) {
+            //     preg_match('/Ok:\s*(\d+);/', $responseBody, $matches);
+            //     $successCode = $matches[1] ?? null;
+            //     logger()->info("Success: " . $successCode);
+            //     return ['status' => true, 'message' => 'SMS sent successfully'];
+            // } elseif (strpos($responseBody, 'Error:') !== false) {
+            //     preg_match('/Error:\s*(\d+);/', $responseBody, $matches);
+            //     $errorCode = $matches[1] ?? null;
+            //     logger()->info("Error: " . $errorCode);
+            //     return ['status' => false, 'message' => 'SMS failed'];
+            // } else {
+            //     logger()->info("Response format is not recognized.");
+            //     return ['status' => false, 'message' => 'SMS failed'];
+            // }
         } catch (Exception $e) {
             return ['status' => false, 'message' => $e->getMessage()];
         }

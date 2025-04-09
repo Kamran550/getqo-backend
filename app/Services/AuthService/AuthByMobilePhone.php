@@ -63,31 +63,44 @@ class AuthByMobilePhone extends CoreService
     {
         if (data_get($array, 'type') !== 'firebase') {
 
+
             $data = Cache::get('sms-' . data_get($array, 'verifyId'));
 
+            Log::info('menim gonderdiyim:', ['menim gond:', data_get($array, 'verifyCode')]);
+            Log::info('confirmOPTCode data:', [' confirmOPTCodedata:', $data]);
             if (empty($data)) {
+                Log::info('confirmOPTCode 1-ci error');
                 return $this->onErrorResponse([
                     'code'      => ResponseError::ERROR_404,
                     'message'   => __('errors.' . ResponseError::ERROR_404, locale: $this->language)
                 ]);
             }
 
+            Log::info('111111111111111111111111111111111111');
             if (Carbon::parse(data_get($data, 'expiredAt')) < now()) {
+                Log::info('expire olub');
                 return $this->onErrorResponse([
                     'code'      => ResponseError::ERROR_203,
                     'message'   => __('errors.' . ResponseError::ERROR_203, locale: $this->language)
                 ]);
             }
 
+            Log::info("2222222222222222222222222222222222222222");
+
             if (data_get($data, 'OTPCode') != data_get($array, 'verifyCode')) {
+                Log::info(' confirmOPTCode 2 ci error:');
                 return $this->onErrorResponse([
                     'code'      => ResponseError::ERROR_201,
                     'message'   => __('errors.' . ResponseError::ERROR_201, locale: $this->language)
                 ]);
             }
+            Log::info("333333333333333333333333333333333333333333333");
 
+            Log::info('phone:', ['phone:', data_get($data, 'phone')]);
             $user = $this->model()->where('phone', data_get($data, 'phone'))->first();
+            Log::info('userrrr:', ['userrrr:', $user]);
         } else {
+            Log::info('elseye dusdu confirmOPTCode');
             $data['phone']      = data_get($array, 'phone');
             $data['email']      = data_get($array, 'email');
             $data['referral']   = data_get($array, 'referral');
