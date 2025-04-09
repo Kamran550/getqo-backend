@@ -68,6 +68,7 @@ class AuthByMobilePhone extends CoreService
 
             Log::info('menim gonderdiyim:', ['menim gond:', data_get($array, 'verifyCode')]);
             Log::info('confirmOPTCode data:', [' confirmOPTCodedata:', $data]);
+            Log::info('verify code:', ['verify code:', data_get($array, 'verifyCode')]);
             if (empty($data)) {
                 Log::info('confirmOPTCode 1-ci error');
                 return $this->onErrorResponse([
@@ -100,6 +101,7 @@ class AuthByMobilePhone extends CoreService
             $user = $this->model()->where('phone', data_get($data, 'phone'))->first();
             Log::info('userrrr:', ['userrrr:', $user]);
         } else {
+
             Log::info('elseye dusdu confirmOPTCode');
             $data['phone']      = data_get($array, 'phone');
             $data['email']      = data_get($array, 'email');
@@ -111,6 +113,8 @@ class AuthByMobilePhone extends CoreService
         }
 
         if (empty($user)) {
+
+            Log::info('4444444444444444444444444444444444444444444');
             try {
                 $user = $this->model()
                     ->withTrashed()
@@ -123,13 +127,18 @@ class AuthByMobilePhone extends CoreService
                         'active'            => 1,
                         'phone_verified_at' => now(),
                         'deleted_at'        => null,
-                        'firstname'         => data_get($data, 'firstname'),
+                        'firstname'         => data_get($data, 'firstname', 'firstname'),
                         'lastname'          => data_get($data, 'lastname'),
-                        'gender'            => data_get($data, 'gender'),
+                        'gender'            => data_get($data, 'gender', 'male'),
                         'password'          => bcrypt(data_get($data, 'password', 'password')),
                     ]);
+
+                Log::info('user', ['user:', $user]);
             } catch (Throwable $e) {
+
+                Log::info('user findin catchi');
                 $this->error($e);
+                Log::info('error bash verdi:', ['error:', $e]);
                 return $this->onErrorResponse([
                     'code'    => ResponseError::ERROR_400,
                     'message' => 'Email or phone already exist',
@@ -137,12 +146,14 @@ class AuthByMobilePhone extends CoreService
             }
 
             $ids = Notification::pluck('id')->toArray();
-
+            Log::info('ids:', ['ids:', $ids]);
             if ($ids) {
                 $user->notifications()->sync($ids);
             } else {
                 $user->notifications()->forceDelete();
             }
+
+            Log::info('555555555555555555555555555555');
 
             $user->emailSubscription()->updateOrCreate([
                 'user_id' => $user->id

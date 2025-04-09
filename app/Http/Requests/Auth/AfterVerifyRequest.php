@@ -12,8 +12,8 @@ class AfterVerifyRequest extends BaseRequest
      * @return array
      */
     public function rules(): array
-	{
-		return [
+    {
+        return [
             'password'  => 'string',
             'email'     => [
                 'email',
@@ -22,6 +22,6 @@ class AfterVerifyRequest extends BaseRequest
             'firstname' => 'string|min:2|max:100',
             'referral'  => 'string|exists:users,my_referral|max:255',
             'gender'    => 'in:male,female',
-		];
-	}
+        ];
+    }
 }
