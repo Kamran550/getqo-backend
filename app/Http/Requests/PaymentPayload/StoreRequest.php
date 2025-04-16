@@ -28,8 +28,7 @@ class StoreRequest extends BaseRequest
                 Rule::unique('payment_payloads', 'payment_id')->whereNull('deleted_at')
             ],
             'payload' => 'required|array',
-            'payload.*' => ['required']
+            // 'payload.*' => ['required']
         ];
     }
-
 }

@@ -242,6 +242,8 @@ class LoginController extends Controller
 
     public function forgetPassword(ForgetPasswordRequest $request): JsonResponse
     {
+        Log::info('forgetPassword');
+
         return (new AuthByMobilePhone)->authentication($request->validated());
     }
 
@@ -322,6 +324,7 @@ class LoginController extends Controller
      */
     public function forgetPasswordVerify(PhoneVerifyRequest $request): JsonResponse
     {
+        Log::info('forgetPasswordVerify');
         return (new AuthByMobilePhone)->forgetPasswordVerify($request->validated());
     }
 }

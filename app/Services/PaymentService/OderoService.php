@@ -2,9 +2,16 @@
 
 namespace App\Services\PaymentService;
 
+use App\Models\Payment;
+use App\Models\PaymentPayload;
+use App\Models\PaymentProcess;
 use App\Services\PaymentService\BaseService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\Model;
+use App\Models\Payout;
+use Session;
+use Str;
 
 class OderoService extends BaseService
 {
@@ -20,6 +27,11 @@ class OderoService extends BaseService
         $this->baseUrl = env('ODERO_BASE_URL');
     }
 
+    public function getApiKey()
+    {
+        return $this->apiKey;
+    }
+
 
     public function generateSignature($url, $rndKey, $body = '')
     {
@@ -31,14 +43,8 @@ class OderoService extends BaseService
     {
         $url = $this->baseUrl . '/payment/v1/checkout-payments/init';
         $rndKey = uniqid(); // random string
-        Log::info('rndKey:', ['rndKey:', $rndKey]);
-        Log::info('api:',['api:',$this->apiKey]);
 
-        Log::info('base:', ['base url:', $this->baseUrl]);
-
-        Log::info('url:', ['url:', $url]);
         $body = json_encode($payload);
-        Log::info('body:', ['body:', $body]);
 
         $signature = $this->generateSignature($url, $rndKey, $body);
         Log::info('signature:', ['sign:', $signature]);
@@ -50,6 +56,8 @@ class OderoService extends BaseService
         ])->post($url, $payload);
 
         Log::info('response body:', ['res body:', $response->json()]);
+
+
 
 
         return $response->json();
@@ -79,6 +87,7 @@ class OderoService extends BaseService
         $body = json_encode($payload);
         $signature = $this->generateSignature($url, $rndKey, $body);
 
+        Log::info('payload:', ['payload' => $payload]);
         $response = Http::withHeaders([
             'x-api-key' => $this->apiKey,
             'x-rnd-key' => $rndKey,
@@ -87,5 +96,114 @@ class OderoService extends BaseService
         ])->post($url, $payload);
 
         return $response->json();
+    }
+
+
+    public function orderProcessTransaction(array $data, array $types = ['card']): Model|PaymentProcess
+    {
+        $payment = Payment::where('tag', Payment::TAG_ODERO)->first();
+        Log::info('payment:', ['pay:', $payment]);
+
+        $paymentPayload = PaymentPayload::where('payment_id', $payment?->id)->first();
+
+        Log::info('payment:', ['pay:', $payment]);
+
+        $payload        = $paymentPayload?->payload;
+
+
+        [$key, $before] = $this->getPayload($data, $payload);
+
+        Log::info('key:', ['key:' => $key]);
+        Log::info('before:', ['before:' => $before]);
+
+        $modelId         = data_get($before, 'model_id');
+
+        Log::info('modelId:', ['modelId:' => $modelId]);
+
+        $totalPrice = round((float)data_get($before, 'total_price') * 100, 2);
+
+        $this->childrenProcess($modelId, data_get($before, 'model_type'));
+
+
+        Log::info('pricem:', ['pricem:', data_get($before, 'total_price')]);
+        // Init üçün ODERO strukturu
+
+
+
+        $web = $this->web($data, $types, $before, $totalPrice, $modelId, $payment);
+        Log::info('web:', ['web:', $web]);
+        return $web;
+    }
+
+
+
+    public function initPayment2(array $payload)
+    {
+        $url = $this->baseUrl . '/payment/v1/checkout-payments/init';
+        $rndKey = uniqid(); // random string
+
+        $body = json_encode($payload);
+
+        $signature = $this->generateSignature($url, $rndKey, $body);
+
+        Log::info('signature:', ['sign:' => $signature]);
+
+        Log::info('payload', ["payload:", $payload]);
+        $response = Http::withHeaders([
+            'x-api-key' => $this->apiKey,
+            'x-rnd-key' => $rndKey,
+            'x-auth-version' => 'V1',
+            'x-signature' => $signature,
+        ])->post($url, $payload);
+
+        Log::info('response body:', ['res body:' => $response->json()]);
+
+        return $response->json();
+    }
+
+
+    private function web(array $data, array $types, array $before, float $totalPrice, int $modelId, Payment $payment): Model|PaymentProcess
+    {
+
+
+        $initPayload = [
+            'price'           => data_get($before, 'total_price'),
+            'paidPrice'       => data_get($before, 'total_price'),
+            'installment'     => 1,
+            'conversationId'  => "azetestconvid",
+            'currency'        => "TRY",
+            // 'currency'        => Str::upper(data_get($before, 'currency')),
+            'paymentPhase'    => 'AUTH',
+            'paymentGroup'    => 'LISTING_OR_SUBSCRIPTION',
+            'callbackUrl'     => "http://localhost:8000/api/v1/webhook/odero/payment",
+            'items' => [
+                [
+                    'name'  => 'Test product',
+                    'price' => data_get($before, 'total_price')
+                ]
+            ]
+        ];
+
+        $oderoResponse = $this->initPayment2($initPayload);
+
+
+        Log::info('oderoResponse', ['oderoResponse:', $oderoResponse]);
+
+        if (!isset($oderoResponse['data']['token'])) {
+            Log::error('ODEROPay init uğursuz oldu');
+            throw new \Exception('ODEROPay init uğursuz oldu.');
+        }
+
+        return PaymentProcess::create([
+            'user_id'    => auth('sanctum')->id(),
+            'model_id'   => $modelId,
+            'model_type' => data_get($before, 'model_type'),
+            'id'         => $oderoResponse['data']['token'],
+            'data'       => array_merge([
+                'url'        => $oderoResponse['data']['pageUrl'],
+                'payment_id' => $payment->id,
+                'split'      => $data['split'] ?? 1
+            ], $before)
+        ]);
     }
 }

@@ -41,29 +41,64 @@ class SmileSMSService
      * @param SmsPayload $smsPayload
      * @return array|bool[]
      */
-    // public function sendSms($phone, $otp, SmsPayload $smsPayload): array
-    // {
-    //     try {
-    //         $accountId      = data_get($smsPayload->payload, 'twilio_account_id');
-    //         $authToken      = data_get($smsPayload->payload, 'twilio_auth_token');
-    //         $otpCode        = data_get($otp, 'otpCode');
-    //         $twilioNumber   = data_get($smsPayload->payload, 'twilio_number');
 
-    //         if (strlen($phone) < 7) {
-    //             throw new Exception('Invalid phone number', 400);
-    //         }
+    public function sendSms($phone, $otp, SmsPayload $smsPayload): array
+    {
+        try {
+            $smileSmsUser     = data_get($smsPayload->payload, 'smilesms_user');
+            $smileSmsPass     = data_get($smsPayload->payload, 'smilesms_pass');
+            $smileSmsNumberId     = data_get($smsPayload->payload, 'smilesms_number_id');
+            $otpCode = data_get($otp, 'otpCode');
 
-    //         $client = new Client($accountId, $authToken);
-    //         $client->messages->create("+$phone", [
-    //             'from' => $twilioNumber,
-    //             'body' => "Confirmation code $otpCode"
-    //         ]);
 
-    //         return ['status' => true, 'message' => 'success'];
-    //     } catch (Exception $e) {
-    //         return ['status' => false, 'message' => $e->getMessage()];
-    //     }
-    // }
+
+            if (strlen($phone) < 7) {
+                throw new Exception('Invalid phone number', 400);
+            }
+
+
+            Log::info('otp:', ['otp:', $otpCode]);
+            // $msgBody = $this->buildMessage($otpCode);
+            // $url = $this->url . http_build_query([
+            //     'username'  => $this->user,
+            //     'password'  => $this->pass,
+            //     'numberId'  => $this->numberId,
+            //     'msisdn'    => $phone,
+            //     'msgBody'   => $msgBody,
+            // ]);
+
+            // $response = Http::get($url);
+            // logger()->info('Göndərilən URL:', ['url' => $url]);
+
+            // $responseBody = $response->body();
+
+            // Log::info('response body:', ['respinse body', $response->body()]);
+            return ['status' => true, 'message' => 'SMS sent successfully'];
+
+            // if (strpos($responseBody, 'Ok:') !== false) {
+            //     preg_match('/Ok:\s*(\d+);/', $responseBody, $matches);
+            //     $successCode = $matches[1] ?? null;
+            //     logger()->info("Success: " . $successCode);
+            //     return ['status' => true, 'message' => 'SMS sent successfully'];
+            // } elseif (strpos($responseBody, 'Error:') !== false) {
+            //     preg_match('/Error:\s*(\d+);/', $responseBody, $matches);
+            //     $errorCode = $matches[1] ?? null;
+            //     logger()->info("Error: " . $errorCode);
+            //     return ['status' => false, 'message' => 'SMS failed'];
+            // } else {
+            //     logger()->info("Response format is not recognized.");
+            //     return ['status' => false, 'message' => 'SMS failed'];
+            // }
+
+
+
+            return ['status' => true, 'message' => 'success'];
+        } catch (Exception $e) {
+            return ['status' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+
 
 
     public function sendSms2($phone, $otp): array

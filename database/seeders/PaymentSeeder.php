@@ -34,6 +34,7 @@ class PaymentSeeder extends Seeder
             ['tag' => Payment::TAG_MOLLIE,       'input' => 12],
             ['tag' => Payment::TAG_IYZICO,       'input' => 13],
             ['tag' => Payment::TAG_MAKSEKESKUS,  'input' => 14],
+            ['tag' => Payment::TAG_ODERO,         'input' => 15],
         ];
 
         foreach ($payments as $payment) {
@@ -47,7 +48,5 @@ class PaymentSeeder extends Seeder
                 $this->error($e);
             }
         }
-
     }
-
 }

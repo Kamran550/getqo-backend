@@ -21,6 +21,7 @@ use Http;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Redirect;
 use Throwable;
 
@@ -41,9 +42,12 @@ class StripeController extends Controller
 	 */
 	public function orderProcessTransaction(StripeRequest $request): JsonResponse
 	{
+		Log::info("all req:", ['req all:', $request->all()]);
 		try {
 			$result = $this->service->orderProcessTransaction($request->all());
 
+
+			Log::info('result:', ['result' => $result]);
 			return $this->successResponse('success', $result);
 		} catch (Throwable $e) {
 			$this->error($e);
@@ -105,7 +109,6 @@ class StripeController extends Controller
 				'message' => $e->getMessage() . $e->getFile() . $e->getLine()
 			]);
 		}
-
 	}
 
 	/**
@@ -118,13 +121,18 @@ class StripeController extends Controller
 		$orderId 		= (int)$request->input('order_id');
 		$subscriptionId = (int)$request->input('subscription_id');
 
+		Log::info('parcelId var:', ['parcelId:', $parcelId]);
+		Log::info('orderId var:', ['orderId:', $orderId]);
+		Log::info('subscriptionId var:', ['subscriptionId:', $subscriptionId]);
 		$to = config('app.front_url');
+
+		Log::info('to url2:', ['to url web2', $to]);
 
 		if ($parcelId) {
 			$to = "parcels/$parcelId";
-		} elseif($subscriptionId) {
+		} elseif ($subscriptionId) {
 			$to = config('app.admin_url');
-		} elseif($orderId) {
+		} elseif ($orderId) {
 
 			/** @var Order $order */
 			$order = Order::with('table')->find($orderId);
@@ -136,8 +144,8 @@ class StripeController extends Controller
 
 				$to = "$qrUrl/$qrType?shop_id=$order->shop_id&table_id=$order->table_id&chair_count={$order->table?->chair_count}&name={$order->table?->name}&redirect_from=stripe#recommended";
 			}
-
 		}
+		Log::info('to url2:', ['to url web2', $to]);
 
 		return Redirect::to($to);
 	}
@@ -145,17 +153,18 @@ class StripeController extends Controller
 	/**
 	 * @return RedirectResponse
 	 */
-    public function subscriptionResultTransaction(): RedirectResponse
-    {
-        return Redirect::to(config('app.front_url'));
+	public function subscriptionResultTransaction(): RedirectResponse
+	{
+		return Redirect::to(config('app.front_url'));
 	}
 
-    /**
-     * @param Request $request
-     * @return JsonResponse
+	/**
+	 * @param Request $request
+	 * @return JsonResponse
 	 */
 	public function paymentWebHook(Request $request): JsonResponse
 	{
+		Log::info('strpe payment webhook');
 		$token = $request->input('data.object.id');
 
 		$payment = Payment::where('tag', 'stripe')->first();
@@ -163,8 +172,10 @@ class StripeController extends Controller
 		$paymentPayload = PaymentPayload::where('payment_id', $payment?->id)->first();
 		$payload        = $paymentPayload?->payload;
 
+
 		/** @var PaymentProcess $paymentProcess */
 		$paymentProcess = PaymentProcess::where('id', $token)->first();
+
 
 		if (@$paymentProcess?->data['type'] === 'mobile') {
 
@@ -176,32 +187,38 @@ class StripeController extends Controller
 
 			$this->service->afterHook($token, $status);
 
-            return $this->successResponse();
+			return $this->successResponse();
 		}
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . data_get($payload, 'stripe_sk')
-        ])
-            ->get("https://api.stripe.com/v1/checkout/sessions?limit=1&payment_intent=$token")
-            ->json();
+		$response = Http::withHeaders([
+			'Authorization' => 'Bearer ' . data_get($payload, 'stripe_sk')
+		])
+			->get("https://api.stripe.com/v1/checkout/sessions?limit=1&payment_intent=$token")
+			->json();
 
-        $token2 = data_get($response, 'data.0.id');
+		$token2 = data_get($response, 'data.0.id');
 
-        $status = match (data_get($response, 'data.0.payment_status')) {
-            'succeeded', 'paid'	=> Transaction::STATUS_PAID,
-            'payment_failed', 'canceled' => Transaction::STATUS_CANCELED,
-            default => 'progress',
-        };
+		$status = match (data_get($response, 'data.0.payment_status')) {
+			'succeeded', 'paid'	=> Transaction::STATUS_PAID,
+			'payment_failed', 'canceled' => Transaction::STATUS_CANCELED,
+			default => 'progress',
+		};
 
-        try {
-            $this->service->afterHook($token, $status, $token2);
-            return $this->successResponse();
-        } catch (Throwable $e) {
-            return $this->onErrorResponse([
-                'code' => $e->getCode(),
-                'message' => $e->getMessage() . $e->getFile() . $e->getLine()
-            ]);
-        }
+		Log::info('WEBHOOK status:', ['WEBHOOK status', $status]);
+		Log::info('WEBHOOK token:', ['WEBHOOK token', $token]);
+		Log::info('WEBHOOK token2:', ['WEBHOOK token2', $token2]);
+
+
+
+		try {
+			$this->service->afterHook($token, $status, $token2);
+			return $this->successResponse();
+		} catch (Throwable $e) {
+			Log::info('err:', ['err:', $e]);
+			return $this->onErrorResponse([
+				'code' => $e->getCode(),
+				'message' => $e->getMessage() . $e->getFile() . $e->getLine()
+			]);
+		}
 	}
-
 }

@@ -74,9 +74,11 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
 
         // Odero
 
-        // Route::post('/odero/init', [OderoController::class, 'init']);
-        // Route::get('/odero/status/{token}', [OderoController::class, 'status']);
-        // Route::post('/odero/refund', [OderoController::class, 'refund']);
+
+        Route::post('/odero/init', [OderoController::class, 'init']);
+        Route::post('/odero/callback', [OderoController::class, 'handle']);
+        Route::get('/odero/status/{token}', [OderoController::class, 'status']);
+        Route::post('/odero/refund', [OderoController::class, 'refund']);
 
 
         /* Languages */
@@ -275,6 +277,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
         Route::get('orders/deliveryman/{id}',                    [Rest\OrderController::class, 'showDeliveryman']);
 
         /* rest payments */
+
         Route::get('order-stripe-process',          [Payment\StripeController::class,         'orderProcessTransaction']);
         Route::get('order-my-fatoorah-process',  [Payment\MyFatoorahController::class,     'orderProcessTransaction']);
         Route::get('order-iyzico-process',          [Payment\IyzicoController::class,         'orderProcessTransaction']);
@@ -409,6 +412,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::post('update/notifications',                 [User\ProfileController::class, 'notificationsUpdate']);
             Route::get('notifications',                         [User\ProfileController::class, 'notifications']);
 
+            Route::get('order-odero-process',          [Payment\OderoController::class,         'orderProcessTransaction']);
             Route::get('order-stripe-process', [Payment\StripeController::class, 'orderProcessTransaction']);
 
             Route::get('order-my-fatoorah-process', [Payment\MyFatoorahController::class, 'orderProcessTransaction']);
@@ -1367,6 +1371,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
         Route::any('paypal/payment',        [Payment\PayPalController::class,       'paymentWebHook']);
         Route::any('razorpay/payment',      [Payment\RazorPayController::class,     'paymentWebHook']);
         Route::any('stripe/payment',        [Payment\StripeController::class,       'paymentWebHook']);
+        Route::any('odero/payment',        [Payment\OderoController::class,       'paymentWebHook']);
         Route::any('my-fatoorah/payment',   [Payment\MyFatoorahController::class,   'paymentWebHook']);
         Route::any('iyzico/payment',        [Payment\IyzicoController::class,         'orderProcessTransaction']);
         Route::any('flw/payment',           [Payment\FlutterWaveController::class,  'paymentWebHook']);

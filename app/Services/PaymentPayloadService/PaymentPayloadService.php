@@ -105,10 +105,22 @@ class PaymentPayloadService extends CoreService
             }
 
             return ['status' => true];
-
         } else if ($payment->tag === Payment::TAG_STRIPE) {
 
             $validator = $this->stripe($data);
+
+            if ($validator->fails()) {
+                return [
+                    'status'    => false,
+                    'code'      => ResponseError::ERROR_422,
+                    'params'    => $validator->errors()->toArray(),
+                ];
+            }
+
+            return ['status' => true];
+        } else if ($payment->tag === Payment::TAG_ODERO) {
+
+            $validator = $this->odero($data);
 
             if ($validator->fails()) {
                 return [
@@ -278,15 +290,15 @@ class PaymentPayloadService extends CoreService
     public function paypalValidate(array $data): \Illuminate\Validation\Validator|\Illuminate\Contracts\Validation\Validator
     {
         return Validator::make($data, [
-			'payload.paypal_mode'                   => 'required|in:live,sandbox',
-			'payload.paypal_sandbox_client_id'      => 'required|string',
-			'payload.paypal_sandbox_client_secret'  => 'required|string',
-			'payload.paypal_live_client_id'         => 'required|string',
-			'payload.paypal_live_client_secret'     => 'required|string',
-			'payload.paypal_currency'               => [
-				'required',
-				Rule::exists('currencies', 'title')
-			],
+            'payload.paypal_mode'                   => 'required|in:live,sandbox',
+            'payload.paypal_sandbox_client_id'      => 'required|string',
+            'payload.paypal_sandbox_client_secret'  => 'required|string',
+            'payload.paypal_live_client_id'         => 'required|string',
+            'payload.paypal_live_client_secret'     => 'required|string',
+            'payload.paypal_currency'               => [
+                'required',
+                Rule::exists('currencies', 'title')
+            ],
         ]);
     }
 
@@ -305,6 +317,20 @@ class PaymentPayloadService extends CoreService
             ],
         ]);
     }
+
+
+    public function odero(array $data): \Illuminate\Contracts\Validation\Validator|\Illuminate\Validation\Validator
+    {
+        return Validator::make($data, [
+            'payload.odero_pk' => 'required|string',
+            'payload.odero_sk' => 'required|string',
+            'payload.currency'  => [
+                'required',
+                Rule::exists('currencies', 'title')->whereNull('deleted_at')
+            ],
+        ]);
+    }
+
 
     /**
      * @param array $data
@@ -329,9 +355,9 @@ class PaymentPayloadService extends CoreService
     public function payStack(array $data): \Illuminate\Contracts\Validation\Validator|\Illuminate\Validation\Validator
     {
         return Validator::make($data, [
-            'payload.paystack_pk'	=> 'required|string',
-            'payload.paystack_sk'	=> 'required|string',
-            'payload.currency'   	=> [
+            'payload.paystack_pk'    => 'required|string',
+            'payload.paystack_sk'    => 'required|string',
+            'payload.currency'       => [
                 'required',
                 Rule::exists('currencies', 'title')->whereNull('deleted_at')
             ],
@@ -488,8 +514,7 @@ class PaymentPayloadService extends CoreService
             'payload.merchant_id'     => 'required|string',
             'payload.merchant_key'    => 'required|string',
             'payload.pass_phrase'     => 'required|string',
-            'payload.sandbox'	      => 'required|boolean',
+            'payload.sandbox'          => 'required|boolean',
         ]);
     }
-
 }

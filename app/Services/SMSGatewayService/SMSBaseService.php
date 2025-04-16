@@ -36,7 +36,7 @@ class SMSBaseService extends CoreService
         if ($smsPayload?->type === SmsPayload::FIREBASE) {
 
             $result = (new TwilioService)->sendSms($phone, $otp, $smsPayload);
-        } else if ($smsPayload?->type === SmsPayload::TWILIO) {
+        } else if ($smsPayload?->type === SmsPayload::SMILESMS) {
             Log::info('smile sms ile ');
             Log::info('smile sms ile 222222222222222222222222');
             $result = (new SmileSMSService)->sendSms3($phone, $otp, $smsPayload);
@@ -45,7 +45,7 @@ class SMSBaseService extends CoreService
 
         if (data_get($result, 'status')) {
 
-            
+
 
             $this->setOTPToCache($phone, $otp);
 

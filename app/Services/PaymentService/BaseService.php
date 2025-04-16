@@ -28,6 +28,7 @@ use App\Services\WalletHistoryService\WalletHistoryService;
 use App\Traits\Notification;
 use DB;
 use Exception;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -40,47 +41,68 @@ class BaseService extends CoreService
 		return Payout::class;
 	}
 
-    /**
-     * @param $token
-     * @param $status
-     * @param $token2
-     * @return void
-     */
-    public function afterHook($token, $status, $token2 = null): void
-    {
+	/**
+	 * @param $token
+	 * @param $status
+	 * @param $token2
+	 * @return void
+	 */
+	public function afterHook($token, $status, $token2 = null): void
+	{
+		Log::info('afterhooka girdi');
+
 
 		$paymentProcess = PaymentProcess::where('id', $token)->first();
+		Log::info("BaseService paymentProcess", ['BaseService paymentProcess', $paymentProcess]);
 
-		if(empty($paymentProcess)) {
+		if (empty($paymentProcess)) {
 			$paymentProcess = PaymentProcess::where('id', $token2)->first();
 		}
 
-		if(empty($paymentProcess)) {
+		if (empty($paymentProcess)) {
 			return;
 		}
 
-        if ($paymentProcess->model_type !== Order::KIOSK) {
-            $paymentProcess->fresh(['model']);
-        }
+		Log::info("111111111111111111111111111111111111111111111");
+
+		if ($paymentProcess->model_type !== Order::KIOSK) {
+			$paymentProcess->fresh(['model']);
+		}
+		Log::info('model type:', ['model:', $paymentProcess->model_type]);
+
+
+		Log::info("2222222222222222222222222222222222222222222222");
 
 		/** @var PaymentProcess $paymentProcess */
 		$paymentId = $paymentProcess->data['payment_id'] ?? Payment::first()?->id;
 
+		Log::info('BaseService paymentId:', ['BaseService paymentId', $paymentId]);
 
 
 		if (
-            ($paymentProcess->model_type === Cart::class || $paymentProcess->model_type === Order::KIOSK)
-            && $status === Transaction::STATUS_PAID
-        ) {
+			($paymentProcess->model_type === Cart::class || $paymentProcess->model_type === Order::KIOSK)
+			&& $status === Transaction::STATUS_PAID
+		) {
+
+			Log::info("3333333333333333333333333333333333333333333333333333333333");
+
 
 			try {
 
 				$result = (new OrderService)->create($paymentProcess->data);
 
+				Log::info('orderden cixdi');
+				Log::info('orderin resultu:', ['orderin resultu', $result]);
 				/** @var Order $order */
 				$order = $result['data'];
 
+				Log::info('resultdan sonraki order:', ['resultdan sonraki order:', $order]);
+
+				Log::info('datani orderden goturdu');
+
 				$this->newOrderNotification($order);
+				Log::info("444444444444444444444444444444444444444444");
+
 
 				$order?->createTransaction([
 					'price'              => $order->total_price,
@@ -92,6 +114,8 @@ class BaseService extends CoreService
 					'status_description' => "Transaction for model #$order->id",
 					'status'             => $status,
 				]);
+				Log::info("555555555555555555555555555555555555555555555555");
+
 
 				if ((int)data_get(Settings::where('key', 'order_auto_approved')->first(), 'value') === 1) {
 					(new NotificationHelper)->autoAcceptNotification(
@@ -100,20 +124,26 @@ class BaseService extends CoreService
 						Order::STATUS_ACCEPTED
 					);
 				}
-
 			} catch (Throwable $e) {
+				Log::info('1ci catch:', ['catch1:', $e]);
 				$this->error($e);
 			}
 
-            $paymentProcess->delete();
-
+			$paymentProcess->delete();
+			Log::info('catch e dusmedi ve return olur');
 			return;
 		}
 
+
 		$paymentProcess = $paymentProcess->fresh(['model.transaction']);
+
+		Log::info("666666666666666666666666666666666666666666666666");
+
 
 		$userId = data_get($paymentProcess->data, 'user_id');
 		$type   = data_get($paymentProcess->data, 'type');
+		Log::info("77777777777777777777777777777777777777777777");
+
 
 		if ($userId && $type === 'wallet') {
 
@@ -136,23 +166,23 @@ class BaseService extends CoreService
 					'transaction_id' => $transaction->id,
 					'type'           => 'topup',
 					'price'          => $transaction->price,
-					'note'           => "Payment top up via Wallet" ,
+					'note'           => "Payment top up via Wallet",
 					'status'         => WalletHistory::PAID,
 					'created_by'     => $transaction->user_id,
 				]);
-
 			}
 
-//            $paymentProcess->delete();
+			//            $paymentProcess->delete();
 
-            return;
+			return;
 		}
 
 		if ($paymentProcess->model_type === Wallet::class && $status === Transaction::STATUS_PAID) {
+			Log::info('stripe olan ifdirmi 1');
 
 			$data = $paymentProcess->data;
 
-			$totalPrice = (double)data_get($data, 'total_price');
+			$totalPrice = (float)data_get($data, 'total_price');
 
 			$user = User::find($paymentProcess->model?->user_id);
 
@@ -173,12 +203,11 @@ class BaseService extends CoreService
 					'status'         => WalletHistory::PAID,
 					'user'           => $user
 				]);
-
 			} catch (Throwable $e) {
 				$this->error($e);
 			}
 
-            $paymentProcess->delete();
+			$paymentProcess->delete();
 
 			return;
 		}
@@ -186,6 +215,8 @@ class BaseService extends CoreService
 		$modelClass = Str::replace('App\\Models\\', '', $paymentProcess->model_type);
 
 		if ($paymentProcess->model_type === Order::class && !isset($paymentProcess->data['tips'])) {
+
+			Log::info('stripe olan ifdirmi 2');
 
 			$paymentProcess->fresh(['model.transaction']);
 
@@ -214,7 +245,7 @@ class BaseService extends CoreService
 					'status'             => $status,
 				]);
 
-                $paymentProcess->delete();
+				$paymentProcess->delete();
 
 				$order->orderDetails()
 					->where('transaction_status', OrderDetail::TRANSACTION_STATUS_PROGRESS)
@@ -242,7 +273,6 @@ class BaseService extends CoreService
 				$paymentProcess->update([
 					'data' => $processData
 				]);
-
 			}
 
 			$transactionId = $order->transaction?->id;
@@ -275,7 +305,7 @@ class BaseService extends CoreService
 				$paymentProcess->delete();
 
 				$order->orderDetails()
-					->where('transaction_status',OrderDetail::TRANSACTION_STATUS_PROGRESS)
+					->where('transaction_status', OrderDetail::TRANSACTION_STATUS_PROGRESS)
 					->update(['transaction_status' => $status]);
 			}
 
@@ -286,11 +316,11 @@ class BaseService extends CoreService
 			}
 
 			return;
-
 		}
 
 		if ($paymentProcess->model_type === Order::class && isset($paymentProcess->data['tips'])) {
 
+			Log::info('stripe olan ifdirmi 3');
 			$paymentProcess->fresh(['model']);
 
 			$paymentProcess->model?->createTransaction([
@@ -310,11 +340,13 @@ class BaseService extends CoreService
 				'total_price' => $paymentProcess->model->total_price + $paymentProcess->data['tips']
 			]);
 
-            $paymentProcess->delete();
-
+			$paymentProcess->delete();
 		}
 
 		if ($paymentProcess->model_type !== Cart::class) {
+
+
+			LOg::info('2-ci ife girir');
 
 			$paymentProcess->fresh([
 				'model.transactions' => fn($q) => $q->where('status', Transaction::STATUS_PAID)
@@ -331,10 +363,8 @@ class BaseService extends CoreService
 				'status'             => $status,
 			]);
 
-            $paymentProcess->delete();
-
+			$paymentProcess->delete();
 		}
-
 	}
 
 	/**
@@ -353,32 +383,26 @@ class BaseService extends CoreService
 
 			$key = 'cart_id';
 			$before = $this->beforeCart($data, $payload);
-
 		} else if (data_get($data, 'parcel_id')) {
 
 			$key = 'parcel_id';
 			$before = $this->beforeParcel($data, $payload);
-
 		} else if (!$tips && data_get($data, 'order_id')) {
 
 			$key = 'order_id';
 			$before = $this->beforeOrder($data, $payload);
-
 		} else if ($tips && data_get($data, 'order_id')) {
 
 			$key = 'order_id';
 			$before = $this->beforeTip($data, $payload);
-
 		} else if (data_get($data, 'wallet_id')) {
 
 			$key = 'wallet_id';
 			$before = $this->beforeWallet($data, $payload);
-
 		} else if (data_get($data, 'delivery_type') === Order::KIOSK) {
 
 			$key = 'kiosk_id';
 			$before = $this->beforeKiosk($data, $payload);
-
 		}
 
 		return [$key, $before];
@@ -429,9 +453,9 @@ class BaseService extends CoreService
 		$data['type'] = data_get($data, 'delivery_type');
 
 		$calculate  = (new OrderRepository)
-            ->orderStocksCalculate(
-                array_merge($data, ['address' => $data['location'] ?? []])
-            );
+			->orderStocksCalculate(
+				array_merge($data, ['address' => $data['location'] ?? []])
+			);
 
 		if (!data_get($calculate, 'status')) {
 			throw new Exception('Products is empty');
@@ -520,7 +544,7 @@ class BaseService extends CoreService
 			'table_id'    		 => $order?->table_id,
 			'phone'    		 	 => $order?->phone,
 			'chair_count'  		 => $order?->table?->chair_count,
-			'name'       		 => str_replace(' ','+', $order?->table?->name),
+			'name'       		 => str_replace(' ', '+', $order?->table?->name),
 			'after_payment_tips' => $tip,
 			'total_price' 		 => max($totalPrice, 0),
 			'currency'    		 => $order->currency?->title ?? data_get($payload, 'currency')
@@ -548,7 +572,8 @@ class BaseService extends CoreService
 		];
 	}
 
-	protected function childrenProcess(int|string $modelId, string|Order $modelType) {
+	protected function childrenProcess(int|string $modelId, string|Order $modelType)
+	{
 
 		DB::table('payment_process')
 			->where(['model_id' => $modelId, 'model_type' => $modelType])
@@ -571,7 +596,6 @@ class BaseService extends CoreService
 
 			$trn->delete();
 		}
-
 	}
 
 	/**
