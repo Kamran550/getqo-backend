@@ -142,11 +142,13 @@ class OderoController extends Controller
         $url = "https://sandbox-api-gateway.oderopay.com.tr/payment/v1/checkout-payments/{$token}";
 
         $rndKey = uniqid();
-        $signature = $this->odero->generateSignature($url, $rndKey, '', $odero_sk);
+        $signature = $this->odero->generateSignature($url, $rndKey);
 
-        $apiKey = $this->odero->getApiKey();
+        $keys = $this->odero->getPaymentKeys();
+        $odero_pk = $keys['odero_pk'];
+
         $response = Http::withHeaders([
-            'x-api-key' => $apiKey,
+            'x-api-key' => $odero_pk,
             'x-rnd-key' => $rndKey,
             'x-auth-version' => 'V1',
             'x-signature' => $signature,

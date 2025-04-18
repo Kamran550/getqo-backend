@@ -253,7 +253,6 @@ class LoginController extends Controller
     public function forgetPasswordEmail(ReSendVerifyRequest $request): JsonResponse
     {
 
-        Log::info('salam1', ['body:', $request->all()]);
         $user = User::withTrashed()
             ->when($request->filled('email'), function ($query) use ($request) {
                 return $query->where('email', $request->input('email'));
@@ -285,16 +284,16 @@ class LoginController extends Controller
         Log::info('111111111111111111111111111111');
         $result = null;
 
-        // if ($request->filled('email')) {
-        //     $result = (new EmailSendService)->sendEmailPasswordReset($user, $token);
-        // } elseif ($request->filled('phone')) {
-        //     $result = (new SMSBaseService)->smsGateway($request->input('phone'));
-        // }
+        if ($request->filled('email')) {
+            $result = (new EmailSendService)->sendEmailPasswordReset($user, $token);
+        } elseif ($request->filled('phone')) {
+            $result = (new SMSBaseService)->smsGateway($request->input('phone'));
+        }
         Log::info('2222222222222222222222222222222');
 
-        // if (!data_get($result, 'status')) {
-        //     return $this->onErrorResponse($result);
-        // }
+        if (!data_get($result, 'status')) {
+            return $this->onErrorResponse($result);
+        }
 
 
         $user->update([

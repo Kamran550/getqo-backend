@@ -20,8 +20,8 @@ abstract class CoreService
     use ApiResponse, Loggable;
 
     private mixed $model;
-    // protected ?string $language = null;
-    protected string $language;
+    protected ?string $language = null;
+    // protected string $language;
     protected int $currency;
 
     public function __construct()
