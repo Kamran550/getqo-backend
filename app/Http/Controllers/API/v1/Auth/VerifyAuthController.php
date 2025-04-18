@@ -92,7 +92,7 @@ class VerifyAuthController extends Controller
             'lastname'  => $request->input('lastname', $user->lastname),
             'referral'  => $request->input('referral', $user->referral),
             'gender'    => $request->input('gender','male'),
-            'password'  => bcrypt($request->input('password', 'password')),
+            'password'  => $request->filled('password') ? bcrypt($request->input('password')) : $user->password,
         ]);
 
         $referral = User::where('my_referral', $request->input('referral', $user->referral))
@@ -101,7 +101,7 @@ class VerifyAuthController extends Controller
         if (!empty($referral) && !empty($referral->firebase_token)) {
             $this->sendNotification(
                 is_array($referral->firebase_token) ? $referral->firebase_token : [$referral->firebase_token],
-                "Congratulations! By your referral registered new user. $user->name_or_email",
+                "Təbrik edirik! Sizin referalınızla yeni istifadəçi qeydiyyatdan keçib. $user->name_or_email",
                 $referral->id,
                 [
                     'id'   => $referral->id,

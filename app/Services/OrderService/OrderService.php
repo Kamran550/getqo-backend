@@ -527,10 +527,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 
 			}
 
-//            if ($order->transaction->request == Transaction::REQUEST_WAITING) {
-//                (new TransactionService)->payDebit($user, $order);
-//            }
-
 			$order->update([
 				'deliveryman' => $user->id,
 			]);
@@ -680,7 +676,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 		}
 	}
 
-
 	/**
 	 * @param int|null $id
 	 * @return array
@@ -690,14 +685,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 		try {
 			/** @var Order $order */
 			$order = Order::with('user')->find($id);
-
-//			if ($order->delivery_type !== Order::DINE_IN) {
-//				return [
-//					'status'  => false,
-//					'code'    => ResponseError::ERROR_502,
-//					'message' => __('errors.' . ResponseError::ORDER_PICKUP, locale: $this->language)
-//				];
-//			}
 
 			if (!empty($order->waiter_id)) {
 				return [
@@ -718,14 +705,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 				];
 			}
 
-//			if (!in_array($order?->table_id, $user?->waiterTableAssigned?->toArray())) {
-//				return [
-//					'status'  => false,
-//					'code'    => ResponseError::ERROR_511,
-//					'message' => __('errors.' . ResponseError::ERROR_511, locale: $this->language)
-//				];
-//			}
-
 			$order->update([
 				'waiter_id' => auth('sanctum')->id(),
 			]);
@@ -739,8 +718,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 			];
 		}
 	}
-
-
 
 	/**
 	 * @param array $data
@@ -818,11 +795,16 @@ class OrderService extends CoreService implements OrderServiceInterface
 	{
 		$errors = [];
 
-		foreach (Order::when($shopId, fn($q) => $q->where('shop_id', $shopId))->find((array)$ids) as $order) {
+        $orders = Order::with(['pointHistories'])
+            ->when($shopId, fn($q) => $q->where('shop_id', $shopId))
+            ->find((array)$ids);
+
+		foreach ($orders as $order) {
 			try {
+                $order->pointHistories()->delete();
 				$order->delete();
 			} catch (Throwable $e) {
-				$errors[] = $order->id;
+				$errors[] = $e->getMessage() . $e->getFile() . $e->getLine();
 
 				$this->error($e);
 			}
