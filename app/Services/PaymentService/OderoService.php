@@ -33,8 +33,9 @@ class OderoService extends BaseService
     }
 
 
-    public function generateSignature($url, $rndKey, $body = '')
+    public function generateSignature($url, $rndKey, $body = '', $odero_sk)
     {
+
         $string = $url . $this->apiKey . $this->secretKey . $rndKey . $body;
         return base64_encode(hash('sha256', $string, true));
     }
@@ -43,10 +44,21 @@ class OderoService extends BaseService
     {
         $url = $this->baseUrl . '/payment/v1/checkout-payments/init';
         $rndKey = uniqid(); // random string
+        Log::info('api:', ['key:', $this->apiKey]);
+        Log::info('api:', ['secret:', $this->secretKey]);
+        Log::info('url:', ['url:', $url]);
 
+        Log::info('rndKey', ['rndKey:', $rndKey]);
         $body = json_encode($payload);
 
-        $signature = $this->generateSignature($url, $rndKey, $body);
+        $payment = Payment::where('tag', Payment::TAG_ODERO)->first();
+        Log::info('payment:', ['pay:', $payment]);
+
+        $paymentPayload = PaymentPayload::where('payment_id', $payment?->id)->first();
+
+        $odero_sk = data_get($paymentPayload?->paylaod, 'odero_sk');
+
+        $signature = $this->generateSignature($url, $rndKey, $body, $odero_sk);
         Log::info('signature:', ['sign:', $signature]);
         $response = Http::withHeaders([
             'x-api-key' => $this->apiKey,
@@ -68,7 +80,7 @@ class OderoService extends BaseService
     {
         $url = $this->baseUrl . "/payment/v1/checkout-payments/{$token}";
         $rndKey = uniqid();
-        $signature = $this->generateSignature($url, $rndKey);
+        $signature = $this->generateSignature($url, $rndKey, 'test', 'test');
 
         $response = Http::withHeaders([
             'x-api-key' => $this->apiKey,
@@ -85,7 +97,15 @@ class OderoService extends BaseService
         $url = $this->baseUrl . '/payment/v1/refund-transactions';
         $rndKey = uniqid();
         $body = json_encode($payload);
-        $signature = $this->generateSignature($url, $rndKey, $body);
+
+        $payment = Payment::where('tag', Payment::TAG_ODERO)->first();
+        Log::info('payment:', ['pay:', $payment]);
+
+        $paymentPayload = PaymentPayload::where('payment_id', $payment?->id)->first();
+        $odero_sk = data_get($paymentPayload?->paylaod, 'odero_sk');
+
+
+        $signature = $this->generateSignature($url, $rndKey, $body, $odero_sk);
 
         Log::info('payload:', ['payload' => $payload]);
         $response = Http::withHeaders([
@@ -109,7 +129,11 @@ class OderoService extends BaseService
         Log::info('payment:', ['pay:', $payment]);
 
         $payload        = $paymentPayload?->payload;
+        $odero_pk = data_get($payload, 'odero_pk');
+        $odero_sk = data_get($payload, 'odero_sk');
 
+        Log::info('odero_pk:', ['odero_pk:', $odero_pk]);
+        Log::info('odero_sk:', ['odero_sk:', $odero_sk]);
 
         [$key, $before] = $this->getPayload($data, $payload);
 
@@ -130,27 +154,28 @@ class OderoService extends BaseService
 
 
 
-        $web = $this->web($data, $types, $before, $totalPrice, $modelId, $payment);
+        $web = $this->web($data, $types, $before, $totalPrice, $modelId, $payment, $odero_pk, $odero_sk);
         Log::info('web:', ['web:', $web]);
         return $web;
     }
 
 
 
-    public function initPayment2(array $payload)
+    public function initPayment2(array $payload, string $odero_pk, string $odero_sk)
     {
         $url = $this->baseUrl . '/payment/v1/checkout-payments/init';
         $rndKey = uniqid(); // random string
 
         $body = json_encode($payload);
 
-        $signature = $this->generateSignature($url, $rndKey, $body);
+
+        $signature = $this->generateSignature($url, $rndKey, $body, $odero_sk);
 
         Log::info('signature:', ['sign:' => $signature]);
 
         Log::info('payload', ["payload:", $payload]);
         $response = Http::withHeaders([
-            'x-api-key' => $this->apiKey,
+            'x-api-key' => $odero_pk,
             'x-rnd-key' => $rndKey,
             'x-auth-version' => 'V1',
             'x-signature' => $signature,
@@ -162,7 +187,7 @@ class OderoService extends BaseService
     }
 
 
-    private function web(array $data, array $types, array $before, float $totalPrice, int $modelId, Payment $payment): Model|PaymentProcess
+    private function web(array $data, array $types, array $before, float $totalPrice, int $modelId, Payment $payment, string $odero_pk, string $odero_sk): Model|PaymentProcess
     {
 
 
@@ -184,7 +209,10 @@ class OderoService extends BaseService
             ]
         ];
 
-        $oderoResponse = $this->initPayment2($initPayload);
+
+
+
+        $oderoResponse = $this->initPayment2($initPayload, $odero_pk, $odero_sk);
 
 
         Log::info('oderoResponse', ['oderoResponse:', $oderoResponse]);

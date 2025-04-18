@@ -138,6 +138,7 @@ class StripeController extends Controller
 			$order = Order::with('table')->find($orderId);
 
 			if (!empty($order->table_id)) {
+				Log::info('redirect zamani order table boşdur');
 
 				$qrUrl  = rtrim(Settings::where('key', 'qrcode_base_url')->value('value'), '/');
 				$qrType = rtrim(Settings::where('key', 'qrcode_type')->value('value') ?? 'w2');

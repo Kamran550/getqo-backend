@@ -31,11 +31,11 @@ class EmailSendService extends CoreService
         return EmailSetting::class;
     }
 
-	/**
-	 * @param EmailTemplate $emailTemplate
-	 * @return array
-	 */
-	public function sendSubscriptions(EmailTemplate $emailTemplate): array
+    /**
+     * @param EmailTemplate $emailTemplate
+     * @return array
+     */
+    public function sendSubscriptions(EmailTemplate $emailTemplate): array
     {
         $mail = new PHPMailer(true);
 
@@ -74,7 +74,6 @@ class EmailSendService extends CoreService
                 if (!empty($email)) {
                     $mail->addAddress($email, data_get($subscribe->user, 'firstname', 'User'));
                 }
-
             }
 
             // Тема письма
@@ -91,7 +90,7 @@ class EmailSendService extends CoreService
                 try {
                     $mail->addAttachment(request()->getHttpHost() . '/storage/' . $gallery->path);
                 } catch (Throwable) {
-                    Log::error($mail->ErrorInfo);
+                    Log::error('5 ci mail error:', ['5 ci mail error:', $mail->ErrorInfo]);
                 }
             }
 
@@ -101,9 +100,8 @@ class EmailSendService extends CoreService
                 'status' => true,
                 'code' => ResponseError::NO_ERROR,
             ];
-
         } catch (Exception) {
-            Log::error($mail->ErrorInfo);
+            Log::error('4 ci mail error:', ['4 ci mail error:', $mail->ErrorInfo]);
             return [
                 'message' => $mail->ErrorInfo,
                 'status'  => false,
@@ -112,11 +110,11 @@ class EmailSendService extends CoreService
         }
     }
 
-	/**
-	 * @param User $user
-	 * @return array
-	 */
-	public function sendVerify(User $user): array
+    /**
+     * @param User $user
+     * @return array
+     */
+    public function sendVerify(User $user): array
     {
         $emailTemplate = EmailTemplate::where('type', EmailTemplate::TYPE_ORDER)->first();
 
@@ -139,7 +137,7 @@ class EmailSendService extends CoreService
                     try {
                         $mail->addAttachment(request()->getHttpHost() . '/storage/' . $gallery->path);
                     } catch (Throwable) {
-                        Log::error($mail->ErrorInfo);
+                        Log::error('3 ci mail error:', ['3 ci mail error:', $mail->ErrorInfo]);
                     }
                 }
             }
@@ -163,78 +161,78 @@ class EmailSendService extends CoreService
         }
     }
 
-	/**
-	 * @param Order $order
-	 * @return array
-	 */
-	public function sendOrder(Order $order): array
-	{
-		Pdf::setOption(['dpi' => 150, 'defaultFont' => 'sans-serif']);
+    /**
+     * @param Order $order
+     * @return array
+     */
+    public function sendOrder(Order $order): array
+    {
+        Pdf::setOption(['dpi' => 150, 'defaultFont' => 'sans-serif']);
 
-		$titleKey = "order.email.invoice.$order->status.title";
-		$title    = Translation::where(['locale' => $this->language, 'key' => $titleKey])->first()?->value ?? $titleKey;
-		$logo     = Settings::where('key', 'logo')->first()?->value;
-		$fileName = null;
-		$host     = request()->getSchemeAndHttpHost();
+        $titleKey = "order.email.invoice.$order->status.title";
+        $title    = Translation::where(['locale' => $this->language, 'key' => $titleKey])->first()?->value ?? $titleKey;
+        $logo     = Settings::where('key', 'logo')->first()?->value;
+        $fileName = null;
+        $host     = request()->getSchemeAndHttpHost();
 
-		if ($logo) {
+        if ($logo) {
 
-			$id   = auth('sanctum')->id() ?? "0001";
-			$ext  = strtolower(preg_replace("#.+\.([a-z]+)$#i", "$1", $logo));
-			$unix = now()->unix();
+            $id   = auth('sanctum')->id() ?? "0001";
+            $ext  = strtolower(preg_replace("#.+\.([a-z]+)$#i", "$1", $logo));
+            $unix = now()->unix();
 
-			$fileName = "$id-$unix.$ext";
+            $fileName = "$id-$unix.$ext";
 
-			Storage::put("public/images/$fileName", file_get_contents($logo));
-		}
+            Storage::put("public/images/$fileName", file_get_contents($logo));
+        }
 
-		$pdf = View::make(
-			'order-email-invoice',
-			[
-				'order' => $order,
-				'lang'  => $this->language,
-				'title' => $title,
-				'logo'  => $fileName ? "$host/storage/images/$fileName" : '',
-			]
-		)->render();
+        $pdf = View::make(
+            'order-email-invoice',
+            [
+                'order' => $order,
+                'lang'  => $this->language,
+                'title' => $title,
+                'logo'  => $fileName ? "$host/storage/images/$fileName" : '',
+            ]
+        )->render();
 
-		try {
-			$mail           = $this->emailBaseAuth(EmailSetting::first(), $order->user);
-			$mail->Subject  = $title;
-			$mail->Body     = $pdf;
-			$mail->addCustomHeader('MIME-Version', '1.0');
-			$mail->addCustomHeader('Content-type', 'text/html;charset=UTF-8');
-			$mail->send();
+        try {
+            $mail           = $this->emailBaseAuth(EmailSetting::first(), $order->user);
+            $mail->Subject  = $title;
+            $mail->Body     = $pdf;
+            $mail->addCustomHeader('MIME-Version', '1.0');
+            $mail->addCustomHeader('Content-type', 'text/html;charset=UTF-8');
+            $mail->send();
 
-			Storage::delete(storage_path("images/$fileName"));
+            Storage::delete(storage_path("images/$fileName"));
 
-			return [
-				'status' => true,
-				'code'   => ResponseError::NO_ERROR,
-			];
-		} catch (Exception $e) {
-			$this->error($e);
-			return [
-				'message' => $e->getMessage(), //$mail->ErrorInfo,
-				'status'  => false,
-				'code'    => ResponseError::ERROR_504,
-			];
-		}
-	}
+            return [
+                'status' => true,
+                'code'   => ResponseError::NO_ERROR,
+            ];
+        } catch (Exception $e) {
+            $this->error($e);
+            return [
+                'message' => $e->getMessage(), //$mail->ErrorInfo,
+                'status'  => false,
+                'code'    => ResponseError::ERROR_504,
+            ];
+        }
+    }
 
-	/**
-	 * @param User $user
-	 * @param $str
-	 * @return array
-	 */
-	public function sendEmailPasswordReset(User $user, $str): array
+    /**
+     * @param User $user
+     * @param $str
+     * @return array
+     */
+    public function sendEmailPasswordReset(User $user, $str): array
     {
         $emailTemplate = EmailTemplate::where('type', EmailTemplate::TYPE_VERIFY)->first();
-		$mail = $this->emailBaseAuth($emailTemplate?->emailSetting, $user);
+        $mail = $this->emailBaseAuth($emailTemplate?->emailSetting, $user);
 
         try {
 
-			$mail->Subject  = $emailTemplate->subject ?? 'Reset password';
+            $mail->Subject  = $emailTemplate->subject ?? 'Reset password';
 
             $default        = 'Please enter code for reset your password: $verify_code';
             $body           = $emailTemplate->body ?? $default;
@@ -249,7 +247,7 @@ class EmailSendService extends CoreService
                     try {
                         $mail->addAttachment(request()->getHttpHost() . '/storage/' . $gallery->path);
                     } catch (Throwable) {
-                        Log::error($mail->ErrorInfo);
+                        Log::error('2 ci mail error:', ['2 ci mail error:', $mail->ErrorInfo]);
                     }
                 }
             }
@@ -273,16 +271,16 @@ class EmailSendService extends CoreService
         }
     }
 
-	/**
-	 * @param EmailSetting|null $emailSetting
-	 * @param User $user
-	 * @return PHPMailer
-	 */
-	public function emailBaseAuth(?EmailSetting $emailSetting, User $user): PHPMailer
+    /**
+     * @param EmailSetting|null $emailSetting
+     * @param User $user
+     * @return PHPMailer
+     */
+    public function emailBaseAuth(?EmailSetting $emailSetting, User $user): PHPMailer
     {
-		if (empty($emailSetting)) {
-			$emailSetting = EmailSetting::first();
-		}
+        if (empty($emailSetting)) {
+            $emailSetting = EmailSetting::first();
+        }
 
         $mail = new PHPMailer(true);
         $mail->isHTML();
@@ -303,17 +301,16 @@ class EmailSendService extends CoreService
             ]
         ];
 
-		if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
-			abort(403);
-		}
+        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+            abort(403);
+        }
 
         try {
 
             $mail->setFrom($emailSetting->from_to, $emailSetting->from_site);
             $mail->addAddress($user->email, $user->name_or_email);
-
         } catch (Throwable $e) {
-            Log::error($mail->ErrorInfo);
+            Log::error('mail error:', ['mail error:', $mail->ErrorInfo]);
             $this->error($e);
         }
 

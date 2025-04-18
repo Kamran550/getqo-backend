@@ -16,6 +16,7 @@ use Http;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Redirect;
 use Throwable;
 
 class OderoController extends Controller
@@ -113,6 +114,9 @@ class OderoController extends Controller
 
         $paymentPayload = PaymentPayload::where('payment_id', $payment?->id)->first();
         $payload        = $paymentPayload?->payload;
+
+        $odero_sk = data_get($paymentPayload?->paylaod, 'odero_sk');
+
         Log::info('WEBHOOK payload:', ['WEBHOOK payload', $payload]);
 
 
@@ -138,7 +142,7 @@ class OderoController extends Controller
         $url = "https://sandbox-api-gateway.oderopay.com.tr/payment/v1/checkout-payments/{$token}";
 
         $rndKey = uniqid();
-        $signature = $this->odero->generateSignature($url, $rndKey);
+        $signature = $this->odero->generateSignature($url, $rndKey, '', $odero_sk);
 
         $apiKey = $this->odero->getApiKey();
         $response = Http::withHeaders([
@@ -169,11 +173,17 @@ class OderoController extends Controller
         };
 
         LOg::info('WEBHOOK status', ['WEBHOOK status', $status]);
+        $to = config('app.front_url');
+
         try {
             $this->odero->afterHook($token, $status);
             // return $this->successResponse();
-            return redirect('http://localhost:3000/');
+
+            Log::info('hook bitdi ve redirect olur:');
+
+            return Redirect::to($to);
         } catch (Throwable $e) {
+            LOg::info('hook bitdikden sonra odero controllerde catche dusur');
             return $this->onErrorResponse([
                 'code' => $e->getCode(),
                 'message' => $e->getMessage() . $e->getFile() . $e->getLine()

@@ -15,6 +15,7 @@ use App\Models\Notification;
 use App\Models\User;
 use App\Services\AuthService\AuthByMobilePhone;
 use App\Services\EmailSettingService\EmailSendService;
+use App\Services\SMSGatewayService\SMSBaseService;
 use App\Services\UserServices\UserWalletService;
 use App\Traits\ApiResponse;
 use DB;
@@ -34,6 +35,7 @@ class LoginController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         Log::info('Login request received', ['data' => $request->all()]);
+
 
         Log::info('salam login');
         if ($request->input('phone')) {
@@ -58,6 +60,7 @@ class LoginController extends Controller
 
     protected function loginByPhone($request): JsonResponse
     {
+        Log::info('login by phoneee');
         if (!auth()->attempt($request->only('phone', 'password'))) {
             return $this->onErrorResponse([
                 'code'    => ResponseError::ERROR_102,
@@ -249,7 +252,23 @@ class LoginController extends Controller
 
     public function forgetPasswordEmail(ReSendVerifyRequest $request): JsonResponse
     {
-        $user = User::withTrashed()->where('email', $request->input('email'))->first();
+
+        Log::info('salam1', ['body:', $request->all()]);
+        $user = User::withTrashed()
+            ->when($request->filled('email'), function ($query) use ($request) {
+                return $query->where('email', $request->input('email'));
+            })
+            ->when($request->filled('phone'), function ($query) use ($request) {
+                $phone = $request->input('phone'); // '+' və ya başqa simvollar çıxarılmır
+                return $query->where('phone', $phone);
+            })
+            ->first();
+
+
+
+        // $user = User::withTrashed()->where('email', $request->input('email'))->first();
+
+        Log::info('user', ['user:', $user]);
 
         if (!$user) {
             return $this->onErrorResponse([
@@ -260,17 +279,28 @@ class LoginController extends Controller
 
         $token = mb_substr((string)time(), -6, 6);
 
+        Log::info('token:', ['token:', $token]);
+
         Cache::put($token, $token, 900);
+        Log::info('111111111111111111111111111111');
+        $result = null;
 
-        $result = (new EmailSendService)->sendEmailPasswordReset($user, $token);
+        // if ($request->filled('email')) {
+        //     $result = (new EmailSendService)->sendEmailPasswordReset($user, $token);
+        // } elseif ($request->filled('phone')) {
+        //     $result = (new SMSBaseService)->smsGateway($request->input('phone'));
+        // }
+        Log::info('2222222222222222222222222222222');
 
-        if (!data_get($result, 'status')) {
-            return $this->onErrorResponse($result);
-        }
+        // if (!data_get($result, 'status')) {
+        //     return $this->onErrorResponse($result);
+        // }
+
 
         $user->update([
             'verify_token' => $token
         ]);
+        Log::info('user updated');
 
         return $this->successResponse('Verify code send');
     }
@@ -278,6 +308,8 @@ class LoginController extends Controller
     public function forgetPasswordVerifyEmail(int $hash): JsonResponse
     {
         $token = Cache::get($hash);
+
+        Log::info('cachedeki token:', ['cachedeki token:', $token]);
 
         if (!$token) {
             return $this->onErrorResponse([
@@ -287,6 +319,8 @@ class LoginController extends Controller
         }
 
         $user = User::withTrashed()->where('verify_token', $token)->first();
+
+        Log::info('token ile user:', ['token ile user:', $user]);
 
         if (!$user) {
             return $this->onErrorResponse([

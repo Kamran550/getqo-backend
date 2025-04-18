@@ -115,7 +115,7 @@ class BaseService extends CoreService
 					'status'             => $status,
 				]);
 				Log::info("555555555555555555555555555555555555555555555555");
-
+				Log::info('ifin resultu:', ['ifin resultu:', (int)data_get(Settings::where('key', 'order_auto_approved')->first(), 'value') === 1]);
 
 				if ((int)data_get(Settings::where('key', 'order_auto_approved')->first(), 'value') === 1) {
 					(new NotificationHelper)->autoAcceptNotification(
@@ -134,7 +134,7 @@ class BaseService extends CoreService
 			return;
 		}
 
-
+		Log::info('catchden cixdi paymentProcess');
 		$paymentProcess = $paymentProcess->fresh(['model.transaction']);
 
 		Log::info("666666666666666666666666666666666666666666666666");
@@ -146,6 +146,7 @@ class BaseService extends CoreService
 
 
 		if ($userId && $type === 'wallet') {
+			LOg::info('walletdirmi:');
 
 			$trxId       = data_get($paymentProcess->data, 'trx_id');
 			$transaction = Transaction::find($trxId);
@@ -212,6 +213,7 @@ class BaseService extends CoreService
 			return;
 		}
 
+		Log::info('modelclasdirmi');
 		$modelClass = Str::replace('App\\Models\\', '', $paymentProcess->model_type);
 
 		if ($paymentProcess->model_type === Order::class && !isset($paymentProcess->data['tips'])) {

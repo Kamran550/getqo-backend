@@ -11,9 +11,10 @@ class ReSendVerifyRequest extends BaseRequest
      * @return array
      */
     public function rules(): array
-	{
-		return [
-            'email'  => ['required', 'email', 'exists:users,email'],
-		];
-	}
+    {
+        return [
+            'email'  => ['nullable', 'email', 'exists:users,email'],
+            'phone' => ['nullable', 'string', 'exists:users,phone'],
+        ];
+    }
 }

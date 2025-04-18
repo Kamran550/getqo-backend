@@ -31,6 +31,7 @@ trait Notification
 	): void {
 		//		dispatch(function () use ($receivers, $message, $title, $data, $userIds, $firebaseTitle) {
 		//
+		Log::info('sendNotificationa girdi');
 		if (empty($receivers)) {
 			return;
 		}
@@ -44,6 +45,8 @@ trait Notification
 			'data' 	=> $data,
 			'sound' => 'default',
 		]);
+		Log::info('sendNotificationa girdi');
+
 
 		if (is_array($userIds) && count($userIds) > 0) {
 
@@ -55,10 +58,14 @@ trait Notification
 				'sound' => 'default',
 			], $userIds);
 		}
+		Log::info('sendNotificationa girdi');
+
 
 		$url = "https://fcm.googleapis.com/v1/projects/{$this->projectId()}/messages:send";
 
 		$token = $this->updateToken();
+		Log::info('sendNotificationa girdi token updated');
+
 
 		$headers = [
 			'Authorization' => "Bearer $token",
