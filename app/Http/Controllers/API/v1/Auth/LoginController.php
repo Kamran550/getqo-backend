@@ -15,11 +15,13 @@ use App\Models\Notification;
 use App\Models\User;
 use App\Services\AuthService\AuthByMobilePhone;
 use App\Services\EmailSettingService\EmailSendService;
+use App\Services\SMSGatewayService\SMSBaseService;
 use App\Services\UserServices\UserWalletService;
 use App\Traits\ApiResponse;
 use DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\PersonalAccessToken;
 use Psr\SimpleCache\InvalidArgumentException;
 use Spatie\Permission\Models\Role;
@@ -32,6 +34,10 @@ class LoginController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
+        Log::info('Login request received', ['data' => $request->all()]);
+
+
+        Log::info('salam login');
         if ($request->input('phone')) {
             return $this->loginByPhone($request);
         }
@@ -54,6 +60,7 @@ class LoginController extends Controller
 
     protected function loginByPhone($request): JsonResponse
     {
+        Log::info('login by phoneee');
         if (!auth()->attempt($request->only('phone', 'password'))) {
             return $this->onErrorResponse([
                 'code'    => ResponseError::ERROR_102,
@@ -68,7 +75,6 @@ class LoginController extends Controller
             'token_type'   => 'Bearer',
             'user'         => UserResource::make(auth('sanctum')->user()->loadMissing(['shop', 'model'])),
         ]);
-
     }
 
     /**
@@ -101,16 +107,16 @@ class LoginController extends Controller
                     'deleted_at'        => null,
                 ]);
 
-				if ($request->input('avatar')) {
-					$user->update(['img' => $request->input('avatar')]);
-				}
+                if ($request->input('avatar')) {
+                    $user->update(['img' => $request->input('avatar')]);
+                }
 
-				$user->socialProviders()->updateOrCreate([
-					'provider'      => $provider,
-					'provider_id'   => $request->input('id'),
-				], [
-					'avatar' => $request->input('avatar')
-				]);
+                $user->socialProviders()->updateOrCreate([
+                    'provider'      => $provider,
+                    'provider_id'   => $request->input('id'),
+                ], [
+                    'avatar' => $request->input('avatar')
+                ]);
 
                 if (!$user->hasAnyRole(Role::query()->pluck('name')->toArray())) {
                     $user->syncRoles('user');
@@ -130,9 +136,9 @@ class LoginController extends Controller
                     'active' => true
                 ]);
 
-				if (empty($user->wallet?->uuid)) {
-					$user = (new UserWalletService)->create($user);
-				}
+                if (empty($user->wallet?->uuid)) {
+                    $user = (new UserWalletService)->create($user);
+                }
 
                 return [
                     'token' => $user->createToken('api_token')->plainTextToken,
@@ -154,31 +160,31 @@ class LoginController extends Controller
         }
     }
 
-	/**
-	 * @param FilterParamsRequest $request
-	 * @return JsonResponse
-	 */
-	public function checkPhone(FilterParamsRequest $request): JsonResponse
-	{
-		$user = User::with('shop')
-			->where('phone', $request->input('phone'))
-			->first();
+    /**
+     * @param FilterParamsRequest $request
+     * @return JsonResponse
+     */
+    public function checkPhone(FilterParamsRequest $request): JsonResponse
+    {
+        $user = User::with('shop')
+            ->where('phone', $request->input('phone'))
+            ->first();
 
-		if (!$user) {
-			return $this->onErrorResponse([
-				'code'    => ResponseError::ERROR_102,
-				'message' => __('errors.' . ResponseError::ERROR_102, locale: $this->language)
-			]);
-		}
+        if (!$user) {
+            return $this->onErrorResponse([
+                'code'    => ResponseError::ERROR_102,
+                'message' => __('errors.' . ResponseError::ERROR_102, locale: $this->language)
+            ]);
+        }
 
-		$token = $user->createToken('api_token')->plainTextToken;
+        $token = $user->createToken('api_token')->plainTextToken;
 
-		return $this->successResponse('User successfully login', [
-			'access_token' => $token,
-			'token_type'   => 'Bearer',
-			'user'         => UserResource::make($user),
-		]);
-	}
+        return $this->successResponse('User successfully login', [
+            'access_token' => $token,
+            'token_type'   => 'Bearer',
+            'user'         => UserResource::make($user),
+        ]);
+    }
 
     public function logout(): JsonResponse
     {
@@ -194,15 +200,14 @@ class LoginController extends Controller
                 'firebase_token' => $firebaseToken
             ]);
 
-			try {
-				$token   = str_replace('Bearer ', '', request()->header('Authorization'));
+            try {
+                $token   = str_replace('Bearer ', '', request()->header('Authorization'));
 
-				$current = PersonalAccessToken::findToken($token);
-				$current->delete();
-
-			} catch (Throwable $e) {
-				$this->error($e);
-			}
+                $current = PersonalAccessToken::findToken($token);
+                $current->delete();
+            } catch (Throwable $e) {
+                $this->error($e);
+            }
         } catch (Throwable $e) {
             $this->error($e);
         }
@@ -217,17 +222,17 @@ class LoginController extends Controller
      */
     protected function validateProvider($idToken, $provider)
     {
-//        $serverKey = Settings::where('key', 'api_key')->first()?->value;
-//        $clientId  = Settings::where('key', 'client_id')->first()?->value;
-//
-//        $response  = Http::get("https://oauth2.googleapis.com/tokeninfo?id_token=$idToken");
+        //        $serverKey = Settings::where('key', 'api_key')->first()?->value;
+        //        $clientId  = Settings::where('key', 'client_id')->first()?->value;
+        //
+        //        $response  = Http::get("https://oauth2.googleapis.com/tokeninfo?id_token=$idToken");
 
-//        dd($response->json(), $clientId, $serverKey);
+        //        dd($response->json(), $clientId, $serverKey);
 
-//        $response = Http::withHeaders([
-//            'Content-Type' => 'application/x-www-form-urlencoded',
-//        ])
-//            ->post('http://your-laravel-app.com/oauth/token');
+        //        $response = Http::withHeaders([
+        //            'Content-Type' => 'application/x-www-form-urlencoded',
+        //        ])
+        //            ->post('http://your-laravel-app.com/oauth/token');
 
         if (!in_array($provider, ['facebook', 'github', 'google', 'apple'])) { //$response->ok()
             return $this->onErrorResponse([
@@ -236,19 +241,35 @@ class LoginController extends Controller
                 'message' =>  __('errors.' . ResponseError::INCORRECT_LOGIN_PROVIDER, locale: $this->language)
             ]);
         }
-
     }
 
     public function forgetPassword(ForgetPasswordRequest $request): JsonResponse
     {
+        Log::info('forgetPassword');
+
         return (new AuthByMobilePhone)->authentication($request->validated());
     }
 
     public function forgetPasswordEmail(ReSendVerifyRequest $request): JsonResponse
     {
-        $user = User::withTrashed()->where('email', $request->input('email'))->first();
 
-        if(!$user) {
+        $user = User::withTrashed()
+            ->when($request->filled('email'), function ($query) use ($request) {
+                return $query->where('email', $request->input('email'));
+            })
+            ->when($request->filled('phone'), function ($query) use ($request) {
+                $phone = $request->input('phone'); // '+' və ya başqa simvollar çıxarılmır
+                return $query->where('phone', $phone);
+            })
+            ->first();
+
+
+
+        // $user = User::withTrashed()->where('email', $request->input('email'))->first();
+
+        Log::info('user', ['user:', $user]);
+
+        if (!$user) {
             return $this->onErrorResponse([
                 'code'      => ResponseError::ERROR_404,
                 'message'   => __('errors.' . ResponseError::ERROR_404, locale: $this->language),
@@ -257,17 +278,28 @@ class LoginController extends Controller
 
         $token = mb_substr((string)time(), -6, 6);
 
+        Log::info('token:', ['token:', $token]);
+
         Cache::put($token, $token, 900);
+        Log::info('111111111111111111111111111111');
+        $result = null;
 
-		$result = (new EmailSendService)->sendEmailPasswordReset($user, $token);
+        if ($request->filled('email')) {
+            $result = (new EmailSendService)->sendEmailPasswordReset($user, $token);
+        } elseif ($request->filled('phone')) {
+            $result = (new SMSBaseService)->smsGateway($request->input('phone'));
+        }
+        Log::info('2222222222222222222222222222222');
 
-		if (!data_get($result, 'status')) {
-			return $this->onErrorResponse($result);
-		}
+        if (!data_get($result, 'status')) {
+            return $this->onErrorResponse($result);
+        }
 
-		$user->update([
-			'verify_token' => $token
-		]);
+
+        $user->update([
+            'verify_token' => $token
+        ]);
+        Log::info('user updated');
 
         return $this->successResponse('Verify code send');
     }
@@ -275,6 +307,8 @@ class LoginController extends Controller
     public function forgetPasswordVerifyEmail(int $hash): JsonResponse
     {
         $token = Cache::get($hash);
+
+        Log::info('cachedeki token:', ['cachedeki token:', $token]);
 
         if (!$token) {
             return $this->onErrorResponse([
@@ -284,6 +318,8 @@ class LoginController extends Controller
         }
 
         $user = User::withTrashed()->where('verify_token', $token)->first();
+
+        Log::info('token ile user:', ['token ile user:', $user]);
 
         if (!$user) {
             return $this->onErrorResponse([
@@ -301,12 +337,13 @@ class LoginController extends Controller
         $user->update([
             'active'       => true,
             'deleted_at'   => null,
-			'verify_token' => null
-		]);
+            'verify_token' => null
+        ]);
 
-		try {
-			Cache::delete($hash);
-		} catch (InvalidArgumentException $e) {}
+        try {
+            Cache::delete($hash);
+        } catch (InvalidArgumentException $e) {
+        }
 
         return $this->successResponse('User successfully login', [
             'token' => $token,
@@ -320,8 +357,7 @@ class LoginController extends Controller
      */
     public function forgetPasswordVerify(PhoneVerifyRequest $request): JsonResponse
     {
+        Log::info('forgetPasswordVerify');
         return (new AuthByMobilePhone)->forgetPasswordVerify($request->validated());
     }
-
-
 }

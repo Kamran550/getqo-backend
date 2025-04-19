@@ -10,6 +10,7 @@ use App\Models\Currency;
 use App\Services\Interfaces\CurrencyServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class CurrencyController extends AdminBaseController
 {
@@ -47,8 +48,11 @@ class CurrencyController extends AdminBaseController
      */
     public function store(StoreRequest $request): JsonResponse
     {
+        Log::info('store request currency');
+        Log::info('Reqbod:', ['req body:', $request->all()]);
         $result = $this->service->create($request->validated());
 
+        Log::info('result:', ['result:', $result]);
         if (!data_get($result, 'status')) {
             return $this->onErrorResponse($result);
         }
@@ -165,7 +169,8 @@ class CurrencyController extends AdminBaseController
         }
 
         return $this->successResponse(
-            __('errors.' . ResponseError::SUCCESS, locale: $this->language), CurrencyResource::make($currency)
+            __('errors.' . ResponseError::SUCCESS, locale: $this->language),
+            CurrencyResource::make($currency)
         );
     }
 
@@ -183,16 +188,16 @@ class CurrencyController extends AdminBaseController
         );
     }
 
-	/**
-	 * Get all Active languages
-	 * @param int $id
-	 * @return JsonResponse
-	 */
+    /**
+     * Get all Active languages
+     * @param int $id
+     * @return JsonResponse
+     */
     public function setDefaultCurrency(int $id): JsonResponse
     {
         $currency = Currency::find($id);
 
-		$this->service->setCurrencyDefault($currency);
+        $this->service->setCurrencyDefault($currency);
 
         return $this->successResponse(
             __('errors.' . ResponseError::SUCCESS, locale: $this->language),

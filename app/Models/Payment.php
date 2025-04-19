@@ -46,6 +46,7 @@ class Payment extends Model
     const TAG_WALLET       = 'wallet';
     const TAG_MERCADO_PAGO = 'mercado-pago';
     const TAG_STRIPE       = 'stripe';
+    const TAG_ODERO        = 'odero';
     const TAG_MOYA_SAR     = 'moya-sar';
     const TAG_FLUTTER_WAVE = 'flutter-wave';
     const TAG_MOLLIE       = 'mollie';
@@ -62,7 +63,7 @@ class Payment extends Model
 
     public function shopPayment(): BelongsTo
     {
-        return $this->belongsTo(ShopPayment::class,'id','payment_id');
+        return $this->belongsTo(ShopPayment::class, 'id', 'payment_id');
     }
 
     public function paymentPayload(): HasOne

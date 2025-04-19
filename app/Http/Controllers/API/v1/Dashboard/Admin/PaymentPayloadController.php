@@ -11,6 +11,7 @@ use App\Repositories\PaymentPayloadRepository\PaymentPayloadRepository;
 use App\Services\PaymentPayloadService\PaymentPayloadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 
 class PaymentPayloadController extends AdminBaseController
 {
@@ -41,9 +42,15 @@ class PaymentPayloadController extends AdminBaseController
      */
     public function store(StoreRequest $request): JsonResponse
     {
+        Log::info('payload create');
         $validated = $request->validated();
 
+        Log::info('validate:', ['val:', $validated]);
+
         $result = $this->service->create($validated);
+        Log::info('result:', ['result:', $result]);
+
+
 
         if (!data_get($result, 'status')) {
             return data_get($result, 'params') ?
@@ -170,5 +177,4 @@ class PaymentPayloadController extends AdminBaseController
             __('errors.' . ResponseError::RECORD_WAS_SUCCESSFULLY_DELETED, locale: $this->language)
         );
     }
-
 }

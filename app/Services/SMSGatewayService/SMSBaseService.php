@@ -7,7 +7,9 @@ use App\Models\SmsGateway;
 use App\Models\SmsPayload;
 use App\Services\CoreService;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+
 
 class SMSBaseService extends CoreService
 {
@@ -34,14 +36,16 @@ class SMSBaseService extends CoreService
         if ($smsPayload?->type === SmsPayload::FIREBASE) {
 
             $result = (new TwilioService)->sendSms($phone, $otp, $smsPayload);
-
         } else if ($smsPayload?->type === SmsPayload::TWILIO) {
-
-            $result = (new TwilioService)->sendSms($phone, $otp, $smsPayload);
-
+            Log::info('smile sms ile ');
+            Log::info('smile sms ile 222222222222222222222222');
+            $result = (new SmileSMSService)->sendSms3($phone, $otp, $smsPayload);
+            Log::info('res:', ['res:', $result]);
         }
 
         if (data_get($result, 'status')) {
+
+
 
             $this->setOTPToCache($phone, $otp);
 

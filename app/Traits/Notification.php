@@ -28,10 +28,10 @@ trait Notification
 		mixed   $data = [],
 		array   $userIds = [],
 		?string $firebaseTitle = '',
-	): void
-	{
-//		dispatch(function () use ($receivers, $message, $title, $data, $userIds, $firebaseTitle) {
-//
+	): void {
+		//		dispatch(function () use ($receivers, $message, $title, $data, $userIds, $firebaseTitle) {
+		//
+		Log::info('sendNotificationa girdi');
 		if (empty($receivers)) {
 			return;
 		}
@@ -45,21 +45,27 @@ trait Notification
 			'data' 	=> $data,
 			'sound' => 'default',
 		]);
+		Log::info('sendNotificationa girdi');
+
 
 		if (is_array($userIds) && count($userIds) > 0) {
 
 			(new PushNotificationService)->storeMany([
 				'type' => $type ?? data_get($data, 'type'),
 				'title' => $title,
-					'body' 	=> $message,
-					'data' 	=> $data,
-					'sound' => 'default',
-				], $userIds);
-			}
+				'body' 	=> $message,
+				'data' 	=> $data,
+				'sound' => 'default',
+			], $userIds);
+		}
+		Log::info('sendNotificationa girdi');
+
 
 		$url = "https://fcm.googleapis.com/v1/projects/{$this->projectId()}/messages:send";
 
 		$token = $this->updateToken();
+		Log::info('sendNotificationa girdi token updated');
+
 
 		$headers = [
 			'Authorization' => "Bearer $token",
@@ -103,15 +109,13 @@ trait Notification
 					]);
 
 					Log::error($request->status(), [$receiver]);
-
 				})->afterResponse();
-
 			} catch (Throwable $e) {
 				Log::error('catch ' . $e->getMessage());
 			}
 		}
 
-//		})->afterResponse();
+		//		})->afterResponse();
 	}
 
 	public function sendAllNotification(?string $title = null, mixed $data = [], ?string $firebaseTitle = ''): void
@@ -155,11 +159,8 @@ trait Notification
 						array_keys(is_array($firebaseTokens) ? $firebaseTokens : []),
 						$firebaseTitle
 					);
-
 				});
-
 		})->afterResponse();
-
 	}
 
 	private function updateToken(): string
@@ -181,6 +182,9 @@ trait Notification
 			->pluck('firebase_token', 'id')
 			->toArray();
 
+
+
+		Log::info('adminFirebaseTokens', ['adminFirebaseTokens:', $adminFirebaseTokens]);
 		$sellersFirebaseTokens = User::with([
 			'shop' => fn($q) => $q->where('id', $order->shop_id)
 		])
@@ -188,6 +192,9 @@ trait Notification
 			->whereNotNull('firebase_token')
 			->pluck('firebase_token', 'id')
 			->toArray();
+
+		Log::info('sellersFirebaseTokens', ['sellersFirebaseTokens:', $sellersFirebaseTokens]);
+
 
 		$aTokens = [];
 		$sTokens = [];
@@ -200,14 +207,16 @@ trait Notification
 			$sTokens = array_merge($sTokens, is_array($sellerToken) ? array_values($sellerToken) : [$sellerToken]);
 		}
 
+		Log::info("aTokens:", ['aTokens', $aTokens]);
+		Log::info("sTokens:", ['sTokens', $sTokens]);
+
 		$this->sendNotification(
 			array_values(array_unique(array_merge($aTokens, $sTokens))),
 			__('errors.' . ResponseError::NEW_ORDER, ['id' => $order->id], $this->language),
-            $order->id,
-            $order->setAttribute('type', PushNotification::NEW_ORDER)?->only(['id', 'status', 'delivery_type']),
+			$order->id,
+			$order->setAttribute('type', PushNotification::NEW_ORDER)?->only(['id', 'status', 'delivery_type']),
 			array_merge(array_keys($adminFirebaseTokens), array_keys($sellersFirebaseTokens))
 		);
-
 	}
 
 	private function projectId()

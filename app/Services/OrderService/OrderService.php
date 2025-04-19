@@ -28,6 +28,7 @@ use App\Services\TransactionService\TransactionService;
 use App\Traits\Notification;
 use DB;
 use Exception;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class OrderService extends CoreService implements OrderServiceInterface
@@ -68,14 +69,14 @@ class OrderService extends CoreService implements OrderServiceInterface
 				->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale)),
 			'orderDetails.stock.countable.translation' => fn($ct) => $ct
 				->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale)),
-			'orderDetails.stock.stockExtras.group.translation' => function ($cgt) use($locale) {
+			'orderDetails.stock.stockExtras.group.translation' => function ($cgt) use ($locale) {
 				$cgt
 					->select('id', 'extra_group_id', 'locale', 'title')
 					->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale));
 			},
 			'orderDetails.children.stock.countable.translation' => fn($ct) => $ct
 				->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale)),
-			'orderDetails.children.stock.stockExtras.group.translation' => function ($cgt) use($locale) {
+			'orderDetails.children.stock.stockExtras.group.translation' => function ($cgt) use ($locale) {
 				$cgt
 					->select('id', 'extra_group_id', 'locale', 'title')
 					->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale));
@@ -93,6 +94,8 @@ class OrderService extends CoreService implements OrderServiceInterface
 	 */
 	public function create(array $data): array
 	{
+
+		Log::info('data:', ['data:', $data]);
 		$checkPhoneIfRequired = $this->checkPhoneIfRequired($data);
 
 		if (!data_get($checkPhoneIfRequired, 'status')) {
@@ -102,17 +105,22 @@ class OrderService extends CoreService implements OrderServiceInterface
 		/** @var Shop $shop */
 		$shop = Shop::find(data_get($data, 'shop_id'));
 
+		Log::info('shop:', ['shop:', $shop]);
+
 		if (data_get($data, 'table_id') && !$shop?->new_order_after_payment) {
 
 			$order = Order::with([
 				'transaction' => fn($q) => $q->where('status', Transaction::STATUS_SPLIT)
 			])
-				->when($shop?->order_payment === 'before',
+				->when(
+					$shop?->order_payment === 'before',
 					fn($q) => $q->where('status', '!=', Order::STATUS_DELIVERED),
-					fn($q) => $q->whereDoesntHave('transaction', fn($q) => $q
-						->where('type', Transaction::TYPE_MODEL)
-						->whereNull('parent_id')
-						->where('status', Transaction::STATUS_PAID)
+					fn($q) => $q->whereDoesntHave(
+						'transaction',
+						fn($q) => $q
+							->where('type', Transaction::TYPE_MODEL)
+							->whereNull('parent_id')
+							->where('status', Transaction::STATUS_PAID)
 					),
 				)
 				->select([
@@ -121,7 +129,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 					'table_id'
 				])
 				->where('status', '!=', Order::STATUS_DELIVERED)
-				->where( 'table_id', $data['table_id'])
+				->where('table_id', $data['table_id'])
 				->first();
 
 			if (!empty($order)) {
@@ -137,18 +145,21 @@ class OrderService extends CoreService implements OrderServiceInterface
 
 				return $this->update($order->id, $data);
 			}
-
 		}
 
 		try {
 
 			if (isset($data['cart_id']) && Order::where('cart_id', $data['cart_id'])->exists()) {
+				Log::info('datada cart id var');
 				return [
 					'status'  => false,
 					'message' => 'duplicate',
 					'code'    => ResponseError::ERROR_501,
 				];
 			}
+
+			Log::info('datada cart id yoxdur');
+
 
 			$order = DB::transaction(function () use ($data, $shop) {
 
@@ -177,7 +188,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 					if (!data_get($result, 'status')) {
 						throw new Exception(data_get($result, 'message'));
 					}
-
 				}
 
 				if (in_array($order->status, $order->shop?->email_statuses ?? []) && ($order->email || $order->user?->email)) {
@@ -187,17 +197,19 @@ class OrderService extends CoreService implements OrderServiceInterface
 				return $order;
 			});
 
-            $order = $order->fresh($this->with());
+			Log::info('order servicedeki order:', ['ord:', $order]);
 
-            $this->newOrderNotification($order);
+			$order = $order->fresh($this->with());
 
-            if ((int)data_get(Settings::where('key', 'order_auto_approved')->first(), 'value') === 1) {
-                (new NotificationHelper)->autoAcceptNotification(
-                    $order,
-                    $this->language,
-                    Order::STATUS_ACCEPTED
-                );
-            }
+			$this->newOrderNotification($order);
+
+			if ((int)data_get(Settings::where('key', 'order_auto_approved')->first(), 'value') === 1) {
+				(new NotificationHelper)->autoAcceptNotification(
+					$order,
+					$this->language,
+					Order::STATUS_ACCEPTED
+				);
+			}
 
 			return [
 				'status'  => true,
@@ -205,6 +217,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 				'data'    => $order
 			];
 		} catch (Throwable $e) {
+			Log::info('catche dusdu:', ['catch:', $e]);
 			$this->error($e);
 
 			return [
@@ -245,7 +258,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 					$order->galleries()->delete();
 					$order->update(['img' => data_get($data, 'images.0')]);
 					$order->uploads(data_get($data, 'images'));
-
 				}
 
 				$order = (new OrderDetailService)->create($order, data_get($data, 'products', []));
@@ -340,7 +352,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 		$totalDiscount += $this->recalculateReceipt($order);
 
 		$isSubscribe = (int)Settings::where('key', 'by_subscription')->first()?->value;
-		$serviceFee  = (double)Settings::where('key', 'service_fee')->first()?->value ?? 0;
+		$serviceFee  = (float)Settings::where('key', 'service_fee')->first()?->value ?? 0;
 
 		$totalPrice = max(max($totalPrice, 0) - max($totalDiscount, 0), 0);
 
@@ -351,11 +363,9 @@ class OrderService extends CoreService implements OrderServiceInterface
 		if ($coupon?->for === 'delivery_fee') {
 
 			$deliveryFee -= max($this->checkCoupon($coupon, $order, $deliveryFee), 0);
-
 		} else if ($coupon?->for === 'total_price') {
 
 			$totalPrice -= max($this->checkCoupon($coupon, $order, $totalPrice - $shopTax), 0);
-
 		}
 
 		$totalPrice += $serviceFee;
@@ -375,7 +385,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 				$totalPrice / 100 * data_get($data, 'tips');
 
 			$totalPrice += $tipsRate;
-
 		}
 
 		$totalPrice = $totalPrice + $waiterFeeRate + $deliveryFee;
@@ -385,7 +394,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 			$tipsRate += (data_get($data, 'tips') / $order->rate);
 
 			$totalPrice += $tipsRate;
-
 		}
 
 		$commissionFee = 0;
@@ -413,7 +421,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 			if ($workingWaiter) {
 				$waiterId = $workingWaiter->id;
 			}
-
 		}
 
 		$order->update([
@@ -445,9 +452,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 					'visibility' => 0
 				]);
 			}
-
 		}
-
 	}
 
 	/**
@@ -524,7 +529,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 					'code'    => ResponseError::ERROR_212,
 					'message' => __('errors.' . ResponseError::ERROR_212, locale: $this->language)
 				];
-
 			}
 
 			$order->update([
@@ -593,9 +597,9 @@ class OrderService extends CoreService implements OrderServiceInterface
 				];
 			}
 
-//            if ($order->transaction->request == Transaction::REQUEST_WAITING) {
-//                (new TransactionService)->payDebit($user, $order);
-//            }
+			//            if ($order->transaction->request == Transaction::REQUEST_WAITING) {
+			//                (new TransactionService)->payDebit($user, $order);
+			//            }
 
 			$order->update([
 				'deliveryman' => auth('sanctum')->id(),
@@ -637,13 +641,13 @@ class OrderService extends CoreService implements OrderServiceInterface
 				];
 			}
 
-//			if ($order->delivery_type !== Order::DINE_IN) {
-//				return [
-//					'status'  => false,
-//					'code'    => ResponseError::ERROR_502,
-//					'message' => __('errors.' . ResponseError::ORDER_PICKUP, locale: $this->language)
-//				];
-//			}
+			//			if ($order->delivery_type !== Order::DINE_IN) {
+			//				return [
+			//					'status'  => false,
+			//					'code'    => ResponseError::ERROR_502,
+			//					'message' => __('errors.' . ResponseError::ORDER_PICKUP, locale: $this->language)
+			//				];
+			//			}
 
 			if (!$waiter || !$waiter->hasRole('waiter') || !$waiter->isWork) {
 				return [
@@ -653,16 +657,16 @@ class OrderService extends CoreService implements OrderServiceInterface
 				];
 			}
 
-//            if (!$waiter->invitations?->where('shop_id', $order->shop_id)?->first()?->id) {
-//                return [
-//                    'status'  => false,
-//                    'code'    => ResponseError::ERROR_212,
-//                    'message' => __('errors.' . ResponseError::ERROR_212, locale: $this->language)
-//                ];
-//            }
+			//            if (!$waiter->invitations?->where('shop_id', $order->shop_id)?->first()?->id) {
+			//                return [
+			//                    'status'  => false,
+			//                    'code'    => ResponseError::ERROR_212,
+			//                    'message' => __('errors.' . ResponseError::ERROR_212, locale: $this->language)
+			//                ];
+			//            }
 
 			$order->update([
-				'waiter_id' => data_get($waiter,'id', $order->waiter_id),
+				'waiter_id' => data_get($waiter, 'id', $order->waiter_id),
 			]);
 
 
@@ -685,6 +689,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 		try {
 			/** @var Order $order */
 			$order = Order::with('user')->find($id);
+
 
 			if (!empty($order->waiter_id)) {
 				return [
@@ -746,7 +751,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 			$deliveryFee   = $deliveryPoint * $rate;
 		}
 
-		$serviceFee  = (double)Settings::where('key', 'service_fee')->first()?->value;
+		$serviceFee  = (float)Settings::where('key', 'service_fee')->first()?->value;
 		$serviceFee  = $serviceFee ?: 0;
 
 		try {
@@ -842,19 +847,16 @@ class OrderService extends CoreService implements OrderServiceInterface
 					$getOrder = $order;
 
 					continue;
-
 				}
 
 				$order->update([
 					'current' => false,
 				]);
-
 			} catch (Throwable $e) {
 				$errors[] = $order->id;
 
 				$this->error($e);
 			}
-
 		}
 
 		return count($errors) === 0 ? [
@@ -895,7 +897,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 			if (!$orderDetail->bonus) {
 				$inReceipts[$orderDetail->stock_id] = $orderDetail->quantity;
 			}
-
 		}
 
 		/** @var Receipt|null $receipt */
@@ -1050,7 +1051,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 					]);
 
 					$orderDetail->children()->delete();
-
 				}
 
 				$orderDetailTax = max($orderDetail->total_price / 100 * $order->shop?->tax, 0);
@@ -1061,17 +1061,14 @@ class OrderService extends CoreService implements OrderServiceInterface
 				]);
 
 				$orderDetail->delete();
-
 			} catch (Throwable $e) {
 				$errors[] = $orderDetail->id;
 
 				$this->error($e);
 			}
-
 		}
 
 
 		return $errors;
 	}
-
 }

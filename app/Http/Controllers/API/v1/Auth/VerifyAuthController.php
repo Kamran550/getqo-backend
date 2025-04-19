@@ -16,6 +16,7 @@ use App\Services\AuthService\AuthByMobilePhone;
 use App\Services\UserServices\UserWalletService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class VerifyAuthController extends Controller
@@ -24,6 +25,7 @@ class VerifyAuthController extends Controller
 
     public function verifyPhone(PhoneVerifyRequest $request): JsonResponse
     {
+        Log::info('all body:', ['all:', $request->all()]);
         return (new AuthByMobilePhone)->confirmOPTCode($request->all());
     }
 
@@ -76,29 +78,61 @@ class VerifyAuthController extends Controller
 
     public function afterVerifyEmail(AfterVerifyRequest $request): JsonResponse
     {
-        $user = User::where('email', $request->input('email'))
-//            ->where('verify_token',  $request->input('verify_token'))
+
+
+        // $user = User::where('email', $request->input('email'))
+        //     //            ->where('verify_token',  $request->input('verify_token'))
+        //     ->first();
+
+
+
+        $phone = preg_replace('/\D/', '', $request->input('phone'));
+
+        $user = User::where('phone', $phone)
+            //            ->where('verify_token',  $request->input('verify_token'))
             ->first();
+        Log::info('User query result:', ['user' => $user]);
 
         if (empty($user)) {
+            Log::info('empty user');
             return $this->onErrorResponse([
                 'code'      => ResponseError::ERROR_404,
                 'message'   => __('errors.' . ResponseError::ERROR_404, locale: $this->language)
             ]);
         }
 
+        Log::info('111111111111111111111111111111111111');
+
+        // $user->update([
+        //     'email' => $request->input('email'),
+        //     'firstname' => $request->input('firstname', $user->email),
+        //     'lastname'  => $request->input('lastname', $user->lastname),
+        //     'referral'  => $request->input('referral', $user->referral),
+        //     'gender'    => $request->input('gender', 'male'),
+        //     'password'  => bcrypt($request->input('password', 'password')),
+        // ]);
+
+
         $user->update([
-            'firstname' => $request->input('firstname', $user->email),
-            'lastname'  => $request->input('lastname', $user->lastname),
-            'referral'  => $request->input('referral', $user->referral),
-            'gender'    => $request->input('gender','male'),
-            'password'  => $request->filled('password') ? bcrypt($request->input('password')) : $user->password,
+            'email' => $request->input('email'),
+            'firstname' => $request->input('firstname'),
+            'lastname'  => $request->input('lastname'),
+            'referral'  => $request->input('referral'),
+            'gender'    => $request->input('gender'),
+            'password'  => bcrypt($request->input('password', 'password')),
         ]);
+
+
+        Log::info('22222222222222222222222222222222222222222222');
 
         $referral = User::where('my_referral', $request->input('referral', $user->referral))
             ->first();
 
+        Log::info('referal:', ['ref' => $referral]);
+
         if (!empty($referral) && !empty($referral->firebase_token)) {
+
+            Log::info('333333333333333333333333333333333333333333');
             $this->sendNotification(
                 is_array($referral->firebase_token) ? $referral->firebase_token : [$referral->firebase_token],
                 "Təbrik edirik! Sizin referalınızla yeni istifadəçi qeydiyyatdan keçib. $user->name_or_email",
@@ -111,6 +145,7 @@ class VerifyAuthController extends Controller
             );
         }
 
+        Log::info('44444444444444444444444444444444444444444444444444444');
         $id = Notification::where('type', Notification::PUSH)->select(['id', 'type'])->first()?->id;
 
         if ($id) {
@@ -125,9 +160,9 @@ class VerifyAuthController extends Controller
             'active' => true
         ]);
 
-		if (empty($user->wallet?->uuid)) {
-			$user = (new UserWalletService)->create($user);
-		}
+        if (empty($user->wallet?->uuid)) {
+            $user = (new UserWalletService)->create($user);
+        }
 
         $token = $user->createToken('api_token')->plainTextToken;
 
@@ -136,5 +171,4 @@ class VerifyAuthController extends Controller
             ['token' => $token, 'user'  => UserResource::make($user)]
         );
     }
-
 }
