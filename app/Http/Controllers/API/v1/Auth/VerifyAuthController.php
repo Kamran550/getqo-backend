@@ -135,7 +135,7 @@ class VerifyAuthController extends Controller
             Log::info('333333333333333333333333333333333333333333');
             $this->sendNotification(
                 is_array($referral->firebase_token) ? $referral->firebase_token : [$referral->firebase_token],
-                "Congratulations! By your referral registered new user. $user->name_or_email",
+                "Təbrik edirik! Sizin referalınızla yeni istifadəçi qeydiyyatdan keçib. $user->name_or_email",
                 $referral->id,
                 [
                     'id'   => $referral->id,

@@ -18,4 +18,14 @@ Options -Indexes
     Deny from all
 </Files>
 
-
+# BEGIN cPanel-generated php ini directives, do not edit
+# Manual editing of this file may result in unexpected behavior.
+# To make changes to this file, use the cPanel MultiPHP INI Editor (Home >> Software >> MultiPHP INI Editor)
+# For more information, read our documentation (https://go.cpanel.net/EA4ModifyINI)
+<IfModule php8_module>
+   php_value date.timezone "Asia/Baku"
+</IfModule>
+<IfModule lsapi_module>
+   php_value date.timezone "Asia/Baku"
+</IfModule>
+# END cPanel-generated php ini directives, do not edit

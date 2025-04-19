@@ -47,7 +47,7 @@
         "spatie/laravel-permission": "^5.5",
         "srmklive/paypal": "^3.0",
         "stripe/stripe-php": "^10.6",
-        "twilio/sdk": "^6.40",
+        "twilio/sdk": "^8.4",
         "vonage/client": "^3.0"
     },
     "require-dev": {
