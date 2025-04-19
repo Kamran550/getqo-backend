@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Twilio\Rest\Client;
 
-class SmileSMSService
+class SmileSmsService
 {
     protected string $user;
     protected string $pass;

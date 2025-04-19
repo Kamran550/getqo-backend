@@ -39,7 +39,9 @@ class SMSBaseService extends CoreService
         } else if ($smsPayload?->type === SmsPayload::TWILIO) {
             Log::info('smile sms ile ');
             Log::info('smile sms ile 222222222222222222222222');
-            $result = (new SmileSMSService)->sendSms3($phone, $otp, $smsPayload);
+            Log::info('phone:',['phone',$phone]);
+            Log::info('otp:',['otp',$otp]);
+            $result = (new SmileSmsService)->sendSms3($phone, $otp, $smsPayload);
             Log::info('res:', ['res:', $result]);
         }
 
