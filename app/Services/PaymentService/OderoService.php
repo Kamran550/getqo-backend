@@ -169,8 +169,13 @@ class OderoService extends BaseService
         Log::info('payment:', ['pay:', $payment]);
 
         $payload  = $paymentPayload?->payload ?? [];
+        Log::info('payload:', ['payl:', $payload]);
         $odero_pk = data_get($payload, 'odero_pk');
         $odero_sk = data_get($payload, 'odero_sk');
+
+        Log::info('prim key:', ['prim key:', $odero_pk]);
+        Log::info('odero_sk:', ['prim odero_sk:', $odero_sk]);
+
 
         return [
             'odero_pk' => $odero_pk,
@@ -224,7 +229,7 @@ class OderoService extends BaseService
             // 'currency'        => Str::upper(data_get($before, 'currency')),
             'paymentPhase'    => 'AUTH',
             'paymentGroup'    => 'LISTING_OR_SUBSCRIPTION',
-            'callbackUrl'     => "https://getqo.az/api/v1/webhook/odero/payment",
+            'callbackUrl'     => "https://backend.getqo.az/api/v1/webhook/odero/payment",
             'items' => [
                 [
                     'name'  => 'Test product',
