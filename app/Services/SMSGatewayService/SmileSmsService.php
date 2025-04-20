@@ -179,7 +179,6 @@ class SmileSmsService
                 'msgBody'   => $msgBody,
             ]);
 
-
             $response = Http::get($url);
             // // // logger()->info('Göndərilən URL:', ['url' => $url]);
 

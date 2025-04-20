@@ -7,6 +7,8 @@ use App\Helpers\ResponseError;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\AfterVerifyRequest;
 use App\Http\Requests\Auth\PhoneVerifyRequest;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\ResendPhoneRequest;
 use App\Http\Requests\Auth\ReSendVerifyRequest;
 use App\Http\Resources\UserResource;
 use App\Models\Notification;
@@ -17,6 +19,7 @@ use App\Services\UserServices\UserWalletService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use Request;
 use Throwable;
 
 class VerifyAuthController extends Controller
@@ -46,6 +49,24 @@ class VerifyAuthController extends Controller
         event((new SendEmailVerification($user)));
 
         return $this->successResponse(ResponseError::ERROR_216);
+    }
+
+
+    public function resendVerifyPhone(ResendPhoneRequest $request): JsonResponse
+    {
+        Log::info('req body:', ['req body:', $request->all()]);
+
+        $user = User::where('phone', $request->input('phone'))->first();
+
+        if (!$user) {
+            return (new AuthByMobilePhone)->authentication($request->validated());
+        }
+
+
+        return $this->onErrorResponse([
+            'code'    => ResponseError::ERROR_400,
+            'message' => __('errors.' . ResponseError::PHONE_OR_EMAIL_NOT_FOUND, locale: $this->language)
+        ]);
     }
 
     public function verifyEmail(?string $verifyToken): JsonResponse

@@ -6,7 +6,7 @@ use App\Http\Requests\BaseRequest;
 use Arr;
 use Illuminate\Validation\Rule;
 
-class RegisterRequest extends BaseRequest
+class ResendPhoneRequest extends BaseRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -19,13 +19,6 @@ class RegisterRequest extends BaseRequest
                 'numeric',
                 Rule::unique('users', 'phone')->whereNotNull('phone_verified_at')
             ],
-            'password'  => 'string',
-            'email'     => [
-                'email',
-                Rule::unique('users', 'email')->whereNotNull('email_verified_at')
-            ],
-            'firstname' => 'string|min:2|max:100',
-            'referral'  => 'string|exists:users,my_referral|max:255',
         ];
     }
     public function messages(): array

@@ -18,7 +18,7 @@ class RegisterController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
 
-        Log::info('salam register');
+        Log::info('salam register', ['phone:', $request->input('phone')]);
         if ($request->input('phone')) {
 
             return (new AuthByMobilePhone)->authentication($request->validated());
