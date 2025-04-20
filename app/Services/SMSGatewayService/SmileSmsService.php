@@ -179,27 +179,29 @@ class SmileSmsService
                 'msgBody'   => $msgBody,
             ]);
 
-            $response = Http::get($url);
-            // // // logger()->info('Göndərilən URL:', ['url' => $url]);
 
-            $responseBody = $response->body();
+            return ['status' => true, 'message' => 'SMS sent successfully'];
+            // $response = Http::get($url);
+            // // // // logger()->info('Göndərilən URL:', ['url' => $url]);
 
-            // // Log::info('response body:', ['respinse body', $response->body()]);
+            // $responseBody = $response->body();
 
-            if (strpos($responseBody, 'Ok:') !== false) {
-                preg_match('/Ok:\s*(\d+);/', $responseBody, $matches);
-                $successCode = $matches[1] ?? null;
-                logger()->info("Success: " . $successCode);
-                return ['status' => true, 'message' => 'SMS sent successfully'];
-            } elseif (strpos($responseBody, 'Error:') !== false) {
-                preg_match('/Error:\s*(\d+);/', $responseBody, $matches);
-                $errorCode = $matches[1] ?? null;
-                logger()->info("Error: " . $errorCode);
-                return ['status' => false, 'message' => 'SMS failed'];
-            } else {
-                logger()->info("Response format is not recognized.");
-                return ['status' => false, 'message' => 'SMS failed'];
-            }
+            // // // Log::info('response body:', ['respinse body', $response->body()]);
+
+            // if (strpos($responseBody, 'Ok:') !== false) {
+            //     preg_match('/Ok:\s*(\d+);/', $responseBody, $matches);
+            //     $successCode = $matches[1] ?? null;
+            //     logger()->info("Success: " . $successCode);
+            //     return ['status' => true, 'message' => 'SMS sent successfully'];
+            // } elseif (strpos($responseBody, 'Error:') !== false) {
+            //     preg_match('/Error:\s*(\d+);/', $responseBody, $matches);
+            //     $errorCode = $matches[1] ?? null;
+            //     logger()->info("Error: " . $errorCode);
+            //     return ['status' => false, 'message' => 'SMS failed'];
+            // } else {
+            //     logger()->info("Response format is not recognized.");
+            //     return ['status' => false, 'message' => 'SMS failed'];
+            // }
         } catch (Exception $e) {
             return ['status' => false, 'message' => $e->getMessage()];
         }
