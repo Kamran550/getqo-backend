@@ -181,7 +181,7 @@ class OderoController extends Controller
             $this->odero->afterHook($token, $status);
             // return $this->successResponse();
 
-            Log::info('hook bitdi ve redirect olur:');
+            Log::info('hook bitdi ve redirect olur:', ['to:', $to]);
 
             return Redirect::to($to);
         } catch (Throwable $e) {
