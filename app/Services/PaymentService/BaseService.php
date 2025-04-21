@@ -441,11 +441,11 @@ class BaseService extends CoreService
 		}
 
 		// $totalPrice = round(data_get($calculate, 'data.total_price'), 2);
-		// Log::info('type:',['type:',gettype($totalPrice)]);
-
 		$price = data_get($calculate, 'data.total_price');
-		$totalPrice = (float) number_format((float)$price, 2, '.', '');
+		$totalPrice = round((float)$price, 2);  // Yalnız round istifadə et
+
 		Log::info('calculate totalPrice:', ['calculate totalPrice:', $totalPrice]);
+		Log::info('type:', ['type' => gettype($totalPrice)]);
 
 		$tips       = round(data_get($calculate, 'data.tips'), 2);
 
