@@ -121,28 +121,22 @@ class OderoService extends BaseService
 
     public function orderProcessTransaction(array $data, array $types = ['card']): Model|PaymentProcess
     {
+        Log::info('data:', ['data:', $data]);
+
         $payment = Payment::where('tag', Payment::TAG_ODERO)->first();
-        Log::info('payment:', ['pay:', $payment]);
 
         $paymentPayload = PaymentPayload::where('payment_id', $payment?->id)->first();
 
-        Log::info('payment:', ['pay:', $payment]);
 
         $payload        = $paymentPayload?->payload;
         $odero_pk = data_get($payload, 'odero_pk');
         $odero_sk = data_get($payload, 'odero_sk');
 
-        Log::info('odero_pk:', ['odero_pk:', $odero_pk]);
-        Log::info('odero_sk:', ['odero_sk:', $odero_sk]);
-
         [$key, $before] = $this->getPayload($data, $payload);
 
-        Log::info('key:', ['key:' => $key]);
-        Log::info('before:', ['before:' => $before]);
 
         $modelId         = data_get($before, 'model_id');
 
-        Log::info('modelId:', ['modelId:' => $modelId]);
 
         Log::info('evvelki price:', ['evvelki price:', data_get($before, 'total_price')]);
         $totalPrice = round((float)data_get($before, 'total_price') * 100, 2);

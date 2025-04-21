@@ -441,8 +441,7 @@ class BaseService extends CoreService
 		}
 
 		// $totalPrice = round(data_get($calculate, 'data.total_price'), 2);
-		$price = data_get($calculate, 'data.total_price');
-		$totalPrice = round((float)$price, 2);  // Yalnız round istifadə et
+		$totalPrice = round(data_get($calculate, 'data.total_price'), 2);
 
 		Log::info('calculate totalPrice:', ['calculate totalPrice:', $totalPrice]);
 		Log::info('type:', ['type' => gettype($totalPrice)]);
