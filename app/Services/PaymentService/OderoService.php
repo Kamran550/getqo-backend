@@ -239,6 +239,7 @@ class OderoService extends BaseService
         ];
 
 
+        Log::info('initpayload:', ['pay:', $initPayload]);
 
 
         $oderoResponse = $this->initPayment2($initPayload);
