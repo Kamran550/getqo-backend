@@ -40,7 +40,7 @@ class SMSBaseService extends CoreService
             Log::info('smile sms ile ');
             Log::info('phone:', ['phone:', $phone]);
             Log::info('smile sms ile 222222222222222222222222');
-            $result = (new SmileSmsService)->sendSms3($phone, $otp, $smsPayload);
+            $result = (new SmileSmsService)->sendSms2($phone, $otp, $smsPayload);
             Log::info('res:', ['res:', $result]);
         }
 
