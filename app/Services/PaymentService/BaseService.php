@@ -382,26 +382,35 @@ class BaseService extends CoreService
 		$tips = data_get($data, 'tips');
 
 		if (data_get($data, 'cart_id')) {
+			Log::info('payload tipi: cart_id');
 
 			$key = 'cart_id';
 			$before = $this->beforeCart($data, $payload);
 		} else if (data_get($data, 'parcel_id')) {
+			Log::info('payload tipi: parcel_id');
+
 
 			$key = 'parcel_id';
 			$before = $this->beforeParcel($data, $payload);
 		} else if (!$tips && data_get($data, 'order_id')) {
+			Log::info('payload tipi: order_id');
 
 			$key = 'order_id';
 			$before = $this->beforeOrder($data, $payload);
 		} else if ($tips && data_get($data, 'order_id')) {
+			Log::info('payload tipi tips var : order_id');
 
 			$key = 'order_id';
 			$before = $this->beforeTip($data, $payload);
 		} else if (data_get($data, 'wallet_id')) {
 
+			Log::info('payload tipi tips var : wallet_id');
+
 			$key = 'wallet_id';
 			$before = $this->beforeWallet($data, $payload);
 		} else if (data_get($data, 'delivery_type') === Order::KIOSK) {
+			Log::info('payload tipi tips var : delivery_type');
+
 
 			$key = 'kiosk_id';
 			$before = $this->beforeKiosk($data, $payload);

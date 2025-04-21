@@ -144,6 +144,7 @@ class OderoService extends BaseService
 
         Log::info('modelId:', ['modelId:' => $modelId]);
 
+        Log::info('evvelki price:', ['evvelki price:', data_get($before, 'total_price')]);
         $totalPrice = round((float)data_get($before, 'total_price') * 100, 2);
 
         $this->childrenProcess($modelId, data_get($before, 'model_type'));
