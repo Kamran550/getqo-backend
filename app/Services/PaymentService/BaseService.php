@@ -434,11 +434,16 @@ class BaseService extends CoreService
 			'address' => $data['location'] ?? []
 		]));
 
+
+		Log::info('calculate:', ['calculate:', $calculate]);
 		if (!data_get($calculate, 'status')) {
 			throw new Exception('Cart is empty');
 		}
 
 		$totalPrice = round(data_get($calculate, 'data.total_price'), 2);
+		Log::info('type:', ['type:', gettype($totalPrice)]);
+		Log::info('calculate totalPrice:', ['calculate totalPrice:', $totalPrice]);
+
 		$tips       = round(data_get($calculate, 'data.tips'), 2);
 
 		return [
