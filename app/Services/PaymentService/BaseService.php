@@ -440,16 +440,12 @@ class BaseService extends CoreService
 			throw new Exception('Cart is empty');
 		}
 
-		$price = round(data_get($calculate, 'data.total_price'), 2);
+		// $totalPrice = round(data_get($calculate, 'data.total_price'), 2);
+		// Log::info('type:',['type:',gettype($totalPrice)]);
 
-		$priceFormatted = number_format((float) $price, 2, '.', '');
-
-		// Float kimi göndərmək üçün:
-		$totalPrice = (float) $priceFormatted;
-
-		Log::info('type:', ['type:', gettype($totalPrice)]);
+		$price = data_get($calculate, 'data.total_price');
+		$totalPrice = (float) number_format((float)$price, 2, '.', '');
 		Log::info('calculate totalPrice:', ['calculate totalPrice:', $totalPrice]);
-
 
 		$tips       = round(data_get($calculate, 'data.tips'), 2);
 
