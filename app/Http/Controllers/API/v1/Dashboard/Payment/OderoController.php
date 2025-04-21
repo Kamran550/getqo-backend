@@ -112,14 +112,6 @@ class OderoController extends Controller
         Log::info('tok:', ['token:', $token]);
         $payment = Payment::where('tag', 'odero')->first();
 
-        $paymentPayload = PaymentPayload::where('payment_id', $payment?->id)->first();
-        $payload        = $paymentPayload?->payload;
-
-        $odero_sk = data_get($paymentPayload?->paylaod, 'odero_sk');
-
-        Log::info('WEBHOOK payload:', ['WEBHOOK payload', $payload]);
-
-
         /** @var PaymentProcess $paymentProcess */
         $paymentProcess = PaymentProcess::where('id', $token)->first();
         Log::info('WEBHOOK paymentProcess:', ['WEBHOOK paymentProcess', $paymentProcess]);

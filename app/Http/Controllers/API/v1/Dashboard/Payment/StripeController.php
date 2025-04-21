@@ -117,6 +117,7 @@ class StripeController extends Controller
 	 */
 	public function orderResultTransaction(Request $request): RedirectResponse
 	{
+		Log::info('requ body:', ['req body:', $request->all()]);
 		$parcelId 		= (int)$request->input('parcel_id');
 		$orderId 		= (int)$request->input('order_id');
 		$subscriptionId = (int)$request->input('subscription_id');
@@ -133,6 +134,7 @@ class StripeController extends Controller
 		} elseif ($subscriptionId) {
 			$to = config('app.admin_url');
 		} elseif ($orderId) {
+			Log::info('orderResultTransaction else if order id');
 
 			/** @var Order $order */
 			$order = Order::with('table')->find($orderId);
