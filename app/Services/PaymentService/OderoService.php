@@ -221,8 +221,10 @@ class OderoService extends BaseService
 
 
         $initPayload = [
-            'price'           => data_get($before, 'total_price'),
-            'paidPrice'       => data_get($before, 'total_price'),
+            // 'price'           => data_get($before, 'total_price'),
+            // 'paidPrice'       => data_get($before, 'total_price'),
+            'price'           => 50.00,
+            'paidPrice'       => 50.00,
             'installment'     => 1,
             'conversationId'  => "azetestconvid",
             'currency'        => "TRY",
@@ -233,7 +235,8 @@ class OderoService extends BaseService
             'items' => [
                 [
                     'name'  => 'Test product',
-                    'price' => data_get($before, 'total_price')
+                    // 'price' => data_get($before, 'total_price')
+                    'price' => 50.00
                 ]
             ]
         ];
