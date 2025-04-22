@@ -106,7 +106,7 @@ class OderoController extends Controller
 
     public function paymentWebHook(Request $request)
     {
-        Log::info('webhook odero');
+        Log::info('webhook odero', ['body:', $request->all()]);
         // $token = $request->input('data.object.id');
         $token = $request->input('token');
         Log::info('tok:', ['token:', $token]);
@@ -170,11 +170,11 @@ class OderoController extends Controller
         $to = config('app.front_url');
 
         try {
-            $this->odero->afterHook($token, $status);
-            // return $this->successResponse();
-
+            $id =  $this->odero->afterHook($token, $status);
+            if ($id) {
+                $to .= "/orders/{$id}";
+            }
             Log::info('hook bitdi ve redirect olur:', ['to:', $to]);
-
             return Redirect::to($to);
         } catch (Throwable $e) {
             LOg::info('hook bitdikden sonra odero controllerde catche dusur');

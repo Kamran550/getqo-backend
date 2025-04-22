@@ -47,7 +47,7 @@ class BaseService extends CoreService
 	 * @param $token2
 	 * @return void
 	 */
-	public function afterHook($token, $status, $token2 = null): void
+	public function afterHook($token, $status, $token2 = null)
 	{
 		Log::info('afterhooka girdi');
 
@@ -131,7 +131,7 @@ class BaseService extends CoreService
 
 			$paymentProcess->delete();
 			Log::info('catch e dusmedi ve return olur');
-			return;
+			return $order->id;
 		}
 
 		Log::info('catchden cixdi paymentProcess');
