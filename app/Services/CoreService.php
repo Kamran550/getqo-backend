@@ -22,7 +22,7 @@ abstract class CoreService
     private mixed $model;
     protected ?string $language = null;
     // protected string $language;
-    protected int $currency;
+    protected ?int $currency = null;
 
     public function __construct()
     {

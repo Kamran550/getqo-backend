@@ -218,20 +218,17 @@ class OderoService extends BaseService
         $initPayload = [
             'price'           => data_get($before, 'total_price'),
             'paidPrice'       => data_get($before, 'total_price'),
-            // 'price'           => 50.00,
-            // 'paidPrice'       => 50.00,
             'installment'     => 1,
             'conversationId'  => "azetestconvid",
             'currency'        => "TRY",
             // 'currency'        => Str::upper(data_get($before, 'currency')),
             'paymentPhase'    => 'AUTH',
             'paymentGroup'    => 'LISTING_OR_SUBSCRIPTION',
-            'callbackUrl'     => "https://backend.getqo.az/api/v1/webhook/odero/payment",
+            'callbackUrl'     => "http://localhost:8000/api/v1/webhook/odero/payment",
             'items' => [
                 [
                     'name'  => 'Test product',
                     'price' => data_get($before, 'total_price')
-                    // 'price' => 50.00
                 ]
             ]
         ];
