@@ -11,6 +11,7 @@ use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\ResendPhoneRequest;
 use App\Http\Requests\Auth\ReSendVerifyRequest;
 use App\Http\Resources\UserResource;
+use App\Models\Benefit;
 use App\Models\Notification;
 use App\Models\PushNotification;
 use App\Models\User;
@@ -106,6 +107,10 @@ class VerifyAuthController extends Controller
         //     ->first();
 
 
+        $benefit = Benefit::where('type', 'free_delivery')->first();
+
+        $freeDeliveryCount = data_get($benefit->payload, 'free_delivery_count');
+        Log::info('free_delivery_count', ['free_delivery_count:', $freeDeliveryCount]);
 
         $phone = preg_replace('/\D/', '', $request->input('phone'));
 
@@ -141,6 +146,7 @@ class VerifyAuthController extends Controller
             'referral'  => $request->input('referral'),
             'gender'    => $request->input('gender'),
             'password'  => bcrypt($request->input('password', 'password')),
+            'free_delivery_count' => $freeDeliveryCount,
         ]);
 
 

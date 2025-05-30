@@ -99,6 +99,7 @@ class SmileSmsService
             if (strlen($phone) < 7) {
                 throw new Exception('Invalid phone number', 400);
             }
+            Log::info('smsPayload:', ["smsPayload", $smsPayload->payload]);
 
             $smile_user      = data_get($smsPayload->payload, 'smilesms_user');
             $smilesms_pass      = data_get($smsPayload->payload, 'smilesms_pass');

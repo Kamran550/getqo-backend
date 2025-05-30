@@ -44,23 +44,29 @@ class UserResource extends JsonResource
             'referral'              => $this->when($this->referral, $this->referral),
             'my_referral'           => $this->when($this->my_referral, $this->my_referral),
             'role'                  => $this->when($this->role, $this->role),
-            'email_verified_at'     => $this->when($this->email_verified_at,
+            'free_delivery_count'   => $this->free_delivery_count,
+            'email_verified_at'     => $this->when(
+                $this->email_verified_at,
                 $this->email_verified_at?->format('Y-m-d H:i:s') . 'Z'
             ),
-            'phone_verified_at'     => $this->when($this->phone_verified_at,
+            'phone_verified_at'     => $this->when(
+                $this->phone_verified_at,
                 $this->phone_verified_at?->format('Y-m-d H:i:s') . 'Z'
             ),
-            'registered_at'         => $this->when($this->created_at,
+            'registered_at'         => $this->when(
+                $this->created_at,
                 $this->created_at?->format('Y-m-d H:i:s') . 'Z'
             ),
             'orders_sum_price'      => $this->when($this->orders_sum_total_price, $this->orders_sum_total_price),
             'delivery_man_orders_count' => $this->when($this->delivery_man_orders_count, $this->delivery_man_orders_count),
-            'delivery_man_orders_sum_total_price' => $this->when($this->delivery_man_orders_sum_total_price,
+            'delivery_man_orders_sum_total_price' => $this->when(
+                $this->delivery_man_orders_sum_total_price,
                 $this->delivery_man_orders_sum_total_price
             ),
             'reviews_avg_rating' => $this->when($this->reviews_avg_rating, $this->reviews_avg_rating),
             'reviews_count'      => $this->when($this->reviews_count, $this->reviews_count),
-            'assign_reviews_avg_rating' => $this->when($this->assign_reviews_avg_rating,
+            'assign_reviews_avg_rating' => $this->when(
+                $this->assign_reviews_avg_rating,
                 $this->assign_reviews_avg_rating
             ),
             'review_count_by_rating'        => $this->when($reviewsGroup, $reviewsGroup),

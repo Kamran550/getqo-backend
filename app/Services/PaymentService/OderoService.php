@@ -100,7 +100,6 @@ class OderoService extends BaseService
         $body = json_encode($payload);
 
         $payment = Payment::where('tag', Payment::TAG_ODERO)->first();
-        Log::info('payment:', ['pay:', $payment]);
 
         $paymentPayload = PaymentPayload::where('payment_id', $payment?->id)->first();
 
@@ -157,20 +156,13 @@ class OderoService extends BaseService
     public function getPaymentKeys(): array
     {
         $payment = Payment::where('tag', Payment::TAG_ODERO)->first();
-        Log::info('payment:', ['pay:', $payment]);
 
         $paymentPayload = PaymentPayload::where('payment_id', $payment?->id)->first();
 
-        Log::info('payment:', ['pay:', $payment]);
 
         $payload  = $paymentPayload?->payload ?? [];
-        Log::info('payload:', ['payl:', $payload]);
         $odero_pk = data_get($payload, 'odero_pk');
         $odero_sk = data_get($payload, 'odero_sk');
-
-        Log::info('prim key:', ['prim key:', $odero_pk]);
-        Log::info('odero_sk:', ['prim odero_sk:', $odero_sk]);
-
 
         return [
             'odero_pk' => $odero_pk,
@@ -224,7 +216,7 @@ class OderoService extends BaseService
             // 'currency'        => Str::upper(data_get($before, 'currency')),
             'paymentPhase'    => 'AUTH',
             'paymentGroup'    => 'LISTING_OR_SUBSCRIPTION',
-            'callbackUrl'     => "https://backend.getqo.az/api/v1/webhook/odero/payment",
+            'callbackUrl'     => "http://localhost:8000/api/v1/webhook/odero/payment",
             'items' => [
                 [
                     'name'  => 'Test product',
@@ -232,9 +224,6 @@ class OderoService extends BaseService
                 ]
             ]
         ];
-
-
-        Log::info('initpayload:', ['pay:', $initPayload]);
 
 
         $oderoResponse = $this->initPayment2($initPayload);
@@ -246,6 +235,9 @@ class OderoService extends BaseService
             Log::error('ODEROPay init uğursuz oldu');
             throw new \Exception('ODEROPay init uğursuz oldu.');
         }
+
+
+        Log::info('before:', ['before:', $before]);
 
         $paymentProcess =  PaymentProcess::create([
             'user_id'    => auth('sanctum')->id(),

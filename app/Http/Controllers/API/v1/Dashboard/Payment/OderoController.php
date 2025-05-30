@@ -61,7 +61,6 @@ class OderoController extends Controller
         }
 
         $payment = $this->odero->getPaymentStatus($token);
-        LOg::info('status pay:', ['st pay' => $payment]);
 
         if ($payment['data']['paymentStatus'] === 'SUCCESS') {
             Log::info("Payment successful", $payment['data']);
@@ -106,15 +105,11 @@ class OderoController extends Controller
 
     public function paymentWebHook(Request $request)
     {
-        Log::info('webhook odero', ['body:', $request->all()]);
         // $token = $request->input('data.object.id');
         $token = $request->input('token');
-        Log::info('tok:', ['token:', $token]);
-        $payment = Payment::where('tag', 'odero')->first();
 
         /** @var PaymentProcess $paymentProcess */
         $paymentProcess = PaymentProcess::where('id', $token)->first();
-        Log::info('WEBHOOK paymentProcess:', ['WEBHOOK paymentProcess', $paymentProcess]);
 
         if (@$paymentProcess?->data['type'] === 'mobile') {
             Log::info('mobile if');
@@ -146,9 +141,6 @@ class OderoController extends Controller
             'x-signature' => $signature,
         ])->get($url);
 
-        Log::info('WEBHOOK response:', ['WEBHOOK response', $response]);
-
-
 
         // $status = match (data_get($response, 'data.0.payment_status')) {
         //     'succeeded', 'paid'    => Transaction::STATUS_PAID,
@@ -166,13 +158,12 @@ class OderoController extends Controller
             default => Transaction::STATUS_PROGRESS
         };
 
-        LOg::info('WEBHOOK status', ['WEBHOOK status', $status]);
         $to = config('app.front_url');
 
         try {
             $id =  $this->odero->afterHook($token, $status);
             if ($id) {
-                $to .= "/orders/{$id}";
+                $to .= "orders/{$id}";
             }
             Log::info('hook bitdi ve redirect olur:', ['to:', $to]);
             return Redirect::to($to);

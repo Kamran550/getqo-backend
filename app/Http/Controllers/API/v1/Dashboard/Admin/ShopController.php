@@ -19,6 +19,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Throwable;
 
@@ -76,18 +77,24 @@ class ShopController extends AdminBaseController
      */
     public function store(StoreRequest $request): JsonResponse
     {
+        Log::info('shop body:', ['shop:', $request->all()]);
         $seller = User::find($request->input('user_id'));
+        Log::info('seller:', ['seller:', $seller]);
 
         if ($seller?->hasRole('admin')) {
+            Log::info('ife girdi 1');
+
             return $this->onErrorResponse(['code' => ResponseError::ERROR_207]);
         }
 
         $shop = Shop::where('user_id', $request->input('user_id'))->first();
 
         if (!empty($shop)) {
+            Log::info('ife girdi 2');
+
             return $this->onErrorResponse(['code' => ResponseError::ERROR_206]);
         }
-
+        Log::info('creaed');
         $result = $this->service->create($request->all());
 
         if (!data_get($result, 'status')) {
@@ -112,7 +119,9 @@ class ShopController extends AdminBaseController
      */
     public function show(string $uuid): JsonResponse
     {
+        Log::info('show func');
         $shop = $this->repository->shopDetails($uuid);
+        Log::info('shop:', ['shop:', $shop]);
 
         if (empty($shop)) {
             return $this->onErrorResponse([
@@ -124,6 +133,9 @@ class ShopController extends AdminBaseController
         if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
             abort(403);
         }
+
+        $endShop = ShopResource::make($shop);
+        Log::info('endShop:', ['endShop:', $endShop]);
 
         return $this->successResponse(
             __('errors.' . ResponseError::SUCCESS, locale: $this->language),
@@ -293,12 +305,12 @@ class ShopController extends AdminBaseController
         }
     }
 
-	/**
-	 * Change Verify Status of Model
-	 *
-	 * @param int|string $uuid
-	 * @return JsonResponse
-	 */
+    /**
+     * Change Verify Status of Model
+     *
+     * @param int|string $uuid
+     * @return JsonResponse
+     */
     public function setVerify(int|string $uuid): JsonResponse
     {
         $result = $this->service->updateVerify($uuid);

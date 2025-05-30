@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Repositories\PaymentRepository\PaymentRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 
 class PaymentController extends RestBaseController
 {
@@ -32,8 +33,18 @@ class PaymentController extends RestBaseController
      */
     public function index(FilterParamsRequest $request): AnonymousResourceCollection
     {
-        $payments = $this->repository->paymentsList($request->merge(['active' => 1])->all());
+        /** @var User $user */
+        $user = auth('sanctum')->user();
 
+        $orderCount = $user->orders()->count(); // Əgər əlaqə qurulubsa
+
+        if ($orderCount <= 3) {
+
+            $payments = Payment::where('tag', Payment::TAG_ODERO)->where('active', 1)->get();
+        } else {
+
+            $payments = $this->repository->paymentsList($request->merge(['active' => 1])->all());
+        }
         return PaymentResource::collection($payments);
     }
 
@@ -55,5 +66,4 @@ class PaymentController extends RestBaseController
 
         return $this->successResponse(__('web.payment_found'), PaymentResource::make($payment));
     }
-
 }

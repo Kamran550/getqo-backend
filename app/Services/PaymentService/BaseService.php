@@ -49,11 +49,9 @@ class BaseService extends CoreService
 	 */
 	public function afterHook($token, $status, $token2 = null)
 	{
-		Log::info('afterhooka girdi');
 
 
 		$paymentProcess = PaymentProcess::where('id', $token)->first();
-		Log::info("BaseService paymentProcess", ['BaseService paymentProcess', $paymentProcess]);
 
 		if (empty($paymentProcess)) {
 			$paymentProcess = PaymentProcess::where('id', $token2)->first();
@@ -68,15 +66,10 @@ class BaseService extends CoreService
 		if ($paymentProcess->model_type !== Order::KIOSK) {
 			$paymentProcess->fresh(['model']);
 		}
-		Log::info('model type:', ['model:', $paymentProcess->model_type]);
-
-
-		Log::info("2222222222222222222222222222222222222222222222");
 
 		/** @var PaymentProcess $paymentProcess */
 		$paymentId = $paymentProcess->data['payment_id'] ?? Payment::first()?->id;
 
-		Log::info('BaseService paymentId:', ['BaseService paymentId', $paymentId]);
 
 
 		if (
@@ -89,16 +82,13 @@ class BaseService extends CoreService
 
 			try {
 
+
+
 				$result = (new OrderService)->create($paymentProcess->data);
 
-				Log::info('orderden cixdi');
-				Log::info('orderin resultu:', ['orderin resultu', $result]);
 				/** @var Order $order */
 				$order = $result['data'];
 
-				Log::info('resultdan sonraki order:', ['resultdan sonraki order:', $order]);
-
-				Log::info('datani orderden goturdu');
 
 				$this->newOrderNotification($order);
 				Log::info("444444444444444444444444444444444444444444");
@@ -114,8 +104,6 @@ class BaseService extends CoreService
 					'status_description' => "Transaction for model #$order->id",
 					'status'             => $status,
 				]);
-				Log::info("555555555555555555555555555555555555555555555555");
-				Log::info('ifin resultu:', ['ifin resultu:', (int)data_get(Settings::where('key', 'order_auto_approved')->first(), 'value') === 1]);
 
 				if ((int)data_get(Settings::where('key', 'order_auto_approved')->first(), 'value') === 1) {
 					(new NotificationHelper)->autoAcceptNotification(

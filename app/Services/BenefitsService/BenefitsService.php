@@ -4,7 +4,6 @@ namespace App\Services\BenefitsService;
 
 use App\Helpers\ResponseError;
 use App\Models\Benefit;
-use App\Models\SmsPayload;
 use App\Services\CoreService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -32,7 +31,7 @@ class BenefitsService extends CoreService
         try {
 
             if ((int)data_get($data, 'default') === 1) {
-                SmsPayload::where('default', 1)->get()->map(function (SmsPayload $payload) {
+                Benefit::where('default', 1)->get()->map(function (Benefit $payload) {
                     $payload->update([
                         'default' => 0
                     ]);
@@ -75,10 +74,10 @@ class BenefitsService extends CoreService
             $payload = Benefit::where('type', $benefitType)->firstOrFail();
 
             if ((int)data_get($data, 'default') === 1) {
-                SmsPayload::where('default', 1)
+                Benefit::where('default', 1)
                     ->where('type', '!=', $payload?->type)
                     ->get()
-                    ->map(function (SmsPayload $payload) {
+                    ->map(function (Benefit $payload) {
                         $payload->update([
                             'default' => 0
                         ]);
@@ -105,7 +104,7 @@ class BenefitsService extends CoreService
 
     public function delete(?array $ids = []): array
     {
-        $payloads = SmsPayload::whereIn('type', is_array($ids) ? $ids : [])->get();
+        $payloads = Benefit::whereIn('type', is_array($ids) ? $ids : [])->get();
 
         foreach ($payloads as $payload) {
             $payload->delete();
@@ -188,17 +187,6 @@ class BenefitsService extends CoreService
             'payload.twilio_account_id' => ['required', 'string'],
             'payload.twilio_auth_token' => ['required', 'string'],
             'payload.twilio_number'     => ['required', 'string'],
-        ]);
-    }
-
-    public function smilesms(array $data): \Illuminate\Contracts\Validation\Validator|\Illuminate\Validation\Validator
-    {
-
-        Log::info('3 cu validate', ['arr:', $data]);
-        return Validator::make($data, [
-            'payload.smilesms_user' => ['required', 'string'],
-            'payload.smilesms_pass' => ['required', 'string'],
-            'payload.smilesms_number_id'     => ['required', 'string'],
         ]);
     }
 }

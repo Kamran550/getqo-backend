@@ -929,7 +929,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::post('order/{id}/deliveryman',        [Admin\OrderController::class, 'orderDeliverymanUpdate']);
             Route::post('order/{id}/waiter',             [Admin\OrderController::class, 'orderWaiterUpdate']);
             Route::post('order/{id}/status',             [Admin\OrderController::class, 'orderStatusUpdate']);
-            Route::apiResource('orders',       Admin\OrderController::class);
+            Route::apiResource('orders',                  Admin\OrderController::class);
             Route::delete('orders/delete',               [Admin\OrderController::class, 'destroy']);
             Route::get('orders/drop/all',                [Admin\OrderController::class, 'dropAll']);
             Route::get('orders/restore/all',             [Admin\OrderController::class, 'restoreAll']);
@@ -1215,6 +1215,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('sms-payloads/restore/all',      [Admin\SmsPayloadController::class, 'restoreAll']);
             Route::get('sms-payloads/truncate/db',      [Admin\SmsPayloadController::class, 'truncate']);
 
+            /* Benefits */
+            Route::apiResource('benefits', Admin\BenefitsController::class);
+            Route::delete('benefits/delete',        [Admin\BenefitsController::class, 'destroy']);
+            Route::get('benefits/drop/all',         [Admin\BenefitsController::class, 'dropAll']);
+            Route::get('benefits/restore/all',      [Admin\BenefitsController::class, 'restoreAll']);
+            Route::get('benefits/truncate/db',      [Admin\BenefitsController::class, 'truncate']);
+
             /* Bonuses*/
             Route::get('bonuses',                       [Admin\BonusController::class, 'index']);
 
@@ -1369,6 +1376,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('combos/drop/all',  [Admin\ComboController::class, 'dropAll']);
         });
     });
+
 
     Route::group(['prefix' => 'webhook'], function () {
         Route::any('paypal/payment',        [Payment\PayPalController::class,       'paymentWebHook']);

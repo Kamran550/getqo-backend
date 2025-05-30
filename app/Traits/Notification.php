@@ -31,7 +31,6 @@ trait Notification
 	): void {
 		//		dispatch(function () use ($receivers, $message, $title, $data, $userIds, $firebaseTitle) {
 		//
-		Log::info('sendNotificationa girdi');
 		if (empty($receivers)) {
 			return;
 		}
@@ -45,7 +44,6 @@ trait Notification
 			'data' 	=> $data,
 			'sound' => 'default',
 		]);
-		Log::info('sendNotificationa girdi');
 
 
 		if (is_array($userIds) && count($userIds) > 0) {
@@ -58,13 +56,11 @@ trait Notification
 				'sound' => 'default',
 			], $userIds);
 		}
-		Log::info('sendNotificationa girdi');
 
 
 		$url = "https://fcm.googleapis.com/v1/projects/{$this->projectId()}/messages:send";
 
 		$token = $this->updateToken();
-		Log::info('sendNotificationa girdi token updated');
 
 
 		$headers = [
@@ -182,9 +178,6 @@ trait Notification
 			->pluck('firebase_token', 'id')
 			->toArray();
 
-
-
-		Log::info('adminFirebaseTokens', ['adminFirebaseTokens:', $adminFirebaseTokens]);
 		$sellersFirebaseTokens = User::with([
 			'shop' => fn($q) => $q->where('id', $order->shop_id)
 		])
@@ -192,9 +185,6 @@ trait Notification
 			->whereNotNull('firebase_token')
 			->pluck('firebase_token', 'id')
 			->toArray();
-
-		Log::info('sellersFirebaseTokens', ['sellersFirebaseTokens:', $sellersFirebaseTokens]);
-
 
 		$aTokens = [];
 		$sTokens = [];
@@ -206,9 +196,6 @@ trait Notification
 		foreach ($sellersFirebaseTokens as $sellerToken) {
 			$sTokens = array_merge($sTokens, is_array($sellerToken) ? array_values($sellerToken) : [$sellerToken]);
 		}
-
-		Log::info("aTokens:", ['aTokens', $aTokens]);
-		Log::info("sTokens:", ['sTokens', $sTokens]);
 
 		$this->sendNotification(
 			array_values(array_unique(array_merge($aTokens, $sTokens))),

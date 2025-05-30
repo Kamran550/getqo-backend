@@ -31,6 +31,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Throwable;
 
@@ -42,8 +43,7 @@ class OrderController extends AdminBaseController
 		private OrderRepoInterface $orderRepository, // todo remove
 		private AdminOrderRepository $adminRepository,
 		private OrderServiceInterface $orderService
-	)
-	{
+	) {
 		parent::__construct();
 	}
 
@@ -110,7 +110,9 @@ class OrderController extends AdminBaseController
 
 		$orders     = $this->adminRepository->userOrdersPaginate($filter);
 		$statistic  = (new DashboardRepository)->orderByStatusStatistics($filter);
-		$lastPage   = (new DashboardRepository)->getLastPage(data_get($filter, 'perPage', 10), $statistic,
+		$lastPage   = (new DashboardRepository)->getLastPage(
+			data_get($filter, 'perPage', 10),
+			$statistic,
 			data_get($filter, 'status')
 		);
 
@@ -185,6 +187,7 @@ class OrderController extends AdminBaseController
 	 */
 	public function show(int $id): JsonResponse
 	{
+		Log::info("Belke admin show");
 		$order = $this->orderRepository->orderById($id);
 
 		if (!$order) {
@@ -333,40 +336,40 @@ class OrderController extends AdminBaseController
 		);
 	}
 
-    /**
-     * Display a listing of the resource.
-     *
-     * @param FilterParamsRequest $request
-     * @return JsonResponse
-     */
-    public function ordersPendingTransaction(FilterParamsRequest $request): JsonResponse
-    {
-        $filter = $request->all();
+	/**
+	 * Display a listing of the resource.
+	 *
+	 * @param FilterParamsRequest $request
+	 * @return JsonResponse
+	 */
+	public function ordersPendingTransaction(FilterParamsRequest $request): JsonResponse
+	{
+		$filter = $request->all();
 
-        $orders     = $this->adminRepository->ordersPendingTransaction($filter);
+		$orders     = $this->adminRepository->ordersPendingTransaction($filter);
 
-        $statistic  = (new DashboardRepository)->orderByStatusStatistics($filter);
-        $lastPage   = (new DashboardRepository)->getLastPage(
-            data_get($filter, 'perPage', 10),
-            $statistic,
+		$statistic  = (new DashboardRepository)->orderByStatusStatistics($filter);
+		$lastPage   = (new DashboardRepository)->getLastPage(
+			data_get($filter, 'perPage', 10),
+			$statistic,
 			data_get($filter, 'status')
-        );
+		);
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
-            abort(403);
-        }
+		if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+			abort(403);
+		}
 
-        return $this->successResponse(__('errors.' . ResponseError::SUCCESS, locale: $this->language), [
-            'statistic' => $statistic,
-            'orders'    =>  OrderResource::collection($orders),
-            'meta'      => [
-                'current_page'  => (int)data_get($filter, 'page', 1),
-                'per_page'      => (int)data_get($filter, 'perPage', 10),
-                'last_page'     => $lastPage,
-                'total'         => (int)data_get($statistic, 'total', 0),
-            ],
-        ]);
-    }
+		return $this->successResponse(__('errors.' . ResponseError::SUCCESS, locale: $this->language), [
+			'statistic' => $statistic,
+			'orders'    =>  OrderResource::collection($orders),
+			'meta'      => [
+				'current_page'  => (int)data_get($filter, 'page', 1),
+				'per_page'      => (int)data_get($filter, 'perPage', 10),
+				'last_page'     => $lastPage,
+				'total'         => (int)data_get($statistic, 'total', 0),
+			],
+		]);
+	}
 
 	public function destroy(FilterParamsRequest $request): JsonResponse
 	{
@@ -380,7 +383,6 @@ class OrderController extends AdminBaseController
 					'ids' => implode(', #', $result)
 				], locale: $this->language)
 			]);
-
 		}
 
 		return $this->successResponse(
@@ -544,5 +546,4 @@ class OrderController extends AdminBaseController
 			return $this->errorResponse(statusCode: ResponseError::ERROR_508, message: $e->getMessage());
 		}
 	}
-
 }

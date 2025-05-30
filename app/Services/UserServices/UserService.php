@@ -190,6 +190,7 @@ class UserService extends CoreService implements UserServiceInterface
                 }
             }
 
+
             return [
                 'status'    => true,
                 'code'      => ResponseError::NO_ERROR,

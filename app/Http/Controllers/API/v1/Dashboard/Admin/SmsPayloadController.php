@@ -28,6 +28,7 @@ class SmsPayloadController extends AdminBaseController
      */
     public function index(FilterParamsRequest $request): AnonymousResourceCollection
     {
+        Log::info('index sms payload');
         $model = $this->repository->paginate($request->all());
 
         return SmsPayloadResource::collection($model);
@@ -102,6 +103,7 @@ class SmsPayloadController extends AdminBaseController
      */
     public function update(string $smsType, UpdateRequest $request): JsonResponse
     {
+        Log::info('puttt smsm');
         $validated = $request->validated();
 
         $result = $this->service->update($smsType, $validated);

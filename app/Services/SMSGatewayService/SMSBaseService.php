@@ -28,9 +28,11 @@ class SMSBaseService extends CoreService
     public function smsGateway($phone): array
     {
         $otp = $this->setOTP();
+        Log::info('ooottp:', ['otp:', $otp]);
 
         $smsPayload = SmsPayload::where('default', 1)->first();
 
+        Log::info('sms:', ['pay:', $smsPayload]);
         $result = ['status' => false, 'message' => 'sms is not configured!'];
 
         if ($smsPayload?->type === SmsPayload::FIREBASE) {
@@ -45,7 +47,6 @@ class SMSBaseService extends CoreService
         }
 
         if (data_get($result, 'status')) {
-
 
 
             $this->setOTPToCache($phone, $otp);
@@ -64,7 +65,8 @@ class SMSBaseService extends CoreService
 
     public function setOTP(): array
     {
-        return ['verifyId' => Str::uuid(), 'otpCode' => rand(100000, 999999)];
+        // return ['verifyId' => Str::uuid(), 'otpCode' => rand(100000, 999999)];
+        return ['verifyId' => Str::uuid(), 'otpCode' => 222222];
     }
 
     public function setOTPToCache($phone, $otp)

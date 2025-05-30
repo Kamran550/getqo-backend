@@ -19,18 +19,18 @@ use App\Services\OrderService\OrderStatusUpdateService;
 use App\Traits\Notification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends RestBaseController
 {
 	use Notification;
 
-    public function __construct(
-        private OrderRepository $orderRepository,
-        private OrderService $orderService
-    )
-    {
-        parent::__construct();
-    }
+	public function __construct(
+		private OrderRepository $orderRepository,
+		private OrderService $orderService
+	) {
+		parent::__construct();
+	}
 
 	/**
 	 * Display a listing of the resource.
@@ -51,26 +51,26 @@ class OrderController extends RestBaseController
 		return OrderResource::collection($orders);
 	}
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param RestStoreRequest $request
-     * @return JsonResponse
-     */
-    public function store(RestStoreRequest $request): JsonResponse
-    {
-        $validated = $request->validated();
-        $result = $this->orderService->create($validated);
+	/**
+	 * Store a newly created resource in storage.
+	 *
+	 * @param RestStoreRequest $request
+	 * @return JsonResponse
+	 */
+	public function store(RestStoreRequest $request): JsonResponse
+	{
+		$validated = $request->validated();
+		$result = $this->orderService->create($validated);
 
-        if (!data_get($result, 'status')) {
-            return $this->onErrorResponse($result);
-        }
+		if (!data_get($result, 'status')) {
+			return $this->onErrorResponse($result);
+		}
 
-        return $this->successResponse(
-            __('errors.' . ResponseError::RECORD_WAS_SUCCESSFULLY_CREATED, locale: $this->language),
-            $this->orderRepository->reDataOrder(data_get($result, 'data'))
-        );
-    }
+		return $this->successResponse(
+			__('errors.' . ResponseError::RECORD_WAS_SUCCESSFULLY_CREATED, locale: $this->language),
+			$this->orderRepository->reDataOrder(data_get($result, 'data'))
+		);
+	}
 
 	/**
 	 * Display the specified resource.
@@ -79,60 +79,60 @@ class OrderController extends RestBaseController
 	 * @param FilterParamsRequest $request
 	 * @return JsonResponse
 	 */
-    public function show(int $id, FilterParamsRequest $request): JsonResponse
-    {
+	public function show(int $id, FilterParamsRequest $request): JsonResponse
+	{
+		Log::info("admin show oldu");
 		$phone = $request->input('phone');
 
-        $order = $this->orderRepository->orderById($id, phone: $phone);
+		$order = $this->orderRepository->orderById($id, phone: $phone);
 
 		if (!$phone && !$order->table_id) {
 			return $this->onErrorResponse([
-			 	'code'    => ResponseError::ERROR_404,
-			 	'message' => __('errors.' . ResponseError::ERROR_404, locale: $this->language)
+				'code'    => ResponseError::ERROR_404,
+				'message' => __('errors.' . ResponseError::ERROR_404, locale: $this->language)
 			]);
 		}
 
-        return $this->successResponse(ResponseError::NO_ERROR, $this->orderRepository->reDataOrder($order));
-    }
+		return $this->successResponse(ResponseError::NO_ERROR, $this->orderRepository->reDataOrder($order));
+	}
 
-    /**
-     * Display the specified resource.
-     *
-     * @param int $id
-     * @param UpdateTipsRequest $request
-     * @return JsonResponse
-     */
-    public function updateTips(int $id, UpdateTipsRequest $request): JsonResponse
-    {
-        $order = $this->orderService->updateTips($id, $request->validated());
+	/**
+	 * Display the specified resource.
+	 *
+	 * @param int $id
+	 * @param UpdateTipsRequest $request
+	 * @return JsonResponse
+	 */
+	public function updateTips(int $id, UpdateTipsRequest $request): JsonResponse
+	{
+		$order = $this->orderService->updateTips($id, $request->validated());
 
-        return $this->successResponse(ResponseError::NO_ERROR, $this->orderRepository->reDataOrder($order));
-    }
+		return $this->successResponse(ResponseError::NO_ERROR, $this->orderRepository->reDataOrder($order));
+	}
 
-    /**
-     * Add Review to Order.
-     *
-     * @param int $id
-     * @param AddReviewRequest $request
-     * @return JsonResponse
-     */
-    public function addOrderReview(int $id, AddReviewRequest $request): JsonResponse
-    {
-        /** @var Order $order */
-        $order = Order::with(['review', 'reviews'])->find($id);
+	/**
+	 * Add Review to Order.
+	 *
+	 * @param int $id
+	 * @param AddReviewRequest $request
+	 * @return JsonResponse
+	 */
+	public function addOrderReview(int $id, AddReviewRequest $request): JsonResponse
+	{
+		/** @var Order $order */
+		$order = Order::with(['review', 'reviews'])->find($id);
 
-        $result = (new OrderReviewService)->addReview($order, $request->validated());
+		$result = (new OrderReviewService)->addReview($order, $request->validated());
 
-        if (!data_get($result, 'status')) {
-            return $this->onErrorResponse($result);
-        }
+		if (!data_get($result, 'status')) {
+			return $this->onErrorResponse($result);
+		}
 
-        return $this->successResponse(
-            ResponseError::NO_ERROR,
-            $this->orderRepository->reDataOrder(data_get($result, 'data'))
-        );
-
-    }
+		return $this->successResponse(
+			ResponseError::NO_ERROR,
+			$this->orderRepository->reDataOrder(data_get($result, 'data'))
+		);
+	}
 
 	/**
 	 * @param int $id
@@ -253,14 +253,14 @@ class OrderController extends RestBaseController
 	 */
 	public function showDeliveryman(int $id): JsonResponse
 	{
-        $user = $this->orderRepository->showDeliveryman($id);
+		$user = $this->orderRepository->showDeliveryman($id);
 
-        if (empty($user)) {
-            return $this->onErrorResponse([
-                'code' => ResponseError::ERROR_404,
-                'message' => __('errors.' . ResponseError::ERROR_404, locale: $this->language)
-            ]);
-        }
+		if (empty($user)) {
+			return $this->onErrorResponse([
+				'code' => ResponseError::ERROR_404,
+				'message' => __('errors.' . ResponseError::ERROR_404, locale: $this->language)
+			]);
+		}
 
 		return $this->successResponse(ResponseError::NO_ERROR, UserResource::make($user));
 	}
@@ -277,5 +277,4 @@ class OrderController extends RestBaseController
 
 		return $this->successResponse(ResponseError::NO_ERROR, []);
 	}
-
 }
