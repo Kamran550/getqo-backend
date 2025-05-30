@@ -217,7 +217,7 @@ class OderoService extends BaseService
             'paymentPhase'    => 'AUTH',
             'paymentGroup'    => 'LISTING_OR_SUBSCRIPTION',
             // 'callbackUrl'     => "http://localhost:8000/api/v1/webhook/odero/payment",
-            'callbackUrl'     => config('app.APP_URL') . 'api/v1/webhook/odero/payment',
+            'callbackUrl'     =>  'https://backend.getqo.az/api/v1/webhook/odero/payment',
 
             'items' => [
                 [
