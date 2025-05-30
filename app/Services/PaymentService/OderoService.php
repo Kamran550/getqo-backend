@@ -216,7 +216,7 @@ class OderoService extends BaseService
             // 'currency'        => Str::upper(data_get($before, 'currency')),
             'paymentPhase'    => 'AUTH',
             'paymentGroup'    => 'LISTING_OR_SUBSCRIPTION',
-            'callbackUrl'     => config('app.front_url') . '/api/v1/webhook/odero/payment',
+            'callbackUrl'     => config('app.front_url') . 'api/v1/webhook/odero/payment',
             'items' => [
                 [
                     'name'  => 'Test product',
