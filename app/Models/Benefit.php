@@ -20,10 +20,12 @@ class Benefit extends Model
         'default' => 'boolean'
     ];
 
-    const FREE_DELIVERY = 'free_delivery';
+    const FREE_DELIVERY_COUNT = 'free_delivery_count';
+    const FREE_DELIVERY_DISTANCE = 'free_delivery_distance';
 
 
     const TYPES = [
-        self::FREE_DELIVERY
+        self::FREE_DELIVERY_COUNT,
+        self::FREE_DELIVERY_DISTANCE
     ];
 }

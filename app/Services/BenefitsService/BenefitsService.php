@@ -18,6 +18,7 @@ class BenefitsService extends CoreService
 
     public function create(array $data): \Illuminate\Contracts\Validation\Validator|\Illuminate\Validation\Validator|array
     {
+        Log::info('data:', ['data:', $data]);
         $prepareValidate = $this->prepareValidate($data);
 
         Log::info('validateden kecdi');
@@ -119,9 +120,21 @@ class BenefitsService extends CoreService
 
     public function prepareValidate($data): array
     {
-        if (data_get($data, 'type') === Benefit::FREE_DELIVERY) {
+        if (data_get($data, 'type') === Benefit::FREE_DELIVERY_COUNT) {
 
-            $validator = $this->freeDelivery($data);
+            $validator = $this->freeDeliveryCount($data);
+
+            if ($validator->fails()) {
+                return [
+                    'status' => false,
+                    'code'   => ResponseError::ERROR_422,
+                    'params' => $validator->errors()->toArray(),
+                ];
+            }
+
+            return ['status' => true];
+        } else if (data_get($data, 'type') === Benefit::FREE_DELIVERY_DISTANCE) {
+            $validator = $this->freeDeliveryDistance($data);
 
             if ($validator->fails()) {
                 return [
@@ -134,6 +147,7 @@ class BenefitsService extends CoreService
             return ['status' => true];
         }
 
+
         return [
             'status'    => false,
             'code'      => ResponseError::ERROR_404,
@@ -141,16 +155,25 @@ class BenefitsService extends CoreService
         ];
     }
 
-    public function freeDelivery(array $data): \Illuminate\Contracts\Validation\Validator|\Illuminate\Validation\Validator
+    public function freeDeliveryCount(array $data): \Illuminate\Contracts\Validation\Validator|\Illuminate\Validation\Validator
     {
 
         Log::info('3 cu validate', ['arr:', $data]);
         return Validator::make($data, [
-            'payload.free_delivery_count' => ['required', 'numeric'],
-            'payload.free_delivery_km' => ['required', 'numeric'],
-            'payload.free_delivery_price'     => ['required', 'numeric'],
+            'payload.count' => ['required', 'numeric'],
+            'payload.date' => ['required', 'date'],
         ]);
     }
+
+    public function freeDeliveryDistance(array $data): \Illuminate\Contracts\Validation\Validator|\Illuminate\Validation\Validator
+    {
+
+        Log::info('3 cu validate', ['arr:', $data]);
+        return Validator::make($data, [
+            'payload.km' => ['required', 'numeric'],
+        ]);
+    }
+
 
 
 

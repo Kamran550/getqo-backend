@@ -433,9 +433,11 @@ class OrderController extends AdminBaseController
 
 	public function reportTransactions(OrderTransactionRequest $request): JsonResponse
 	{
+		Log::info('salammmmmm');
 		try {
+			Log::info('1111111111111111');
 			$result = $this->orderRepository->orderReportTransaction($request->validated());
-
+			Log::info('res:', ['res:', $result]);
 			return $this->successResponse('Successfully', $result);
 		} catch (Throwable $e) {
 

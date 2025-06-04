@@ -28,6 +28,7 @@ use App\Services\EmailSettingService\EmailSendService;
 use App\Services\Interfaces\OrderServiceInterface;
 use App\Services\TransactionService\TransactionService;
 use App\Traits\Notification;
+use Carbon\Carbon;
 use DB;
 use Exception;
 use Illuminate\Support\Facades\Log;
@@ -766,7 +767,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 		if (data_get($data, 'location') && data_get($data, 'delivery_type') === Order::DELIVERY) {
 			$helper      = new Utility;
 			$km          = $helper->getDistance($shop->location, data_get($data, 'location'));
-			$km = 10;
 			// Function cagir
 			Log::info('order total price:', ['order price:', $data]);
 			Log::info('order shop:', ['order shop:', $shop]);
@@ -843,28 +843,45 @@ class OrderService extends CoreService implements OrderServiceInterface
 
 		$price = data_get($cart, 'total_price');
 
+		$free_delivery_count = Benefit::where('type', Benefit::FREE_DELIVERY_COUNT)
+			->where('default', 1)
+			->first();
+		$free_delivery_distance = Benefit::where('type', Benefit::FREE_DELIVERY_DISTANCE)
+			->where('default', 1)
+			->first();
 
+
+		$fix_price = $shop->free_delivery_price;
 
 
 
 		$deliveryFee = $helper->getPriceByDistance($km, $shop, $rate) / $rate;
 		$adminDeliveryFee = 0;
-		$free_delivery = Benefit::where('default', 1)->first();
-		if (!$free_delivery || !$free_delivery->payload) {
+		if (!$free_delivery_count && !$free_delivery_distance && $fix_price == 0) {
 			Log::info('Default free delivery benefit not found or payload is missing.');
 			return [
 				'delivery_fee' => $deliveryFee,
 				'admin_delivery_fee' => $adminDeliveryFee,
 			];
 		}
+		// if (!$free_delivery || !$free_delivery->payload) {
+		// 	Log::info('Default free delivery benefit not found or payload is missing.');
+		// 	return [
+		// 		'delivery_fee' => $deliveryFee,
+		// 		'admin_delivery_fee' => $adminDeliveryFee,
+		// 	];
+		// }
 
-		$fix_km = data_get($free_delivery->payload, 'free_delivery_km');
-		$fix_price = data_get($free_delivery->payload, 'free_delivery_price');
 
-		if ($price > $fix_price) {
+
+		$fix_km = $free_delivery_distance ? data_get($free_delivery_distance->payload, 'km') : null;
+		$fix_count_date = $free_delivery_count ? data_get($free_delivery_count->payload, 'date') : null;
+		$fix_count_expires_at = $fix_count_date ? Carbon::parse($fix_count_date) : null;
+		Log::info('myKM:', ['myKm:', $km]);
+		if ($price > $fix_price && $fix_price > 0) {
 			Log::info('if 1');
 			$deliveryFee = 0;
-		} else {
+		} else if (!is_null($fix_km) && $fix_km > 0) {
 			Log::info('set order params: else 1');
 			if ($km <= $fix_km) {
 				Log::info(' set order params if 2');
@@ -872,14 +889,25 @@ class OrderService extends CoreService implements OrderServiceInterface
 				$deliveryFee = 0;
 			} else {
 				Log::info(' set order params else 2');
-
+				// 6 = 10 - 4
 				$extraKm = $km - $fix_km;
-				$deliveryFee = $helper->getPriceByDistance2($extraKm, $shop, (float)data_get($data, 'rate', 1));
-				Log::info('2ci delivery fee:', ['2ci delivery fee:', $deliveryFee]);
+				Log::info('extraKm:', ['extraKm:', $extraKm]);
+				$adminDeliveryFee = $helper->getPriceByDistance2((float)$fix_km, $shop, (float)data_get($data, 'rate', 1));
+
+				$kmDeliveryFee = $helper->getPriceByDistance($km, $shop, (float)data_get($data, 'rate', 1));
+				Log::info('kmDeliveryFee:', ["kmDeliveryFee:", $kmDeliveryFee]);
+				$deliveryFee = $kmDeliveryFee - $adminDeliveryFee;
+				Log::info('adminDeliveryFee else:',['adminDeliveryFee else:', $adminDeliveryFee]);
 			}
 		}
 
-		if ($deliveryFee > 0 && data_get($user, 'free_delivery_count', 0) > 0) {
+		if (
+			$free_delivery_count && // yəni null deyil
+			$deliveryFee > 0 &&
+			data_get($user, 'free_delivery_count', 0) > 0 &&
+			$fix_count_expires_at && // null deyilsə davam et
+			$fix_count_expires_at->isFuture()
+		) {
 			Log::info('if son');
 
 
@@ -887,7 +915,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 			$user->free_delivery_count = max(0, $user->free_delivery_count - 1);
 			$user->save();
 		}
-
 
 
 		if ($deliveryFee == 0) {

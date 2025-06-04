@@ -78,8 +78,10 @@ class BenefitsController extends Controller
     {
         Log::info('benefit show');
         $model = $this->repository->show($smsType);
+        Log::info('model:', ['model:', $model]);
 
         if (empty($model)) {
+            Log::info('ifff');
             return $this->onErrorResponse([
                 'code'      => ResponseError::ERROR_404,
                 'message'   => __('errors.' . ResponseError::ERROR_404, locale: $this->language)

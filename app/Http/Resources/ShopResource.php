@@ -75,6 +75,7 @@ class ShopResource extends JsonResource
             'categories'        => CategoryResource::collection($this->whenLoaded('categories')),
             'bonus'             => ShopBonusResource::make($this->whenLoaded('bonus')),
             'type'              => $this->when($this->type, $this->type),
+            'free_delivery_price' => $this->when($this->free_delivery_price, $this->free_delivery_price),
             'discount'          => SimpleDiscountResource::collection($this->whenLoaded('discounts')),
             'shop_payments'     => ShopPaymentResource::collection($this->whenLoaded('shopPayments')),
             'shop_working_days' => ShopWorkingDayResource::collection($this->whenLoaded('workingDays')),

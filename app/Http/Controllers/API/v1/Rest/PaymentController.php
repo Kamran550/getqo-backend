@@ -33,20 +33,36 @@ class PaymentController extends RestBaseController
      */
     public function index(FilterParamsRequest $request): AnonymousResourceCollection
     {
+
+        Log::info('index payment;');
+        $payments = $this->repository->paymentsList($request->merge(['active' => 1])->all());
+        return PaymentResource::collection($payments);
+    }
+
+
+    public function getPaymentsForUser(FilterParamsRequest $request): AnonymousResourceCollection
+    {
+
+        Log::info('getPaymentsForUser;');
         /** @var User $user */
         $user = auth('sanctum')->user();
 
         $orderCount = $user->orders()->count(); // Əgər əlaqə qurulubsa
+        Log::info('ordersCount:', ['orderCount:', $orderCount]);
+        if ($orderCount < 3) {
 
-        if ($orderCount <= 3) {
-
+            Log::info('if pay');
             $payments = Payment::where('tag', Payment::TAG_ODERO)->where('active', 1)->get();
         } else {
+            Log::info('else pay');
 
             $payments = $this->repository->paymentsList($request->merge(['active' => 1])->all());
         }
+        $menimpayments = PaymentResource::collection($payments);
+        Log::info('menimpayments:', ['menimpayments:', $menimpayments]);
         return PaymentResource::collection($payments);
     }
+
 
 
     /**

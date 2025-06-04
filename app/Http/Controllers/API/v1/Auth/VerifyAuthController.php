@@ -107,9 +107,15 @@ class VerifyAuthController extends Controller
         //     ->first();
 
 
-        $benefit = Benefit::where('type', 'free_delivery')->first();
+        $benefit = Benefit::where('type', Benefit::FREE_DELIVERY_COUNT)
+            ->where('default', 1)
+            ->first();
 
-        $freeDeliveryCount = data_get($benefit->payload, 'free_delivery_count');
+        Log::info('payload:', ['pay:', $benefit->payload]);
+
+        $freeDeliveryCount = $benefit ? data_get($benefit->payload, 'count') : null;
+
+
         Log::info('free_delivery_count', ['free_delivery_count:', $freeDeliveryCount]);
 
         $phone = preg_replace('/\D/', '', $request->input('phone'));

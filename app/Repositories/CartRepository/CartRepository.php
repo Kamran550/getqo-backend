@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Repositories\CoreRepository;
 use App\Services\CartService\CartService;
 use App\Traits\SetCurrency;
+use Carbon\Carbon;
 use DB;
 use Illuminate\Support\Facades\Log;
 
@@ -104,7 +105,7 @@ class CartRepository extends CoreRepository
         $locale   = data_get(Language::languagesList()->where('default', 1)->first(), 'locale');
         $currency = Currency::currenciesList()->where('id', data_get($data, 'currency_id'))->first();
         $cart = Cart::with([
-            'shop:id,location,tax,price,price_per_km,uuid,logo_img,status',
+            'shop:id,location,tax,price,price_per_km,uuid,logo_img,status,free_delivery_price',
             'shop.translation' => fn($q) => $q->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale)),
             'shop.bonus' => fn($q) => $q->where('expired_at', '>', now())->where('status', true),
             'userCarts.cartDetails' => fn($q) => $q->whereNull('parent_id'),
@@ -239,8 +240,6 @@ class CartRepository extends CoreRepository
         if (data_get($data, 'type') === Order::DELIVERY) {
             $helper      = new Utility;
             $km          = $helper->getDistance($cart->shop->location, data_get($data, 'address'));
-            $km = 10;
-
 
             Log::info("data:", ['data:', $data]);
             $deliveryFee = $helper->getPriceByDistance($km, $cart->shop, (float)data_get($data, 'rate', 1));
@@ -311,25 +310,35 @@ class CartRepository extends CoreRepository
         $helper      = new Utility;
 
         // $free_delivery = Benefit::where('type', Benefit::FREE_DELIVERY)->first();
-        $free_delivery = Benefit::where('default', 1)->first();
-        if (!$free_delivery || !$free_delivery->payload) {
+        $free_delivery_count = Benefit::where('type', Benefit::FREE_DELIVERY_COUNT)
+            ->where('default', 1)
+            ->first();
+        $free_delivery_distance = Benefit::where('type', Benefit::FREE_DELIVERY_DISTANCE)
+            ->where('default', 1)
+            ->first();
+        $fix_price = $cart->shop->free_delivery_price;
+        Log::info('fix price:', ['fix_price', $fix_price]);
+        Log::info('free_delivery_count:', ['free_delivery_count', $free_delivery_count]);
+        Log::info('free_delivery_distance:', ['free_delivery_distance', $free_delivery_distance]);
+
+        if (!$free_delivery_count && !$free_delivery_distance && $fix_price == 0) {
             Log::info('Default free delivery benefit not found or payload is missing.');
             return $deliveryFee; // or handle as needed
         }
-        $fix_km = data_get($free_delivery->payload, 'free_delivery_km');
-        $fix_price = data_get($free_delivery->payload, 'free_delivery_price');
+        $fix_km = $free_delivery_distance ? data_get($free_delivery_distance->payload, 'km') : null;
+        $fix_count_date = $free_delivery_count ? data_get($free_delivery_count->payload, 'date') : null;
+        $fix_count_expires_at = $fix_count_date ? Carbon::parse($fix_count_date) : null;
+
+        Log::info('fix_km:', ['fix_km', $fix_km]);
+        Log::info('fix_count_date:', ['fix_count_date', $fix_count_date]);
+        Log::info('fix_count_expires_at:', ['fix_count_expires_at', $fix_count_expires_at]);
+        Log::info('myKM:', ['myKm:', $km]);
 
 
-
-
-        Log::info('km:', ['km:', $km]);
-        Log::info('fix_km:', ['fix_km:', $fix_km]);
-        Log::info('fix_price:', ['fix_price:', $fix_price]);
-        Log::info('price:', ['price:', $price]);
-        if ($price > $fix_price) {
+        if ($price > $fix_price && $fix_price > 0) {
             Log::info('if 1');
             $deliveryFee = 0;
-        } else {
+        } else if (!is_null($fix_km) && $fix_km > 0) {
             Log::info('else 1');
             if ($km <= $fix_km) {
                 Log::info('if 2');
@@ -339,16 +348,34 @@ class CartRepository extends CoreRepository
                 Log::info('else 2');
 
                 $extraKm = $km - $fix_km;
-                $deliveryFee = $helper->getPriceByDistance2($extraKm, $cart->shop, (float)data_get($data, 'rate', 1));
-                Log::info('2ci delivery fee:', ['2ci delivery fee:', $deliveryFee]);
+                Log::info('km:', ['km:', $km]);
+                Log::info('fix_km:', ['fix_km:', $fix_km]);
+                Log::info('extraKm:', ['extraKm:', $extraKm]);
+                $kmDeliveryFee = $helper->getPriceByDistance($km, $cart->shop, (float)data_get($data, 'rate', 1));
+                Log::info('kmDeliveryFee:', ['kmDeliveryFee:', $kmDeliveryFee]);
+
+                $adminDeliveryFee = $helper->getPriceByDistance((float)$fix_km, $cart->shop, (float)data_get($data, 'rate', 1));
+                Log::info('adminDeliveryFee:', ['adminDeliveryFee:', $adminDeliveryFee]);
+
+                $deliveryFee = $kmDeliveryFee - $adminDeliveryFee;
+
+                Log::info(['Delivery Fee:', ['Delevery Fee:', $deliveryFee]]);
             }
         }
 
         Log::info('cart calculateuser:', ['cart calculateuser:', $user]);
-        if ($deliveryFee > 0 && data_get($user, 'free_delivery_count', 0) > 0) {
+        if (
+            $free_delivery_count && // yəni null deyil
+            $deliveryFee > 0 &&
+            data_get($user, 'free_delivery_count', 0) > 0 &&
+            $fix_count_expires_at && // null deyilsə davam et
+            $fix_count_expires_at->isFuture()
+        ) {
             Log::info('if son');
             $deliveryFee = 0;
         }
+
+
 
         return $deliveryFee;
     }

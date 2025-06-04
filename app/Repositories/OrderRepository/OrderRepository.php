@@ -31,6 +31,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
@@ -293,9 +294,7 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 					->setAttribute('discount', $addonDiscount)
 					->setAttribute('tax', $addonTax)
 					->toArray();
-
 			}
-
 		}
 
 		$result = collect(array_values($result));
@@ -320,7 +319,6 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 
 				$deliveryFee = $helper->getPriceByDistance($km, $shop, (float)data_get($filter, 'rate', 1));
 			}
-
 		}
 
 		$coupon = Coupon::checkCoupon(data_get($filter, 'coupon'), $shop->id)->first();
@@ -332,16 +330,14 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 			$couponPrice = $this->checkCoupon($coupon, $deliveryFee);
 
 			$deliveryFee -= $couponPrice;
-
 		} elseif ($coupon?->for === 'total_price') {
 
 			$couponPrice = $this->checkCoupon($coupon, $totalPrice);
 
 			$totalPrice -= $couponPrice;
-
 		}
 
-		$serviceFee = (double)Settings::where('key', 'service_fee')->first()?->value ?? 0;
+		$serviceFee = (float)Settings::where('key', 'service_fee')->first()?->value ?? 0;
 		$tips = data_get($filter, 'tips', 0);
 
 		$totalPrice = max($totalPrice + $deliveryFee + $shopTax + $serviceFee + $tips, 0);
@@ -407,21 +403,21 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 				'orderDetails.children.stock.countable:id,unit_id',
 				'orderDetails' => fn($od) => $od->whereNull('parent_id'),
 				'orderDetails.kitchen.translation' => fn($q) => $q
-                    ->where('locale', $this->language)
-                    ->orWhere('locale', $locale),
-                'orderDetails.cooker',
+					->where('locale', $this->language)
+					->orWhere('locale', $locale),
+				'orderDetails.cooker',
 				'orderDetails.stock.countable.unit.translation' => fn($q) => $q
 					->where('locale', $this->language)
 					->orWhere('locale', $locale),
 				'orderDetails.stock.countable.translation' => fn($ct) => $ct
 					->where('locale', $this->language)
 					->orWhere('locale', $locale),
-				'orderDetails.stock.stockExtras.group.translation' => function ($cgt) use($locale) {
+				'orderDetails.stock.stockExtras.group.translation' => function ($cgt) use ($locale) {
 					$cgt->select('id', 'extra_group_id', 'locale', 'title')
 						->where('locale', $this->language)
 						->orWhere('locale', $locale);
 				},
-				'orderDetails.children.stock.stockExtras.group.translation' => function ($cgt) use($locale) {
+				'orderDetails.children.stock.stockExtras.group.translation' => function ($cgt) use ($locale) {
 					$cgt->select('id', 'extra_group_id', 'locale', 'title')
 						->where('locale', $this->language)
 						->orWhere('locale', $locale);
@@ -484,12 +480,15 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 			->when($shop?->id, fn($q) => $q->where('shop_id', $shop?->id))
 			->where('table_id', $id)
 			->where('status', '!=', Order::STATUS_CANCELED)
-			->when($shop?->order_payment === 'before',
+			->when(
+				$shop?->order_payment === 'before',
 				fn($q) => $q->where('status', '!=', Order::STATUS_DELIVERED),
-				fn($q) => $q->whereDoesntHave('transaction', fn($q) => $q
-					->where('type', Transaction::TYPE_MODEL)
-					->whereNull('parent_id')
-					->where('status', Transaction::STATUS_PAID)
+				fn($q) => $q->whereDoesntHave(
+					'transaction',
+					fn($q) => $q
+						->where('type', Transaction::TYPE_MODEL)
+						->whereNull('parent_id')
+						->where('status', Transaction::STATUS_PAID)
 				),
 			)
 			->first();
@@ -533,11 +532,9 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 		if ($quantity < ($countable?->min_qty ?? 0)) {
 
 			$quantity = $countable->min_qty;
-
-		} else if($quantity > ($countable?->max_qty ?? 0)) {
+		} else if ($quantity > ($countable?->max_qty ?? 0)) {
 
 			$quantity = $countable->max_qty;
-
 		}
 
 		return $quantity > $stock->quantity ? max($stock->quantity, 0) : $quantity;
@@ -577,12 +574,14 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 			])
 			->first();
 
-		$quantity = OrderDetail::whereHas('order', fn($q) => $q
-			->select('id', 'status', 'created_at', 'shop_id')
-			->where('created_at', '>=', $dateFrom)
-			->where('created_at', '<=', $dateTo)
-			->where('status', Order::STATUS_DELIVERED)
-			->when($shopId, fn($q, $shopId) => $q->where('shop_id', $shopId))
+		$quantity = OrderDetail::whereHas(
+			'order',
+			fn($q) => $q
+				->select('id', 'status', 'created_at', 'shop_id')
+				->where('created_at', '>=', $dateFrom)
+				->where('created_at', '<=', $dateTo)
+				->where('status', Order::STATUS_DELIVERED)
+				->when($shopId, fn($q, $shopId) => $q->where('shop_id', $shopId))
 		)
 			->whereHas('stock', fn($q) => $q->whereNull('deleted_at'))
 			->sum('quantity');
@@ -607,7 +606,8 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 		};
 
 		if ($select === 'sum(quantity) as quantity') {
-			$chart = OrderDetail::whereHas('order',
+			$chart = OrderDetail::whereHas(
+				'order',
 				fn($q) => $q
 					->select('id', 'status', 'created_at', 'shop_id')
 					->where('created_at', '>=', $dateFrom)
@@ -643,11 +643,11 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 			'price'     => data_get($statistic, 'total_price', 0),
 			'quantity'  => (int)$quantity ?? 0,
 		];
-
 	}
 
 	public function orderReportTransaction(array $filter): array
 	{
+		Log::info("Order repossuu");
 		$dateFrom = date('Y-m-d 00:00:01', strtotime(data_get($filter, 'date_from', '-30 days')));
 		$dateTo   = date('Y-m-d 23:59:59', strtotime(data_get($filter, 'date_to', now())));
 		$shopId   = data_get($filter, 'shop_id');
@@ -667,7 +667,7 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 				['status', Order::STATUS_DELIVERED]
 			])
 			->when($shopId, fn($q, $shopId) => $q->where('shop_id', $shopId))
-			->when(data_get($filter, 'type'), function($q, $type) use ($filter) {
+			->when(data_get($filter, 'type'), function ($q, $type) use ($filter) {
 
 				if ($type === PaymentToPartner::DELIVERYMAN) {
 					$q->whereHas('deliveryMan', function ($q) use ($filter) {
@@ -691,6 +691,7 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 		$pointHistory	= $sumOrders->sum('point_histories_sum_price');
 		$commissionFee  = $sumOrders->sum('commission_fee');
 		$deliveryFee 	= $sumOrders->sum('delivery_fee');
+		$adminDeliveryFee = $sumOrders->sum('admin_delivery_fee');
 		$serviceFee 	= $sumOrders->sum('service_fee');
 		$totalPrice 	= $sumOrders->sum('total_price');
 
@@ -704,6 +705,7 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 			'total_point_history'	=> $pointHistory,
 			'total_commission_fee'	=> $commissionFee,
 			'total_delivery_fee'	=> $deliveryFee,
+			'total_admin_delivery_fee'	=> $adminDeliveryFee,
 			'total_service_fee'		=> $serviceFee,
 			'total_price'			=> $totalPrice,
 			'total_seller_fee' 		=> $totalPrice - $deliveryFee - $serviceFee - $commissionFee - $coupon - $pointHistory,
@@ -772,8 +774,8 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 			$name = 'orders-report-products-' . Str::random(8);
 
 			try {
-//                ExportJob::dispatch("export/$name.xlsx", $query->get(), OrdersReportExport::class);
-				Excel::store(new OrdersReportExport($orders->get()), "export/$name.xlsx",'public');
+				//                ExportJob::dispatch("export/$name.xlsx", $query->get(), OrdersReportExport::class);
+				Excel::store(new OrdersReportExport($orders->get()), "export/$name.xlsx", 'public');
 
 				return [
 					'status'    => true,
@@ -818,7 +820,6 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 			}
 
 			data_set($orders, $i, $result);
-
 		}
 
 		$isDesc = data_get($filter, 'sort', 'desc') === 'desc';
@@ -907,7 +908,6 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 				'tax'            => $isDelivered ? $deliveredTax      + $order->tax           : $deliveredTax,
 				'delivery_fee'   => $isDelivered ? $deliveredFee      + $order->delivery_fee  : $deliveredFee,
 			];
-
 		}
 
 		if (data_get($filter, 'export') === 'excel') {
@@ -915,7 +915,7 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 			$name = 'report-revenue-' . Str::random(8);
 
 			try {
-				Excel::store(new OrdersRevenueReportExport($result), "export/$name.xlsx",'public');
+				Excel::store(new OrdersRevenueReportExport($result), "export/$name.xlsx", 'public');
 
 				return [
 					'status'    => true,
@@ -932,7 +932,6 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 					'message' => $e->getMessage(),
 				];
 			}
-
 		}
 
 		$result = collect($result);
@@ -993,7 +992,6 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 			'delivered_sum'	=> $chart->sum('delivered_sum'),
 			'delivered_avg'	=> $chart->sum('delivered_avg'),
 		];
-
 	}
 
 	/**
@@ -1137,5 +1135,4 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 			]
 		];
 	}
-
 }

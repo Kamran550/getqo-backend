@@ -216,8 +216,8 @@ class OderoService extends BaseService
             // 'currency'        => Str::upper(data_get($before, 'currency')),
             'paymentPhase'    => 'AUTH',
             'paymentGroup'    => 'LISTING_OR_SUBSCRIPTION',
-            // 'callbackUrl'     => "http://localhost:8000/api/v1/webhook/odero/payment",
-            'callbackUrl'     =>  'https://backend.getqo.az/api/v1/webhook/odero/payment',
+            'callbackUrl'     => "http://localhost:8000/api/v1/webhook/odero/payment",
+            // 'callbackUrl'     =>  'https://backend.getqo.az/api/v1/webhook/odero/payment',
 
             'items' => [
                 [

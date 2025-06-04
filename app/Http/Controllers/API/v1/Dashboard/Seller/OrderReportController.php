@@ -11,19 +11,19 @@ use App\Repositories\Interfaces\OrderRepoInterface;
 use App\Repositories\OrderRepository\SellerOrderReportRepository;
 use App\Traits\Notification;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class OrderReportController extends SellerBaseController
 {
-    use Notification;
+	use Notification;
 
-    public function __construct(
+	public function __construct(
 		private OrderRepoInterface $repository,
 		private SellerOrderReportRepository $sellerOrderReportRepository,
-	)
-    {
-        parent::__construct();
-    }
+	) {
+		parent::__construct();
+	}
 
 	public function report(SellerOrderReportRequest $request): JsonResponse
 	{
@@ -66,6 +66,7 @@ class OrderReportController extends SellerBaseController
 			$validated['shop_id'] = $this->shop->id;
 
 			$result = $this->repository->orderReportTransaction($validated);
+			Log::info('res:', ['res:', $result]);
 
 			return $this->successResponse('Successfully', $result);
 		} catch (Throwable $e) {
@@ -92,5 +93,4 @@ class OrderReportController extends SellerBaseController
 			return $this->onErrorResponse(['code' => ResponseError::ERROR_400, 'message' => $e->getMessage()]);
 		}
 	}
-	
 }

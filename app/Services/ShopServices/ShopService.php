@@ -227,7 +227,8 @@ class ShopService extends CoreService implements ShopServiceInterface
             'verify'         => data_get($data, 'verify', $shop?->verify ?? 0),
             'wifi_password'  => data_get($data, 'wifi_password'),
             'wifi_name'      => data_get($data, 'wifi_name'),
-            'type'           => data_get($data, 'type', $shop?->type), // ✅ BURANI ƏLAVƏ ET
+            'type'           => data_get($data, 'type', $shop?->type),
+            'free_delivery_price'           => data_get($data, 'free_delivery_price', $shop?->free_delivery_price), 
 
             'location'       => [
                 'latitude'   => data_get($location, 'latitude', data_get($shop?->location, 'latitude', 0)),

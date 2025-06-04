@@ -67,9 +67,7 @@ class Utility
 	public function getPriceByDistance2(?float $extraKm, ?Shop $shop, ?float $rate): ?float
 	{
 		$price      = data_get($shop, 'price', 0);
-		Log::info("getPriceByDistance2 price:", ['getPriceByDistance2 price:', $price]);
 		$pricePerKm = data_get($shop, 'price_per_km');
-		Log::info("extraKm:", ['extraKm:', $extraKm]);
 
 		if ($extraKm <= 0) {
 			// Əgər artıq km yoxdursa, sadəcə sabit qiyməti al
