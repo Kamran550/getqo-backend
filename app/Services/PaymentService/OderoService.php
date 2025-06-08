@@ -131,6 +131,9 @@ class OderoService extends BaseService
         $odero_pk = data_get($payload, 'odero_pk');
         $odero_sk = data_get($payload, 'odero_sk');
 
+        Log::info('odero pk:', ['odero_pk:', $odero_pk]);
+        Log::info('odero_sk:', ['odero_sk:', $odero_sk]);
+
         [$key, $before] = $this->getPayload($data, $payload);
 
 
@@ -205,8 +208,8 @@ class OderoService extends BaseService
 
     private function web(array $data, array $types, array $before, float $totalPrice, int $modelId, Payment $payment, string $odero_pk, string $odero_sk): Model|PaymentProcess
     {
-
-
+        $callbackUrl =  config('app.odero.callback_url');
+        Log::info('callback:', ['call:', $callbackUrl]);
         $initPayload = [
             'price'           => data_get($before, 'total_price'),
             'paidPrice'       => data_get($before, 'total_price'),
@@ -216,9 +219,7 @@ class OderoService extends BaseService
             // 'currency'        => Str::upper(data_get($before, 'currency')),
             'paymentPhase'    => 'AUTH',
             'paymentGroup'    => 'LISTING_OR_SUBSCRIPTION',
-            'callbackUrl'     => "http://localhost:8000/api/v1/webhook/odero/payment",
-            // 'callbackUrl'     =>  'https://backend.getqo.az/api/v1/webhook/odero/payment',
-
+            'callbackUrl'     => $callbackUrl,
             'items' => [
                 [
                     'name'  => 'Test product',

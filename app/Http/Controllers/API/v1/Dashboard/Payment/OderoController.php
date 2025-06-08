@@ -162,7 +162,9 @@ class OderoController extends Controller
 
         try {
             $id =  $this->odero->afterHook($token, $status);
+            Log::info("id:", ['id:', $id]);
             if ($id) {
+                Log::info('to url duzelen zaman id var:', ['id:', $id]);
                 $to .= "orders/{$id}";
             }
             Log::info('hook bitdi ve redirect olur:', ['to:', $to]);
