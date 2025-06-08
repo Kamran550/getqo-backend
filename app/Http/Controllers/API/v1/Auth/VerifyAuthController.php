@@ -100,7 +100,7 @@ class VerifyAuthController extends Controller
 
     public function afterVerifyEmail(AfterVerifyRequest $request): JsonResponse
     {
-
+        Log::info('salammmmmm');
 
         // $user = User::where('email', $request->input('email'))
         //     //            ->where('verify_token',  $request->input('verify_token'))
@@ -111,12 +111,8 @@ class VerifyAuthController extends Controller
             ->where('default', 1)
             ->first();
 
-        Log::info('payload:', ['pay:', $benefit->payload]);
-
         $freeDeliveryCount = $benefit ? data_get($benefit->payload, 'count') : null;
 
-
-        Log::info('free_delivery_count', ['free_delivery_count:', $freeDeliveryCount]);
 
         $phone = preg_replace('/\D/', '', $request->input('phone'));
 
