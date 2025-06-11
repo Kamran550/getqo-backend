@@ -792,7 +792,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 			$otp = 1234;
 		}
 
-		if ($shop->type === Shop::TYPE)
 
 			Log::info('setOrderParams deliveryFee:', ['setOrderParams deliveryFee:', $deliveryFee]);
 		return [
