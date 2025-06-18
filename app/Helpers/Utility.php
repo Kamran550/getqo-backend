@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\ParcelOrderSetting;
 use App\Models\Shop;
 use App\Models\User;
+use Carbon\Carbon;
 use DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
@@ -213,5 +214,24 @@ class Utility
 			});
 
 		return $orderIds;
+	}
+
+
+	public static function isFreeDeliveryAvailable(?string $json, string $targetType, string $shopType): bool
+	{
+		if (!$json) {
+			return false;
+		}
+
+		$data = json_decode($json, true);
+
+		if (!isset($data['count'], $data['date'])) {
+			return false;
+		}
+
+		$count = (int) $data['count'];
+		$expiryDate = Carbon::parse($data['date']);
+
+		return $count > 0 && $expiryDate->isFuture() && ($targetType === 'all' || $targetType === $shopType);
 	}
 }

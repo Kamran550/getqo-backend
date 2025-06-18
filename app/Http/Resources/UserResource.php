@@ -44,7 +44,7 @@ class UserResource extends JsonResource
             'referral'              => $this->when($this->referral, $this->referral),
             'my_referral'           => $this->when($this->my_referral, $this->my_referral),
             'role'                  => $this->when($this->role, $this->role),
-            'free_delivery_count'   => $this->free_delivery_count,
+            'free_delivery'         => $this->free_delivery,
             'email_verified_at'     => $this->when(
                 $this->email_verified_at,
                 $this->email_verified_at?->format('Y-m-d H:i:s') . 'Z'

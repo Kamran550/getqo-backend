@@ -772,7 +772,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 			Log::info('order shop:', ['order shop:', $shop]);
 
 			['delivery_fee' => $deliveryFee, 'admin_delivery_fee' => $adminDeliveryFee] =
-				$this->calculateOrderFreeDelivery($km, $shop, $data, $rate);
+				$this->calculateOrderFreeDelivery2($km, $shop, $data, $rate);
 
 			Log::info('ser ortder params blokdan cixdi', ['delivery:', $deliveryFee]);
 			Log::info('ser ortder params blokdan cixdi', ['adminDeliveryFee:', $adminDeliveryFee]);
@@ -792,8 +792,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 			$otp = 1234;
 		}
 
-
-			Log::info('setOrderParams deliveryFee:', ['setOrderParams deliveryFee:', $deliveryFee]);
+		Log::info('setOrderParams deliveryFee:', ['setOrderParams deliveryFee:', $deliveryFee]);
 		return [
 			'user_id'           => $data['user_id'] ?? auth('sanctum')->id(),
 			'waiter_id'         => data_get($data, 'waiter_id'),
@@ -826,6 +825,88 @@ class OrderService extends CoreService implements OrderServiceInterface
 		];
 	}
 
+
+	public function calculateOrderFreeDelivery2($km, $shop, $data, $rate)
+	{
+		/** @var User|null $user */
+		// $user = auth('sanctum')->user();
+		$user = User::find(data_get($data, 'user_id'));
+
+		$helper      = new Utility;
+		$cartId = data_get($data, 'cart_id');
+		Log::info('cartID;', ['cart:', $cartId]);
+		$cart = Cart::find($cartId);
+
+
+		$price = data_get($cart, 'total_price');
+
+		$free_delivery_count = Benefit::where('type', Benefit::FREE_DELIVERY_COUNT)
+			->first();
+		$free_delivery_distance = Benefit::where('type', Benefit::FREE_DELIVERY_DISTANCE)
+			->where('default', 1)
+			->first();
+
+
+		$fix_price = $shop->free_delivery_price;
+		$target_type = $free_delivery_count ? data_get($free_delivery_count->payload, 'target_type') : null;
+
+
+
+		$deliveryFee = $helper->getPriceByDistance($km, $shop, $rate) / $rate;
+		$adminDeliveryFee = 0;
+		if (!$free_delivery_distance) {
+			Log::info('Default free delivery benefit not found or payload is missing.');
+			return [
+				'delivery_fee' => $deliveryFee,
+				'admin_delivery_fee' => $adminDeliveryFee,
+			];
+		}
+
+		$fix_km = $free_delivery_distance ? data_get($free_delivery_distance->payload, 'km') : null;
+		$freeDeliveryData = $user->free_delivery; // burada json formatında gəlir
+		$kmDeliveryFee = $helper->getPriceByDistance($km, $shop, $rate) / $rate;
+		$shopType = $cart->shop->type;
+
+
+		if ($helper->isFreeDeliveryAvailable($freeDeliveryData, $target_type, $shopType)) {
+			Log::info('İstifadəçinin pulsuz çatdırılması aktivdir Order service');
+
+			if ($km < $fix_km) {
+				Log::info('1 ci merheler az km');
+
+				$deliveryFee = 0;
+			} else {
+				Log::info('1 ci merheler artiq km');
+				$adminDeliveryFee = $helper->getPriceByDistance($fix_km, $shop, $rate) / $rate;
+				$deliveryFee = $kmDeliveryFee - $adminDeliveryFee;
+			}
+			$user->decrementFreeDelivery();
+		} else if (!is_null($fix_price) && $price >= $fix_price) {
+			Log::info('Shop price üçün Order service');
+			if ($km <= $fix_km) {
+				Log::info('2 ci merheler az km');
+
+				$deliveryFee = 0;
+			} else {
+				Log::info('2 ci merheler artiq km');
+
+				$adminDeliveryFee = $helper->getPriceByDistance((float)$fix_km, $shop, $rate) / $rate;
+				$deliveryFee = $kmDeliveryFee - $adminDeliveryFee;
+			}
+		}
+
+		if ($deliveryFee == 0) {
+			$adminDeliveryFee = $helper->getPriceByDistance($km, $shop, $rate) / $rate;
+		}
+		Log::info('sonda hesablanan deliveryFee:', ['DelivFEe:', $deliveryFee]);
+		Log::info('sonda hesablanan admindeliveryFee:', ['AdminDelivFEe:', $adminDeliveryFee]);
+
+
+		return [
+			'delivery_fee' => $deliveryFee,
+			'admin_delivery_fee' => $adminDeliveryFee,
+		];
+	}
 
 
 	private function calculateOrderFreeDelivery($km, $shop, $data, $rate)
@@ -896,7 +977,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 				$kmDeliveryFee = $helper->getPriceByDistance($km, $shop, (float)data_get($data, 'rate', 1));
 				Log::info('kmDeliveryFee:', ["kmDeliveryFee:", $kmDeliveryFee]);
 				$deliveryFee = $kmDeliveryFee - $adminDeliveryFee;
-				Log::info('adminDeliveryFee else:',['adminDeliveryFee else:', $adminDeliveryFee]);
+				Log::info('adminDeliveryFee else:', ['adminDeliveryFee else:', $adminDeliveryFee]);
 			}
 		}
 

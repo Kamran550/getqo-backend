@@ -78,7 +78,7 @@ class OrderResource extends JsonResource
 			'address'                       => $this->when($this->address, $this->address),
 			'delivery_type'                 => $this->when($this->delivery_type, $this->delivery_type),
 			'delivery_fee'                  => $this->when($this->rate_delivery_fee, $this->rate_delivery_fee + $this->rate_driver_tip),
-			'admin_delivery_fee'            => $this->admin_delivery_fee,
+			'admin_delivery_fee'            => (float) $this->admin_delivery_fee,
 			'waiter_fee'                    => $this->when($this->rate_waiter_fee, $this->rate_waiter_fee + $this->rate_waiter_tip),
 			'delivery_date'                 => $this->when($this->delivery_date, $this->delivery_date),
 			'delivery_time'                 => $this->when($this->delivery_time, $this->delivery_time),

@@ -201,6 +201,10 @@ class OrderController extends AdminBaseController
 			abort(403);
 		}
 
+		$sonOrder = $this->orderRepository->reDataOrder($order);
+
+		Log::info('sonOrder:', ['sonOrder:', $sonOrder]);
+
 		return $this->successResponse(
 			__('errors.' . ResponseError::SUCCESS, locale: $this->language),
 			$this->orderRepository->reDataOrder($order)

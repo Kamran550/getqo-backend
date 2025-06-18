@@ -15,6 +15,14 @@ class StoreRequest extends BaseRequest
      *
      * @return array
      */
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'free_delivery_price' => $this->input('free_delivery_price') === '' ? null : $this->input('free_delivery_price'),
+        ]);
+    }
+
     public function rules(): array
     {
         return [
@@ -52,6 +60,7 @@ class StoreRequest extends BaseRequest
             'show_type'             => 'in:0,1',
             'new_order_after_payment' => 'in:0,1',
             'status_note'           => 'string',
+            'free_delivery_price' => 'nullable|numeric|min:0',
             'email_statuses'        => 'array',
             'email_statuses.*'      => ['string', Rule::in(Order::STATUSES)],
             'order_payment'         => ['string', Rule::in(Shop::ORDER_PAYMENTS)],

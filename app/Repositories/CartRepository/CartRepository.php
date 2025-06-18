@@ -105,7 +105,7 @@ class CartRepository extends CoreRepository
         $locale   = data_get(Language::languagesList()->where('default', 1)->first(), 'locale');
         $currency = Currency::currenciesList()->where('id', data_get($data, 'currency_id'))->first();
         $cart = Cart::with([
-            'shop:id,location,tax,price,price_per_km,uuid,logo_img,status,free_delivery_price',
+            'shop:id,location,tax,price,price_per_km,uuid,logo_img,status,free_delivery_price,type',
             'shop.translation' => fn($q) => $q->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale)),
             'shop.bonus' => fn($q) => $q->where('expired_at', '>', now())->where('status', true),
             'userCarts.cartDetails' => fn($q) => $q->whereNull('parent_id'),
@@ -244,7 +244,7 @@ class CartRepository extends CoreRepository
             Log::info("data:", ['data:', $data]);
             $deliveryFee = $helper->getPriceByDistance($km, $cart->shop, (float)data_get($data, 'rate', 1));
             Log::info('salam');
-            $deliveryFee = $this->calculateCartFreeDelivery($deliveryFee, $km, $price, $data, $cart);
+            $deliveryFee = $this->calculateCartFreeDelivery2($deliveryFee, $km, $price, $data, $cart);
         }
 
 
@@ -299,6 +299,69 @@ class CartRepository extends CoreRepository
         ];
     }
 
+
+    private function calculateCartFreeDelivery2($deliveryFee, $km, $price, $data, Cart $cart)
+    {
+        Log::info('ötürülen delivery fee:', ['del fe:', $deliveryFee]);
+        $user = auth('sanctum')->user();
+        $helper      = new Utility;
+        $free_delivery_count = Benefit::where('type', Benefit::FREE_DELIVERY_COUNT)
+            ->first();
+        $free_delivery_distance = Benefit::where('type', Benefit::FREE_DELIVERY_DISTANCE)
+            ->where('default', 1)
+            ->first();
+        $fix_price = $cart->shop->free_delivery_price;
+        $target_type = $free_delivery_count ? data_get($free_delivery_count->payload, 'target_type') : null;
+        Log::info('free_delivery_count:', ['free_delivery_count:', $free_delivery_count]);
+        Log::info('target_type:', ['target_type:', $target_type]);
+
+        if (!$free_delivery_distance) {
+            Log::info('Default free delivery benefit not found or payload is missing.');
+            return $deliveryFee; // or handle as needed
+        }
+
+
+        $fix_km = $free_delivery_distance ? data_get($free_delivery_distance->payload, 'km') : null;
+
+        $freeDeliveryData = $user->free_delivery; // burada json formatında gəlir
+        $kmDeliveryFee = $helper->getPriceByDistance($km, $cart->shop, (float)data_get($data, 'rate', 1));
+        $shopType = $cart->shop->type;
+        Log::info('km:', ['km:', $km]);
+        Log::info('kmDeliveryFee:', ['kmDeliveryFee:', $kmDeliveryFee]);
+        Log::info('fix_price:', ['fix_price:', $fix_price]);
+        $adminDeliveryFee = 0;
+        if ($helper->isFreeDeliveryAvailable($freeDeliveryData, $target_type, $shopType)) {
+            Log::info('İstifadəçinin pulsuz çatdırılması aktivdir');
+
+            if ($km <= $fix_km) {
+                Log::info('1 ci merheler az km');
+                $deliveryFee = 0;
+            } else {
+                Log::info('2 ci merheler artiq km');
+
+                $adminDeliveryFee = $helper->getPriceByDistance((float)$fix_km, $cart->shop, (float)data_get($data, 'rate', 1));
+                $deliveryFee = $kmDeliveryFee - $adminDeliveryFee;
+            }
+        } else if (!is_null($fix_price) && $price >= $fix_price) {
+            Log::info('Shop price üçün');
+
+            if ($km <= $fix_km) {
+                Log::info('2 ci merheler az km');
+
+                $deliveryFee = 0;
+            } else {
+                Log::info('2 ci merheler artiq km');
+
+                $adminDeliveryFee = $helper->getPriceByDistance((float)$fix_km, $cart->shop, (float)data_get($data, 'rate', 1));
+                $deliveryFee = $kmDeliveryFee - $adminDeliveryFee;
+            }
+        }
+        Log::info('sonda hesablanan deliveryFee:', ['DelivFEe:', $deliveryFee]);
+        Log::info('sonda hesablanan admindeliveryFee:', ['AdminDelivFEe:', $adminDeliveryFee]);
+        // del 1.8
+        //admin del 1.89
+        return $deliveryFee;
+    }
 
     private function calculateCartFreeDelivery($deliveryFee, $km, $price, $data, Cart $cart)
     {

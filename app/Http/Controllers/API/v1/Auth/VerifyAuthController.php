@@ -22,6 +22,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Request;
 use Throwable;
+use Illuminate\Support\Carbon;
+
 
 class VerifyAuthController extends Controller
 {
@@ -111,7 +113,18 @@ class VerifyAuthController extends Controller
             ->where('default', 1)
             ->first();
 
-        $freeDeliveryCount = $benefit ? data_get($benefit->payload, 'count') : null;
+        $freeDelivery = null;
+
+        if ($benefit) {
+            $count = (int) data_get($benefit->payload, 'count');
+            $days = (int) data_get($benefit->payload, 'day');
+            $expireDate = now()->addDays($days)->toDateString(); // format: Y-m-d
+
+            $freeDelivery = [
+                'count' => $count,
+                'date' => $expireDate
+            ];
+        }
 
 
         $phone = preg_replace('/\D/', '', $request->input('phone'));
@@ -148,7 +161,7 @@ class VerifyAuthController extends Controller
             'referral'  => $request->input('referral'),
             'gender'    => $request->input('gender'),
             'password'  => bcrypt($request->input('password', 'password')),
-            'free_delivery_count' => $freeDeliveryCount,
+            'free_delivery' => $freeDelivery,
         ]);
 
 

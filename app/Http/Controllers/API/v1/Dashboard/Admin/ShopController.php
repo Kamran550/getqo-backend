@@ -152,6 +152,7 @@ class ShopController extends AdminBaseController
      */
     public function update(StoreRequest $request, string $uuid): JsonResponse
     {
+        Log::info('update gelir:', ['update:', $request->all()]);
         $shop = Shop::where(['user_id' => $request->input('user_id'), 'uuid' => $uuid])->first();
 
         $seller = User::find($request->input('user_id'));
@@ -160,6 +161,7 @@ class ShopController extends AdminBaseController
             return $this->onErrorResponse(['code' => ResponseError::ERROR_207]);
         }
 
+        
         $result = $this->service->update($uuid, $request->all());
 
         if (!data_get($result, 'status')) {

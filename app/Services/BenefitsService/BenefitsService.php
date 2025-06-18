@@ -30,15 +30,6 @@ class BenefitsService extends CoreService
 
         Log::info('5555555555555555555555555555555');
         try {
-
-            if ((int)data_get($data, 'default') === 1) {
-                Benefit::where('default', 1)->get()->map(function (Benefit $payload) {
-                    $payload->update([
-                        'default' => 0
-                    ]);
-                });
-            }
-
             Log::info('666666666666666666666666666666');
 
             $payload = $this->model()->create($data);
@@ -73,17 +64,19 @@ class BenefitsService extends CoreService
             }
 
             $payload = Benefit::where('type', $benefitType)->firstOrFail();
+            Log::info('updateddd payload:', ['p:', $payload]);
 
-            if ((int)data_get($data, 'default') === 1) {
-                Benefit::where('default', 1)
-                    ->where('type', '!=', $payload?->type)
-                    ->get()
-                    ->map(function (Benefit $payload) {
-                        $payload->update([
-                            'default' => 0
-                        ]);
-                    });
-            }
+            // if ((int)data_get($data, 'default') === 1) {
+            //     Benefit::where('default', 1)
+            //         ->where('type', '!=', $payload?->type)
+            //         ->get()
+            //         ->map(function (Benefit $payload) {
+            //             $payload->update([
+            //                 'default' => 0
+            //             ]);
+            //         });
+            // }
+            Log::info('updateddd data:', ['d:', $data]);
 
             $payload->update($data);
 
@@ -160,8 +153,9 @@ class BenefitsService extends CoreService
 
         Log::info('3 cu validate', ['arr:', $data]);
         return Validator::make($data, [
-            'payload.count' => ['required', 'numeric'],
-            'payload.date' => ['required', 'date'],
+            'payload.count' => ['required', 'integer', 'min:1'],
+            'payload.day' => ['required', 'integer', 'min:1'],
+            'payload.target_type' => ['required', 'in:shop,restaurant,all'],
         ]);
     }
 
