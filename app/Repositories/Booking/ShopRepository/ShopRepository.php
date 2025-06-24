@@ -19,6 +19,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 class ShopRepository extends CoreRepository
 {
@@ -34,6 +35,8 @@ class ShopRepository extends CoreRepository
      */
     public function shopsPaginate(array $filter): LengthAwarePaginator
     {
+
+        Log::info('Shop repository2');
         /** @var BookingShop $shop */
         $shop = $this->model();
 
@@ -42,11 +45,11 @@ class ShopRepository extends CoreRepository
             ->with([
                 'translation' => function ($query) use ($filter) {
 
-                    $query->when(data_get($filter, 'not_lang'),
+                    $query->when(
+                        data_get($filter, 'not_lang'),
                         fn($q, $notLang) => $q->where('locale', '!=', data_get($filter, 'not_lang')),
                         fn($q) => $q->where('locale', '=', $this->language),
                     );
-
                 },
                 'bonus' => fn($q) => $q->where('expired_at', '>', now())->where('status', true)
                     ->select([
@@ -68,11 +71,11 @@ class ShopRepository extends CoreRepository
             ])
             ->whereHas('translation', function ($query) use ($filter) {
 
-                $query->when(data_get($filter, 'not_lang'),
+                $query->when(
+                    data_get($filter, 'not_lang'),
                     fn($q, $notLang) => $q->where('locale', '!=', data_get($filter, 'not_lang')),
                     fn($q) => $q->where('locale', '=', $this->language),
                 );
-
             })
             ->when(data_get($filter, 'prices'), function (Builder $q, $prices) {
 
@@ -81,11 +84,12 @@ class ShopRepository extends CoreRepository
 
                 $q->whereHas('products.stocks', fn($q) => $q->where([
                     ['price', '>=', $to],
-                    ['price', '<=',
+                    [
+                        'price',
+                        '<=',
                         $to >= $from ? Stock::max('price') : $from
                     ],
                 ]));
-
             })
             ->select([
                 'id',
@@ -99,21 +103,20 @@ class ShopRepository extends CoreRepository
                 'location',
             ])
             ->withCount('reviews')
-			->when(data_get($filter, 'rating'), function (Builder $q, $rating) {
+            ->when(data_get($filter, 'rating'), function (Builder $q, $rating) {
 
-				$rtg = [
-					0 => data_get($rating, 0, 0),
-					1 => data_get($rating, 1, 5),
-				];
+                $rtg = [
+                    0 => data_get($rating, 0, 0),
+                    1 => data_get($rating, 1, 5),
+                ];
 
-				$q
-					->withAvg([
-						'reviews' => fn(Builder $b) => $b->whereBetween('rating', $rtg)
-					], 'rating')
-					->having('reviews_avg_rating', '>=', $rtg[0])
-					->having('reviews_avg_rating', '<=', $rtg[1]);
-
-			}, fn($q) => $q->withAvg('reviews', 'rating'))
+                $q
+                    ->withAvg([
+                        'reviews' => fn(Builder $b) => $b->whereBetween('rating', $rtg)
+                    ], 'rating')
+                    ->having('reviews_avg_rating', '>=', $rtg[0])
+                    ->having('reviews_avg_rating', '<=', $rtg[1]);
+            }, fn($q) => $q->withAvg('reviews', 'rating'))
             ->when(data_get($filter, 'order_by'), function (Builder $query, $orderBy) {
 
                 switch ($orderBy) {
@@ -142,7 +145,6 @@ class ShopRepository extends CoreRepository
                         }
                         break;
                 }
-
             }, fn($q) => $q->orderBy(
                 data_get($filter, 'column', 'id'),
                 data_get($filter, 'sort', 'desc')
@@ -181,17 +183,17 @@ class ShopRepository extends CoreRepository
     {
         $locale = data_get(Language::languagesList()->where('default', 1)->first(), 'locale');
 
-		$shop = BookingShop::withAvg('reviews', 'rating')
-			->withCount('reviews')
-			->where('uuid', $uuid)
-			->first();
+        $shop = BookingShop::withAvg('reviews', 'rating')
+            ->withCount('reviews')
+            ->where('uuid', $uuid)
+            ->first();
 
-		if (empty($shop) || $shop->uuid !== $uuid) {
-			$shop = BookingShop::withAvg('reviews', 'rating')
-				->withCount('reviews')
-				->where('id', (int)$uuid)
-				->first();
-		}
+        if (empty($shop) || $shop->uuid !== $uuid) {
+            $shop = BookingShop::withAvg('reviews', 'rating')
+                ->withCount('reviews')
+                ->where('id', (int)$uuid)
+                ->first();
+        }
 
         return $shop?->fresh([
             'translation' => fn($q) => $q->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale)),
@@ -235,20 +237,20 @@ class ShopRepository extends CoreRepository
     {
         return Cache::remember('products-avg-prices', 86400, function () {
 
-			$min = Stock::where('price', '>=', 0)
-				->where('quantity', '>', 0)
-				->whereHas('countable', fn($q) => $q->where('status', Product::PUBLISHED)->where('active', true))
-				->min('price');
+            $min = Stock::where('price', '>=', 0)
+                ->where('quantity', '>', 0)
+                ->whereHas('countable', fn($q) => $q->where('status', Product::PUBLISHED)->where('active', true))
+                ->min('price');
 
-			$max = Stock::where('price', '>=', 0)
-				->where('quantity', '>', 0)
-				->whereHas('countable', fn($q) => $q->where('status', Product::PUBLISHED)->where('active', true))
-				->max('price');
+            $max = Stock::where('price', '>=', 0)
+                ->where('quantity', '>', 0)
+                ->whereHas('countable', fn($q) => $q->where('status', Product::PUBLISHED)->where('active', true))
+                ->max('price');
 
-			return [
-				'min' => $min * $this->currency,
-				'max' => ($min === $max ? $max + 1 : $max) * $this->currency,
-			];
+            return [
+                'min' => $min * $this->currency,
+                'max' => ($min === $max ? $max + 1 : $max) * $this->currency,
+            ];
         });
     }
 
@@ -302,9 +304,9 @@ class ShopRepository extends CoreRepository
 
     public function recommended(array $filter): array
     {
-//        if (!empty(Cache::get('shops-recommended'))) {
-//            return Cache::get('shops-recommended');
-//        }
+        //        if (!empty(Cache::get('shops-recommended'))) {
+        //            return Cache::get('shops-recommended');
+        //        }
 
         $recommendedCount = (int)(Settings::where('key', 'recommended_count')->first()?->value ?? 2);
 
@@ -318,9 +320,11 @@ class ShopRepository extends CoreRepository
                                 'countable' => fn($c) => $c->where('active', true)->where('addon', false)
                                     ->where('status', Product::PUBLISHED)
                             ])
-                                ->whereHas('countable', fn($c) => $c->where('active', true)
-                                    ->where('addon', false)
-                                    ->where('status', Product::PUBLISHED)
+                                ->whereHas(
+                                    'countable',
+                                    fn($c) => $c->where('active', true)
+                                        ->where('addon', false)
+                                        ->where('status', Product::PUBLISHED)
                                 )
                                 ->where('quantity', '>', 0)
                         ])->whereHas('stock', fn($s) => $s->where('quantity', '>', 0)),
@@ -330,9 +334,11 @@ class ShopRepository extends CoreRepository
                 'translation' => fn($q) => $q
                     ->where('locale', $this->language),
             ])
-            ->whereHas('orders', fn($q) => $q
-                ->whereStatus(Order::STATUS_DELIVERED)
-                ->where('created_at', '>=', date('Y-m-d 00:00:01', strtotime('-30 days'))),
+            ->whereHas(
+                'orders',
+                fn($q) => $q
+                    ->whereStatus(Order::STATUS_DELIVERED)
+                    ->where('created_at', '>=', date('Y-m-d 00:00:01', strtotime('-30 days'))),
             )
             ->select([
                 'id',
@@ -376,7 +382,6 @@ class ShopRepository extends CoreRepository
                 } else {
                     $cache[$shop->id] = $productsCount;
                 }
-
             }
 
             $result[$shop->id]['products_count'] += count(data_get($cache, "$shop->id", []));
@@ -384,7 +389,6 @@ class ShopRepository extends CoreRepository
             if ((int)data_get($result, "$shop->id.products_count") < $recommendedCount) {
                 unset($result[$shop->id]);
             }
-
         }
 
         $result = collect($result)->toArray();
@@ -408,8 +412,14 @@ class ShopRepository extends CoreRepository
         $recommended = Product::with([
             'stock' => fn($q) => $q->with([
                 'bonus' => fn($q) => $q->where('expired_at', '>', now())->where('status', true)->select([
-                    'id', 'expired_at', 'bonusable_type', 'bonusable_id',
-                    'bonus_quantity', 'value', 'type', 'status'
+                    'id',
+                    'expired_at',
+                    'bonusable_type',
+                    'bonusable_id',
+                    'bonus_quantity',
+                    'value',
+                    'type',
+                    'status'
                 ]),
             ])->select([
                 'id',
@@ -428,8 +438,10 @@ class ShopRepository extends CoreRepository
             ->where('active', true)
             ->where('addon', false)
             ->where('status', Product::PUBLISHED)
-            ->whereHas('stock', fn($q) => $q->where('addon', false)->where('quantity', '>', 0)
-                ->whereHas('orderDetails', '>', $recommendedCount)
+            ->whereHas(
+                'stock',
+                fn($q) => $q->where('addon', false)->where('quantity', '>', 0)
+                    ->whereHas('orderDetails', '>', $recommendedCount)
             )
             ->whereHas('translation', fn($q) => $q->where('locale', $this->language))
             ->select([
@@ -484,27 +496,40 @@ class ShopRepository extends CoreRepository
                     'products.translation' => fn($q) => $q->where('locale', $this->language),
                     'products.stock' => fn($q) => $q->with([
                         'bonus' => fn($q) => $q->where('expired_at', '>', now())->where('status', true)->select([
-                                'id', 'expired_at', 'bonusable_type', 'bonusable_id',
-                                'bonus_quantity', 'value', 'type', 'status'
-                            ])
+                            'id',
+                            'expired_at',
+                            'bonusable_type',
+                            'bonusable_id',
+                            'bonus_quantity',
+                            'value',
+                            'type',
+                            'status'
                         ])
+                    ])
                         ->select([
-                            'id', 'countable_type', 'countable_id', 'price', 'quantity', 'addon'
+                            'id',
+                            'countable_type',
+                            'countable_id',
+                            'price',
+                            'quantity',
+                            'addon'
                         ])
                         ->where('quantity', '>', 0)->where('addon', false),
                 ])
-                ->whereHas('products', fn($q) => $q
-                    ->select([
-                        'id',
-                        'active',
-                        'addon',
-                        'status',
-                        'shop_id',
-                    ])
-                    ->where('active', true)
-                    ->where('addon', false)
-                    ->where('status', Product::PUBLISHED)
-                    ->where('shop_id', $shopId)
+                ->whereHas(
+                    'products',
+                    fn($q) => $q
+                        ->select([
+                            'id',
+                            'active',
+                            'addon',
+                            'status',
+                            'shop_id',
+                        ])
+                        ->where('active', true)
+                        ->where('addon', false)
+                        ->where('status', Product::PUBLISHED)
+                        ->where('shop_id', $shopId)
                 )
                 ->whereHas('translation', fn($q) => $q->where('locale', $this->language))
                 ->select([
@@ -533,12 +558,14 @@ class ShopRepository extends CoreRepository
                     ->select('id', 'locale', 'title', 'category_id'),
             ])
             ->whereHas('translation', fn($q) => $q->where('locale', $this->language))
-            ->whereHas('products', fn($q) => $q
-                ->select('id', 'category_id', 'active', 'shop_id', 'status', 'addon')
-                ->where('active', true)
-                ->where('addon', false)
-                ->where('status', Product::PUBLISHED)
-                ->where('shop_id', $shopId)
+            ->whereHas(
+                'products',
+                fn($q) => $q
+                    ->select('id', 'category_id', 'active', 'shop_id', 'status', 'addon')
+                    ->where('active', true)
+                    ->where('addon', false)
+                    ->where('status', Product::PUBLISHED)
+                    ->where('shop_id', $shopId)
             )
             ->select([
                 'id',
@@ -564,8 +591,14 @@ class ShopRepository extends CoreRepository
             'stocks' => fn($q) => $q->select('id', 'countable_type', 'countable_id', 'price', 'quantity', 'addon')
                 ->with([
                     'bonus' => fn($q) => $q->where('expired_at', '>', now())->where('status', true)->select([
-                        'id', 'expired_at', 'bonusable_type', 'bonusable_id',
-                        'bonus_quantity', 'value', 'type', 'status'
+                        'id',
+                        'expired_at',
+                        'bonusable_type',
+                        'bonusable_id',
+                        'bonus_quantity',
+                        'value',
+                        'type',
+                        'status'
                     ])
                 ]),
             'discounts' => fn($q) => $q
@@ -624,14 +657,22 @@ class ShopRepository extends CoreRepository
                 'img',
                 'min_qty',
                 'max_qty',
-            ])->when(data_get($filter, 'addon_status'), fn($q, $status) =>
+            ])->when(
+                data_get($filter, 'addon_status'),
+                fn($q, $status) =>
                 $q->where('active', true)->where('status', '=', $status)
             ),
             'stocks.addons.addon.stock',
             'stocks.addons.addon.translation' => fn($q) => $q->where('locale', $this->language),
             'stocks.bonus' => fn($q) => $q->where('expired_at', '>', now())->where('status', true)->select([
-                'id', 'expired_at', 'bonusable_type', 'bonusable_id',
-                'bonus_quantity', 'value', 'type', 'status'
+                'id',
+                'expired_at',
+                'bonusable_type',
+                'bonusable_id',
+                'bonus_quantity',
+                'value',
+                'type',
+                'status'
             ]),
             'stocks.bonus.stock',
             'stocks.bonus.stock.countable:id,uuid,tax,status,active,img,min_qty,max_qty',
@@ -662,5 +703,4 @@ class ShopRepository extends CoreRepository
             ->whereIn('id', $ids)
             ->paginate(data_get($filter, 'perPage', 10));
     }
-
 }

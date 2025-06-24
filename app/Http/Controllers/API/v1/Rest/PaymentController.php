@@ -42,25 +42,49 @@ class PaymentController extends RestBaseController
 
     public function getPaymentsForUser(FilterParamsRequest $request): AnonymousResourceCollection
     {
-
-        Log::info('getPaymentsForUser;');
         /** @var User $user */
         $user = auth('sanctum')->user();
 
         $orderCount = $user->orders()->count(); // Əgər əlaqə qurulubsa
-        Log::info('ordersCount:', ['orderCount:', $orderCount]);
         if ($orderCount < 3) {
 
-            Log::info('if pay');
             $payments = Payment::where('tag', Payment::TAG_ODERO)->where('active', 1)->get();
         } else {
-            Log::info('else pay');
-
             $payments = $this->repository->paymentsList($request->merge(['active' => 1])->all());
         }
-        $menimpayments = PaymentResource::collection($payments);
-        Log::info('menimpayments:', ['menimpayments:', $menimpayments]);
         return PaymentResource::collection($payments);
+    }
+
+
+    public function getPaymentsForUser2(FilterParamsRequest $request): JsonResponse
+    {
+        Log::info('getPaymentsForUser2');
+        /** @var User $user */
+        $user = auth('sanctum')->user();
+
+        $orderCount = $user->orders()->count();
+
+        Log::info('orderCount:', ['orderCount:', $orderCount]);
+
+
+        $payments = Payment::where('active', 1)
+            ->get()
+            ->sortBy(function ($payment) {
+                if ($payment->tag === 'odero') return 0;
+                if ($payment->tag === 'cash') return 1;
+                if ($payment->tag === 'wallet') return 2;
+                return 99;
+            })
+            ->values();
+
+        Log::info('paymentler:', ['pay:', $payments]);
+
+        return response()->json([
+            'data' => PaymentResource::collection($payments),
+            'test' => [
+                'order_count' => $orderCount
+            ]
+        ]);
     }
 
 

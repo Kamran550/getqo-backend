@@ -34,7 +34,7 @@ class BannerController extends RestBaseController
     public function paginate(FilterParamsRequest $request): AnonymousResourceCollection
     {
         $banners = $this->repository->bannersPaginate($request->merge(['active' => 1])->all());
-
+        
         return BannerResource::collection($banners);
     }
 

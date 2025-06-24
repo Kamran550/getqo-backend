@@ -220,6 +220,7 @@ class OrderController extends AdminBaseController
 	 */
 	public function update(int $id, UpdateRequest $request): JsonResponse
 	{
+		Log::info('order update olunajax');
 		$validated = $request->validated();
 
 		$result = $this->orderService->update($id, $validated);

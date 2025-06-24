@@ -201,6 +201,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
         /* Payments */
         Route::get('payments',                      [Rest\PaymentController::class, 'index']);
         Route::get('payments/user',                 [Rest\PaymentController::class, 'getPaymentsForUser']);
+        Route::get('payments/user2',                 [Rest\PaymentController::class, 'getPaymentsForUser2']);
         Route::get('payments/{id}',                 [Rest\PaymentController::class, 'show']);
 
         /* Blogs */

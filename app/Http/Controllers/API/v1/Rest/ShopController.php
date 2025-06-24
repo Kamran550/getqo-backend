@@ -25,6 +25,7 @@ use App\Services\ShopServices\ShopReviewService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Str;
 use Throwable;
 
@@ -35,8 +36,7 @@ class ShopController extends RestBaseController
      */
     public function __construct(
         private ShopRepoInterface $shopRepository
-    )
-    {
+    ) {
         parent::__construct();
     }
 
@@ -48,6 +48,14 @@ class ShopController extends RestBaseController
      */
     public function paginate(FilterParamsRequest $request): AnonymousResourceCollection
     {
+        Log::info('paginate filter', ['req:', $request->all()]);
+        // [2025-06-21 12:55:06] local1.INFO: paginate filter ["req:",{"type":"shop","verify":"1","address":{"latitude":"40.68177486758787","longitude":"46.35567797594624"},"lang":"en"}] 
+
+        // [2025-06-21 12:55:11] local1.INFO: paginate filter ["req:",{"type":"shop","perPage":"12","address":{"latitude":"40.68177486758787","longitude":"46.35567797594624"},"open":"1","lang":"en"}] 
+
+
+        // [2025-06-21 12:55:12] local1.INFO: paginate filter ["req:",{"type":"restaurant","page":"1","perPage":"12","address":{"latitude":"40.68177486758787","longitude":"46.35567797594624"},"lang":"en"}] 
+
         $visibility = (int)Settings::where('key', 'by_subscription')->first()?->value;
 
         $merge = [
@@ -63,15 +71,19 @@ class ShopController extends RestBaseController
             $request->merge($merge)->all()
         );
 
+
+        $menimShopum = ShopResource::collection($shops);
+        Log::info('menimShopum:', ['menimShopum:', $menimShopum]);
+
         return ShopResource::collection($shops);
     }
 
-	/**
-	 * Display a listing of the resource.
-	 *
-	 * @param FilterParamsRequest $request
-	 * @return AnonymousResourceCollection
-	 */
+    /**
+     * Display a listing of the resource.
+     *
+     * @param FilterParamsRequest $request
+     * @return AnonymousResourceCollection
+     */
     public function selectPaginate(FilterParamsRequest $request): AnonymousResourceCollection
     {
         $shops = $this->shopRepository->selectPaginate(
@@ -172,12 +184,12 @@ class ShopController extends RestBaseController
         return $this->successResponse(__('errors.' . ResponseError::SUCCESS, locale: $this->language), $shop);
     }
 
-	/**
-	 * Search shop Model from database.
-	 *
-	 * @param FilterParamsRequest $request
-	 * @return AnonymousResourceCollection
-	 */
+    /**
+     * Search shop Model from database.
+     *
+     * @param FilterParamsRequest $request
+     * @return AnonymousResourceCollection
+     */
     public function shopsSearch(FilterParamsRequest $request): AnonymousResourceCollection
     {
         $shops = $this->shopRepository->shopsSearch($request->merge([
@@ -188,12 +200,12 @@ class ShopController extends RestBaseController
         return ShopResource::collection($shops);
     }
 
-	/**
-	 * Search shop Model from database via IDs.
-	 *
-	 * @param FilterParamsRequest $request
-	 * @return AnonymousResourceCollection
-	 */
+    /**
+     * Search shop Model from database via IDs.
+     *
+     * @param FilterParamsRequest $request
+     * @return AnonymousResourceCollection
+     */
     public function shopsByIDs(FilterParamsRequest $request): AnonymousResourceCollection
     {
         $shops = $this->shopRepository->shopsByIDs($request->merge(['status' => 'approved'])->all());
@@ -201,26 +213,27 @@ class ShopController extends RestBaseController
         return ShopResource::collection($shops);
     }
 
-	/**
-	 * Search shop Model from database via IDs.
-	 *
-	 * @param FilterParamsRequest $request
-	 *
-	 * @return JsonResponse
-	 */
-	public function productsRecPaginate(FilterParamsRequest $request): JsonResponse
-	{
-		return $this->successResponse(__('web.products_found'),
-			$this->shopRepository->productsRecPaginate($request->all())
-		);
-	}
+    /**
+     * Search shop Model from database via IDs.
+     *
+     * @param FilterParamsRequest $request
+     *
+     * @return JsonResponse
+     */
+    public function productsRecPaginate(FilterParamsRequest $request): JsonResponse
+    {
+        return $this->successResponse(
+            __('web.products_found'),
+            $this->shopRepository->productsRecPaginate($request->all())
+        );
+    }
 
-	/**
-	 * Search shop Model from database via IDs.
-	 *
-	 * @param FilterParamsRequest $request
-	 * @return JsonResponse
-	 */
+    /**
+     * Search shop Model from database via IDs.
+     *
+     * @param FilterParamsRequest $request
+     * @return JsonResponse
+     */
     public function recommended(FilterParamsRequest $request): JsonResponse
     {
         return $this->successResponse(
@@ -229,25 +242,25 @@ class ShopController extends RestBaseController
         );
     }
 
-	/**
-	 * Search shop Model from database via IDs.
-	 *
-	 * @param FilterParamsRequest $request
-	 *
-	 * @return AnonymousResourceCollection
-	 */
-	public function branchProducts(FilterParamsRequest $request): AnonymousResourceCollection
-	{
-		return $this->shopRepository->branchProducts($request->all());
-	}
+    /**
+     * Search shop Model from database via IDs.
+     *
+     * @param FilterParamsRequest $request
+     *
+     * @return AnonymousResourceCollection
+     */
+    public function branchProducts(FilterParamsRequest $request): AnonymousResourceCollection
+    {
+        return $this->shopRepository->branchProducts($request->all());
+    }
 
-	/**
-	 * Search shop Model from database via IDs.
-	 *
-	 * @param int $id
-	 * @param FilterParamsRequest $request
-	 * @return JsonResponse
-	 */
+    /**
+     * Search shop Model from database via IDs.
+     *
+     * @param int $id
+     * @param FilterParamsRequest $request
+     * @return JsonResponse
+     */
     public function products(int $id, FilterParamsRequest $request): JsonResponse
     {
         $shop = Shop::find($id);
@@ -259,18 +272,19 @@ class ShopController extends RestBaseController
             ]);
         }
 
-        return $this->successResponse(__('errors.' . ResponseError::SUCCESS, locale: $this->language),
+        return $this->successResponse(
+            __('errors.' . ResponseError::SUCCESS, locale: $this->language),
             $this->shopRepository->products($request->merge(['shop_id' => $shop->id])->all())
         );
     }
 
-	/**
-	 * Search shop Model from database via IDs.
-	 *
-	 * @param int $id
-	 * @param FilterParamsRequest $request
-	 * @return JsonResponse|AnonymousResourceCollection
-	 */
+    /**
+     * Search shop Model from database via IDs.
+     *
+     * @param int $id
+     * @param FilterParamsRequest $request
+     * @return JsonResponse|AnonymousResourceCollection
+     */
     public function categories(int $id, FilterParamsRequest $request): JsonResponse|AnonymousResourceCollection
     {
         $shop = Shop::find($id);
@@ -287,13 +301,13 @@ class ShopController extends RestBaseController
         return CategoryResource::collection($categories);
     }
 
-	/**
-	 * Search shop Model from database via IDs.
-	 *
-	 * @param int $id
-	 * @param FilterParamsRequest $request
-	 * @return JsonResponse|AnonymousResourceCollection
-	 */
+    /**
+     * Search shop Model from database via IDs.
+     *
+     * @param int $id
+     * @param FilterParamsRequest $request
+     * @return JsonResponse|AnonymousResourceCollection
+     */
     public function productsPaginate(int $id, FilterParamsRequest $request): JsonResponse|AnonymousResourceCollection
     {
         $shop = Shop::find($id);
@@ -310,13 +324,13 @@ class ShopController extends RestBaseController
         return ProductResource::collection($products);
     }
 
-	/**
-	 * Search shop Model from database via IDs.
-	 *
-	 * @param int $id
-	 * @param FilterParamsRequest $request
-	 * @return JsonResponse|AnonymousResourceCollection
-	 */
+    /**
+     * Search shop Model from database via IDs.
+     *
+     * @param int $id
+     * @param FilterParamsRequest $request
+     * @return JsonResponse|AnonymousResourceCollection
+     */
     public function productsRecommendedPaginate(int $id, FilterParamsRequest $request): JsonResponse|AnonymousResourceCollection
     {
         $shop = Shop::find($id);
@@ -335,13 +349,13 @@ class ShopController extends RestBaseController
         return ProductResource::collection($products);
     }
 
-	/**
-	 * Search shop Model from database via IDs.
-	 *
-	 * @param int $id
-	 * @param FilterParamsRequest $request
-	 * @return JsonResponse|AnonymousResourceCollection
-	 */
+    /**
+     * Search shop Model from database via IDs.
+     *
+     * @param int $id
+     * @param FilterParamsRequest $request
+     * @return JsonResponse|AnonymousResourceCollection
+     */
     public function shopPayments(int $id, FilterParamsRequest $request): JsonResponse|AnonymousResourceCollection
     {
         $shop = Shop::find($id);
@@ -364,8 +378,8 @@ class ShopController extends RestBaseController
      */
     public function galleries(int $id): ShopGalleryResource|JsonResponse
     {
-		/** @var ShopGallery|null $shopGallery */
-		$shopGallery = ShopGallery::with(['galleries'])
+        /** @var ShopGallery|null $shopGallery */
+        $shopGallery = ShopGallery::with(['galleries'])
             ->where('shop_id', $id)
             ->where('active', 1)
             ->first();
@@ -430,7 +444,6 @@ class ShopController extends RestBaseController
         }
 
         return $this->successResponse(ResponseError::NO_ERROR, ShopResource::make(data_get($result, 'data')));
-
     }
 
     /**
@@ -472,11 +485,13 @@ class ShopController extends RestBaseController
 
         $exists = false;
 
-        $shop = Shop::whereHas('workingDays', fn($q) => $q
-            ->where('disabled', 0)
-            ->where('day', $day)
-//            ->where('from', '>=', str_replace(':', '-', $time))
-//            ->where('to', '<=', str_replace(':', '-', $time))
+        $shop = Shop::whereHas(
+            'workingDays',
+            fn($q) => $q
+                ->where('disabled', 0)
+                ->where('day', $day)
+            //            ->where('from', '>=', str_replace(':', '-', $time))
+            //            ->where('to', '<=', str_replace(':', '-', $time))
         )
             ->whereDoesntHave('closedDates', fn($q) => $q->where('date', $date))
             ->find($id);
@@ -493,11 +508,8 @@ class ShopController extends RestBaseController
                         $exists = true;
                     }
                 } catch (Throwable) {
-
                 }
-
             }
-
         }
 
         return $this->successResponse(__('errors.' . ResponseError::SUCCESS, locale: $this->language), $exists);

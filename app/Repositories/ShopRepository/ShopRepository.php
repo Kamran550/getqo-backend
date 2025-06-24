@@ -21,6 +21,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 use Schema;
 use Throwable;
 
@@ -98,6 +99,7 @@ class ShopRepository extends CoreRepository implements ShopRepoInterface
      */
     public function shopsPaginate(array $filter): LengthAwarePaginator
     {
+		Log::info('Shop repository1');
         /** @var Shop $shop */
         $shop = $this->model();
 
