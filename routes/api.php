@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
     // Methods without AuthCheck
-    Route::post('/auth/register',                       [RegisterController::class, 'regicartCalculatester'])
+    Route::post('/auth/register',                       [RegisterController::class, 'register'])
         ->middleware('sessions');
 
     Route::post('/auth/login',                          [LoginController::class, 'login'])

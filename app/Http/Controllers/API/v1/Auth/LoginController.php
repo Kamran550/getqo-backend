@@ -277,12 +277,11 @@ class LoginController extends Controller
             ]);
         }
 
-        // $token = mb_substr((string)time(), -6, 6);
-        $token = 222222;
+        $token = mb_substr((string)time(), -6, 6);
+        // $token = 222222;
         Log::info('token:', ['token:', $token]);
 
         Cache::put($token, $token, 900);
-        Log::info('111111111111111111111111111111');
         $result = null;
 
         if ($request->filled('email')) {
