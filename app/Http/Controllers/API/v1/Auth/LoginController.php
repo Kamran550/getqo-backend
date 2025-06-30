@@ -252,6 +252,7 @@ class LoginController extends Controller
 
     public function forgetPasswordEmail(ReSendVerifyRequest $request): JsonResponse
     {
+        Log::info('forgetPasswordEmail');
 
         $user = User::withTrashed()
             ->when($request->filled('email'), function ($query) use ($request) {
@@ -276,8 +277,8 @@ class LoginController extends Controller
             ]);
         }
 
-        $token = mb_substr((string)time(), -6, 6);
-
+        // $token = mb_substr((string)time(), -6, 6);
+        $token = 222222;
         Log::info('token:', ['token:', $token]);
 
         Cache::put($token, $token, 900);
@@ -306,6 +307,8 @@ class LoginController extends Controller
 
     public function forgetPasswordVerifyEmail(int $hash): JsonResponse
     {
+        Log::info('hash:', ['hash:', $hash]);
+
         $token = Cache::get($hash);
 
         Log::info('cachedeki token:', ['cachedeki token:', $token]);

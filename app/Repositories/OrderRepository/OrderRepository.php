@@ -7,8 +7,10 @@ use App\Exports\OrdersRevenueReportExport;
 use App\Helpers\ResponseError;
 use App\Helpers\Utility;
 use App\Http\Resources\OrderResource;
+use App\Models\Benefit;
 use App\Models\Bonus;
 use App\Models\Booking\Table;
+use App\Models\Cart;
 use App\Models\CategoryTranslation;
 use App\Models\Coupon;
 use App\Models\Language;
@@ -158,6 +160,7 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 	 */
 	public function orderStocksCalculate(array $filter): array
 	{
+		Log::info('stock filter:', ['filter:', $filter]);
 		$locale     = data_get(Language::languagesList()->where('default', 1)->first(), 'locale');
 		$products   = collect(data_get($filter, 'products', []));
 
@@ -300,6 +303,7 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 		$result = collect(array_values($result));
 
 		$totalPrice = $result->sum('total_price');
+		Log::info('total:', ['tot price:', $totalPrice]);
 
 		$shopTax     = 0;
 		$deliveryFee = 0;
@@ -318,6 +322,8 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 				$km          = $helper->getDistance($shop->location, data_get($filter, 'address'));
 
 				$deliveryFee = $helper->getPriceByDistance($km, $shop, (float)data_get($filter, 'rate', 1));
+				// ['delivery_fee' => $deliveryFee, 'admin_delivery_fee' => $adminDeliveryFee] =
+				// 	$this->calculateOrderFreeDelivery2($km, $totalPrice, $shop, $data, (float)data_get($filter, 'rate', 1));
 			}
 		}
 
@@ -342,6 +348,7 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 
 		$totalPrice = max($totalPrice + $deliveryFee + $shopTax + $serviceFee + $tips, 0);
 
+		Log::info('res:', ['result:', $result]);
 		return [
 			'status' => true,
 			'code'   => ResponseError::NO_ERROR,
@@ -356,12 +363,93 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 				'rate'              => $this->currency(),
 				'coupon_price'      => $couponPrice,
 				'shop'              => $shop,
+				// 'admin_delivery_fee' => max($result->adminDeliveryFee, 0),
 				'coupon'            => $coupon,
 				'tips'              => $tips,
 				'service_fee'       => $serviceFee,
 			]
 		];
 	}
+
+	public function calculateOrderFreeDelivery2($km, $totalPrice, $shop, $data, $rate)
+	{
+		/** @var User|null $user */
+		// $user = auth('sanctum')->user();
+		$user = User::find(data_get($data, 'user_id'));
+		Log::info('user:', ['user:', $user]);
+		Log::info('data:', ['data:', $data]);
+		$helper      = new Utility;
+
+
+
+		$free_delivery_count = Benefit::where('type', Benefit::FREE_DELIVERY_COUNT)
+			->first();
+		$free_delivery_distance = Benefit::where('type', Benefit::FREE_DELIVERY_DISTANCE)
+			->where('default', 1)
+			->first();
+
+
+		$fix_price = $shop->free_delivery_price;
+		$target_type = $free_delivery_count ? data_get($free_delivery_count->payload, 'target_type') : null;
+
+
+
+		$deliveryFee = $helper->getPriceByDistance($km, $shop, $rate) / $rate;
+		$adminDeliveryFee = 0;
+		if (!$free_delivery_distance) {
+			Log::info('Default free delivery benefit not found or payload is missing.');
+			return [
+				'delivery_fee' => $deliveryFee,
+				'admin_delivery_fee' => $adminDeliveryFee,
+			];
+		}
+
+		$fix_km = $free_delivery_distance ? data_get($free_delivery_distance->payload, 'km') : null;
+		$freeDeliveryData = $user->free_delivery; // burada json formatında gəlir
+		$kmDeliveryFee = $helper->getPriceByDistance($km, $shop, $rate) / $rate;
+		$shopType = $shop->type;
+
+
+		if ($helper->isFreeDeliveryAvailable($freeDeliveryData, $target_type, $shopType)) {
+			Log::info('İstifadəçinin pulsuz çatdırılması aktivdir Order service');
+
+			if ($km < $fix_km) {
+				Log::info('1 ci merheler az km');
+
+				$deliveryFee = 0;
+			} else {
+				Log::info('1 ci merheler artiq km');
+				$adminDeliveryFee = $helper->getPriceByDistance($fix_km, $shop, $rate) / $rate;
+				$deliveryFee = $kmDeliveryFee - $adminDeliveryFee;
+			}
+			$user->decrementFreeDelivery();
+		} else if (!is_null($fix_price) && $totalPrice >= $fix_price) {
+			Log::info('Shop price üçün Order service');
+			if ($km <= $fix_km) {
+				Log::info('2 ci merheler az km');
+
+				$deliveryFee = 0;
+			} else {
+				Log::info('2 ci merheler artiq km');
+
+				$adminDeliveryFee = $helper->getPriceByDistance((float)$fix_km, $shop, $rate) / $rate;
+				$deliveryFee = $kmDeliveryFee - $adminDeliveryFee;
+			}
+		}
+
+		if ($deliveryFee == 0) {
+			$adminDeliveryFee = $helper->getPriceByDistance($km, $shop, $rate) / $rate;
+		}
+		Log::info('sonda hesablanan deliveryFee:', ['DelivFEe:', $deliveryFee]);
+		Log::info('sonda hesablanan admindeliveryFee:', ['AdminDelivFEe:', $adminDeliveryFee]);
+
+
+		return [
+			'delivery_fee' => $deliveryFee,
+			'admin_delivery_fee' => $adminDeliveryFee,
+		];
+	}
+
 
 	/**
 	 * @param int $id
@@ -374,7 +462,6 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 	public function orderById(int $id, ?int $shopId = null, ?int $userId = null, ?string $phone = null, ?string $email = null): ?Order
 	{
 		$locale = data_get(Language::languagesList()->where('default', 1)->first(), 'locale');
-
 		return $this->model()
 			->with([
 				'user' => fn($u) => $u->withCount(['orders' => fn($u) => $u->where('status', Order::STATUS_DELIVERED)])

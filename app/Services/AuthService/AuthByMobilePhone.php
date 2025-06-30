@@ -62,11 +62,11 @@ class AuthByMobilePhone extends CoreService
     public function confirmOPTCode(array $array): JsonResponse
     {
         if (data_get($array, 'type') !== 'firebase') {
-
+            Log::info('verify:', ['ver:', data_get($array, 'verifyId')]);
 
             $data = Cache::get('sms-' . data_get($array, 'verifyId'));
 
-            Log::info('menim gonderdiyim:', ['menim gond:', data_get($array, 'verifyCode')]);
+            Log::info('menim gonderdiyim:', ['menim gond:', data_get($array, 'verifyId')]);
             Log::info('confirmOPTCode data:', [' confirmOPTCodedata:', $data]);
             Log::info('verify code:', ['verify code:', data_get($array, 'verifyCode')]);
             if (empty($data)) {
@@ -97,7 +97,7 @@ class AuthByMobilePhone extends CoreService
             }
             Log::info("333333333333333333333333333333333333333333333");
 
-            Log::info('phone:', ['phone:', data_get($data, 'phone')]);
+            Log::info('phoneeeeeeeee:', ['phone:', data_get($data, 'phone')]);
             $user = $this->model()->where('phone', data_get($data, 'phone'))->first();
             Log::info('userrrr:', ['userrrr:', $user]);
         } else {
@@ -179,6 +179,52 @@ class AuthByMobilePhone extends CoreService
             'user'  => UserResource::make($user),
         ]);
     }
+
+
+    public function confirmOPTCode2(array $array): JsonResponse
+    {
+        $data = Cache::get('sms-' . data_get($array, 'verifyId'));
+
+        Log::info('menim gonderdiyim:', ['menim gond:', data_get($array, 'verifyCode')]);
+        Log::info('confirmOPTCode data:', [' confirmOPTCodedata:', $data]);
+        Log::info('verify code:', ['verify code:', data_get($array, 'verifyCode')]);
+        if (empty($data)) {
+            Log::info('confirmOPTCode 1-ci error');
+            return $this->onErrorResponse([
+                'code'      => ResponseError::ERROR_404,
+                'message'   => __('errors.' . ResponseError::ERROR_404, locale: $this->language)
+            ]);
+        }
+
+        Log::info('111111111111111111111111111111111111');
+        if (Carbon::parse(data_get($data, 'expiredAt')) < now()) {
+            Log::info('expire olub');
+            return $this->onErrorResponse([
+                'code'      => ResponseError::ERROR_203,
+                'message'   => __('errors.' . ResponseError::ERROR_203, locale: $this->language)
+            ]);
+        }
+
+        Log::info("2222222222222222222222222222222222222222");
+
+        if (data_get($data, 'OTPCode') != data_get($array, 'verifyCode')) {
+            Log::info(' confirmOPTCode 2 ci error:');
+            return $this->onErrorResponse([
+                'code'      => ResponseError::ERROR_201,
+                'message'   => __('errors.' . ResponseError::ERROR_201, locale: $this->language)
+            ]);
+        }
+        Log::info("333333333333333333333333333333333333333333333");
+
+        Log::info('phoneeeeeeeee:', ['phone:', data_get($data, 'phone')]);
+
+        Cache::forget('sms-' . data_get($array, 'verifyId'));
+        Log::info('api token 1');
+        Log::info('api token 2');
+
+        return $this->successResponse(__('errors.' . ResponseError::SUCCESS, locale: $this->language));
+    }
+
 
     public function forgetPasswordVerify(array $data): JsonResponse
     {

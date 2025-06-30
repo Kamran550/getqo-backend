@@ -83,9 +83,10 @@ class ResponseError
     public const ERROR_511 = 'ERROR_511'; // 'You cannot attach.'
 
     public const NEW_ORDER                          = 'NEW_ORDER';
-	public const WALLET_TOP_UP 						= 'WALLET_TOP_UP';
-	public const CONFIRMATION_CODE                  = 'CONFIRMATION_CODE';
+    public const WALLET_TOP_UP                         = 'WALLET_TOP_UP';
+    public const CONFIRMATION_CODE                  = 'CONFIRMATION_CODE';
     public const PHONE_OR_EMAIL_NOT_FOUND           = 'PHONE_OR_EMAIL_NOT_FOUND';
+    public const PHONE_ALREADY_TAKEN                = 'PHONE_ALREADY_TAKEN';
     public const ORDER_NOT_FOUND                    = 'ORDER_NOT_FOUND';
     public const ORDER_REFUNDED                     = 'ORDER_REFUNDED';
     public const ORDER_PICKUP                       = 'ORDER_PICKUP';
@@ -152,7 +153,7 @@ class ResponseError
     public const DELIVERY_DATE                      = 'DELIVERY_DATE';
     public const DELIVERY_TIME                      = 'DELIVERY_TIME';
     public const TOTAL_PRICE_WITHOUT_TAX            = 'TOTAL_PRICE_WITHOUT_TAX';
-    public const OUT_OF_STOCK            			= 'OUT_OF_STOCK';
-    public const LITTLE_STOCK            			= 'LITTLE_STOCK';
-	public const WAIT_SPLIT 						= 'WAIT_SPLIT';
+    public const OUT_OF_STOCK                        = 'OUT_OF_STOCK';
+    public const LITTLE_STOCK                        = 'LITTLE_STOCK';
+    public const WAIT_SPLIT                         = 'WAIT_SPLIT';
 }

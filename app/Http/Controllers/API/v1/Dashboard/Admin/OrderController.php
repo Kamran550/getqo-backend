@@ -202,8 +202,7 @@ class OrderController extends AdminBaseController
 		}
 
 		$sonOrder = $this->orderRepository->reDataOrder($order);
-
-		Log::info('sonOrder:', ['sonOrder:', $sonOrder]);
+		Log::info('sonorder:', ['sonorder:', $sonOrder]);
 
 		return $this->successResponse(
 			__('errors.' . ResponseError::SUCCESS, locale: $this->language),
@@ -222,6 +221,7 @@ class OrderController extends AdminBaseController
 	{
 		Log::info('order update olunajax');
 		$validated = $request->validated();
+		Log::info('validated:', ['validated:', $validated]);
 
 		$result = $this->orderService->update($id, $validated);
 
@@ -247,6 +247,7 @@ class OrderController extends AdminBaseController
 	 */
 	public function orderStocksCalculate(StocksCalculateRequest $request): JsonResponse
 	{
+		Log::info('stock calculate');
 		$result = $this->orderRepository->orderStocksCalculate($request->validated());
 
 		if (!data_get($result, 'status')) {

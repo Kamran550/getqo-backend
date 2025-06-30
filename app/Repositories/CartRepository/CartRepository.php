@@ -244,7 +244,7 @@ class CartRepository extends CoreRepository
             Log::info("data:", ['data:', $data]);
             $deliveryFee = $helper->getPriceByDistance($km, $cart->shop, (float)data_get($data, 'rate', 1));
             Log::info('salam');
-            $deliveryFee = $this->calculateCartFreeDelivery2($deliveryFee, $km, $price, $data, $cart);
+            ['delivery_fee' => $deliveryFee, 'delivery_info' => $deliveryInfo] = $this->calculateCartFreeDelivery2($deliveryFee, $km, $price, $data, $cart);
         }
 
 
@@ -288,6 +288,7 @@ class CartRepository extends CoreRepository
                 'total_shop_tax'    => $shopTax,
                 'total_price'       => $totalPrice,
                 'total_discount'    => $discount,
+                'delivery_info'     => $deliveryInfo,
                 'delivery_fee'      => $deliveryFee,
                 'service_fee'       => $serviceFee,
                 'tips'              => $tips,
@@ -302,8 +303,8 @@ class CartRepository extends CoreRepository
 
     private function calculateCartFreeDelivery2($deliveryFee, $km, $price, $data, Cart $cart)
     {
-        Log::info('ötürülen delivery fee:', ['del fe:', $deliveryFee]);
         $user = auth('sanctum')->user();
+        $deliveryInfo = null;
         $helper      = new Utility;
         $free_delivery_count = Benefit::where('type', Benefit::FREE_DELIVERY_COUNT)
             ->first();
@@ -335,10 +336,12 @@ class CartRepository extends CoreRepository
 
             if ($km <= $fix_km) {
                 Log::info('1 ci merheler az km');
+                $deliveryInfo = "Pulsuz çatdırılma limitiniz olduğunuz üçün çatdırılma haqqı pulsuzdur.";
+
                 $deliveryFee = 0;
             } else {
                 Log::info('2 ci merheler artiq km');
-
+                $deliveryInfo = "Pulsuz çatdırılma limitiniz var, amma məsafə limitindən artıq olduğu üçün bir hissəsi ödənilib.";
                 $adminDeliveryFee = $helper->getPriceByDistance((float)$fix_km, $cart->shop, (float)data_get($data, 'rate', 1));
                 $deliveryFee = $kmDeliveryFee - $adminDeliveryFee;
             }
@@ -347,11 +350,11 @@ class CartRepository extends CoreRepository
 
             if ($km <= $fix_km) {
                 Log::info('2 ci merheler az km');
-
+                $deliveryInfo = "Səbət məbləğiniz mağazanın pulsuz çatdırılma limitindən çox olduğu üçün çatdırılma pulsuzdur.";
                 $deliveryFee = 0;
             } else {
                 Log::info('2 ci merheler artiq km');
-
+                $deliveryInfo = "Səbət məbləğiniz mağazanın pulsuz çatdırılma limitindən çox olduğu üçün məsafənin bir hissəsi ödənilib.";
                 $adminDeliveryFee = $helper->getPriceByDistance((float)$fix_km, $cart->shop, (float)data_get($data, 'rate', 1));
                 $deliveryFee = $kmDeliveryFee - $adminDeliveryFee;
             }
@@ -360,7 +363,10 @@ class CartRepository extends CoreRepository
         Log::info('sonda hesablanan admindeliveryFee:', ['AdminDelivFEe:', $adminDeliveryFee]);
         // del 1.8
         //admin del 1.89
-        return $deliveryFee;
+        return [
+            'delivery_fee' => $deliveryFee,
+            'delivery_info' => $deliveryInfo,
+        ];
     }
 
     private function calculateCartFreeDelivery($deliveryFee, $km, $price, $data, Cart $cart)

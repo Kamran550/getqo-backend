@@ -865,7 +865,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 		$fix_km = $free_delivery_distance ? data_get($free_delivery_distance->payload, 'km') : null;
 		$freeDeliveryData = $user->free_delivery; // burada json formatında gəlir
 		$kmDeliveryFee = $helper->getPriceByDistance($km, $shop, $rate) / $rate;
-		$shopType = $cart->shop->type;
+		$shopType = $shop->type;
 
 
 		if ($helper->isFreeDeliveryAvailable($freeDeliveryData, $target_type, $shopType)) {

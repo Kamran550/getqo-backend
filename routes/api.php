@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
     // Methods without AuthCheck
-    Route::post('/auth/register',                       [RegisterController::class, 'register'])
+    Route::post('/auth/register',                       [RegisterController::class, 'regicartCalculatester'])
         ->middleware('sessions');
 
     Route::post('/auth/login',                          [LoginController::class, 'login'])
@@ -35,6 +35,10 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
 
     Route::post('/auth/verify/phone',                   [VerifyAuthController::class, 'verifyPhone'])
         ->middleware('sessions');
+
+    Route::post('/auth/verify/phone2',                   [VerifyAuthController::class, 'verifyPhone2'])
+        ->middleware('sessions');
+
 
     Route::post('/auth/resend-verify',                  [VerifyAuthController::class, 'resendVerify'])
         ->middleware('sessions');

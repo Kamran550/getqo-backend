@@ -144,7 +144,7 @@ class SmileSmsService
             //     return ['status' => false, 'message' => 'SMS failed'];
             // }
         } catch (Exception $e) {
-            return ['status' => false, 'message' => $e->getMessage()];
+            return ['status' => false, 'message' => 'SMS failed'];
         }
     }
 

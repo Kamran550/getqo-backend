@@ -31,8 +31,15 @@ class VerifyAuthController extends Controller
 
     public function verifyPhone(PhoneVerifyRequest $request): JsonResponse
     {
-        Log::info('all body:', ['all:', $request->all()]);
+        Log::info(' verify phone all body:', ['all:', $request->all()]);
         return (new AuthByMobilePhone)->confirmOPTCode($request->all());
+    }
+
+
+    public function verifyPhone2(PhoneVerifyRequest $request): JsonResponse
+    {
+        Log::info(' verify phone2 all body:', ['all:', $request->all()]);
+        return (new AuthByMobilePhone)->confirmOPTCode2($request->all());
     }
 
     public function resendVerify(ReSendVerifyRequest $request): JsonResponse
@@ -66,9 +73,15 @@ class VerifyAuthController extends Controller
         }
 
 
+        // return $this->onErrorResponse([
+        //     'code'    => ResponseError::ERROR_400,
+        //     'message' => __('errors.' . ResponseError::PHONE_OR_EMAIL_NOT_FOUND, locale: $this->language)
+        // ]);
+
+        // Eger resendVerifyPhone -da bir probelm cixsa returnlari deyis
         return $this->onErrorResponse([
             'code'    => ResponseError::ERROR_400,
-            'message' => __('errors.' . ResponseError::PHONE_OR_EMAIL_NOT_FOUND, locale: $this->language)
+            'message' => __('errors.' . ResponseError::PHONE_ALREADY_TAKEN, locale: $this->language)
         ]);
     }
 
