@@ -41,7 +41,7 @@ class UserResource extends JsonResource
             'gender'                => $this->when($this->gender, $this->gender),
             'active'                => $this->active,
             'img'                   => $this->when($this->img, $this->img),
-            'referral'              => $this->when($this->referral, $this->referral),
+            'referral'              => $this->referral,
             'my_referral'           => $this->when($this->my_referral, $this->my_referral),
             'role'                  => $this->when($this->role, $this->role),
             'free_delivery'         => $this->free_delivery,
