@@ -46,6 +46,44 @@ class SMSBaseService extends CoreService
             Log::info('res:', ['res:', $result]);
         }
 
+
+        if (data_get($result, 'status')) {
+
+
+            $this->setOTPToCache($phone, $otp);
+
+            return [
+                'status' => true,
+                'verifyId' => data_get($otp, 'verifyId'),
+                'phone' => Str::mask($phone, '*', -12, 8),
+                'message' => data_get($result, 'message', ''),
+            ];
+        }
+
+        return ['status' => false, 'message' => data_get($result, 'message')];
+    }
+    public function smsGateway2($phone, $token): array
+    {
+        $otp = $this->setOTP();
+        Log::info('ooottp:', ['otp:', $otp]);
+
+        $smsPayload = SmsPayload::where('default', 1)->first();
+
+        Log::info('sms:', ['pay:', $smsPayload]);
+        $result = ['status' => false, 'message' => 'sms is not configured!'];
+
+        if ($smsPayload?->type === SmsPayload::FIREBASE) {
+
+            $result = (new TwilioService)->sendSms($phone, $otp, $smsPayload);
+        } else if ($smsPayload?->type === SmsPayload::SMILESMS) {
+            Log::info('smile sms ile ');
+            Log::info('phone:', ['phone:', $phone]);
+            Log::info('smile sms ile 222222222222222222222222');
+            $result = (new SmileSmsService)->sendSms3($phone, $token, $smsPayload);
+            Log::info('res:', ['res:', $result]);
+        }
+
+
         if (data_get($result, 'status')) {
 
 
@@ -73,7 +111,7 @@ class SMSBaseService extends CoreService
     {
         $verifyId  = data_get($otp, 'verifyId');
         $expiredAt = Settings::where('key', 'otp_expire_time')->first()?->value;
-
+        Log::info('setOTPToCache:', ['setOTPToCache otpcode:', data_get($otp, 'otpCode')]);
         Cache::put("sms-$verifyId", [
             'phone'     => $phone,
             'verifyId'  => $verifyId,

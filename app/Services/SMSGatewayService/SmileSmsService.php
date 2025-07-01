@@ -149,24 +149,25 @@ class SmileSmsService
     }
 
 
+
     public function sendSms3($phone, $otp, SmsPayload $smsPayload): array
     {
         try {
             if (strlen($phone) < 7) {
                 throw new Exception('Invalid phone number', 400);
             }
+            Log::info('smsPayload:', ["smsPayload", $smsPayload->payload]);
 
             $smile_user      = data_get($smsPayload->payload, 'smilesms_user');
             $smilesms_pass      = data_get($smsPayload->payload, 'smilesms_pass');
-            $otpCode        = data_get($otp, 'otpCode');
             $smile_number   = data_get($smsPayload->payload, 'smilesms_number_id');
 
 
             // Parametrləri URL formatında hazırlayırıq
             $phone = urlencode($phone); // Telefon nömrəsini düzgün kodlayırıq
 
-            Log::info('otp:', ['otp:', $otpCode]);
-            $msgBody = $this->buildMessage($otpCode);
+            Log::info('otp:', ['otp:', $otp]);
+            $msgBody = $this->buildMessage($otp);
             $url = $this->url . http_build_query([
                 'username'  => $smile_user,
                 'password'  => $smilesms_pass,
@@ -182,7 +183,7 @@ class SmileSmsService
 
             $responseBody = $response->body();
 
-            // // Log::info('response body:', ['respinse body', $response->body()]);
+            Log::info('response body:', ['respinse body', $response->body()]);
 
             if (strpos($responseBody, 'Ok:') !== false) {
                 preg_match('/Ok:\s*(\d+);/', $responseBody, $matches);
@@ -199,7 +200,7 @@ class SmileSmsService
                 return ['status' => false, 'message' => 'SMS failed'];
             }
         } catch (Exception $e) {
-            return ['status' => false, 'message' => $e->getMessage()];
+            return ['status' => false, 'message' => 'SMS failed'];
         }
     }
 }

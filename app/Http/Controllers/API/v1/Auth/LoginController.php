@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\PersonalAccessToken;
 use Psr\SimpleCache\InvalidArgumentException;
+use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -250,9 +251,16 @@ class LoginController extends Controller
         return (new AuthByMobilePhone)->authentication($request->validated());
     }
 
-    public function forgetPasswordEmail(ReSendVerifyRequest $request): JsonResponse
+    public function forgetPasswordEmail(Request $request): JsonResponse
     {
-        Log::info('forgetPasswordEmail');
+        $validated = $request->validate([
+            'email' => ['nullable', 'email'],
+            'phone' => ['nullable', 'string'], // istəyirsənsə regex də əlavə elə bilərsən
+        ], [
+            'email.email' => 'Daxil etdiyiniz email düzgün formatda olmalıdır.',
+            'phone.string' => 'Telefon nömrəsi düzgün formatda olmalıdır.',
+        ]);
+
 
         $user = User::withTrashed()
             ->when($request->filled('email'), function ($query) use ($request) {
@@ -287,7 +295,7 @@ class LoginController extends Controller
         if ($request->filled('email')) {
             $result = (new EmailSendService)->sendEmailPasswordReset($user, $token);
         } elseif ($request->filled('phone')) {
-            $result = (new SMSBaseService)->smsGateway($request->input('phone'));
+            $result = (new SMSBaseService)->smsGateway2($request->input('phone'), $token);
         }
         Log::info('2222222222222222222222222222222');
 
@@ -359,7 +367,7 @@ class LoginController extends Controller
      */
     public function forgetPasswordVerify(PhoneVerifyRequest $request): JsonResponse
     {
-        Log::info('forgetPasswordVerify');
+        Log::info('forgetPasswordVerify', ['validate:', $request->validated()]);
         return (new AuthByMobilePhone)->forgetPasswordVerify($request->validated());
     }
 }
