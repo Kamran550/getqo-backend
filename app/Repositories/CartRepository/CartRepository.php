@@ -223,6 +223,7 @@ class CartRepository extends CoreRepository
         $discount    += $receiptDiscount;
         $totalPrice   =  $cart->rate_total_price + $discount;
         $deliveryFee  = 0;
+        $deliveryInfo = null;
 
         // if (data_get($data, 'type') === Order::DELIVERY) {
         //     $helper      = new Utility;
@@ -304,7 +305,7 @@ class CartRepository extends CoreRepository
     private function calculateCartFreeDelivery2($deliveryFee, $km, $price, $data, Cart $cart)
     {
         $user = auth('sanctum')->user();
-        $deliveryInfo = null;
+        
         $helper      = new Utility;
         $free_delivery_count = Benefit::where('type', Benefit::FREE_DELIVERY_COUNT)
             ->first();
