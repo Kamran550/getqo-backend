@@ -774,6 +774,14 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('statistics/products',       [Admin\DashboardController::class, 'productsStatistic']);
             Route::get('statistics/users',          [Admin\DashboardController::class, 'usersStatistic']);
 
+            /* Coupons */
+            Route::get('coupons/paginate',              [Admin\CouponController::class, 'paginate']);
+            Route::delete('coupons/delete',             [Admin\CouponController::class, 'destroy']);
+            Route::apiResource('coupons',     Admin\CouponController::class);
+
+
+
+
             /* Terms & Condition */
             Route::post('term',                     [Admin\TermsController::class, 'store']);
             Route::get('term',                      [Admin\TermsController::class, 'show']);
@@ -781,6 +789,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('term/drop/all',             [Admin\TermsController::class, 'dropAll']);
             Route::get('term/restore/all',          [Admin\TermsController::class, 'restoreAll']);
             Route::get('term/truncate/db',          [Admin\TermsController::class, 'truncate']);
+
 
             /* Privacy & Policy */
             Route::post('policy',                   [Admin\PrivacyPolicyController::class, 'store']);

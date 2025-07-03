@@ -239,13 +239,14 @@ class CartRepository extends CoreRepository
         Log::info('total price:', ['total price:', $totalPrice]);
 
         if (data_get($data, 'type') === Order::DELIVERY) {
+            Log::info('deliverye girdi bu sefer');
             $helper      = new Utility;
             $km          = $helper->getDistance($cart->shop->location, data_get($data, 'address'));
 
             Log::info("data:", ['data:', $data]);
             $deliveryFee = $helper->getPriceByDistance($km, $cart->shop, (float)data_get($data, 'rate', 1));
             Log::info('salam');
-            ['delivery_fee' => $deliveryFee, 'delivery_info' => $deliveryInfo] = $this->calculateCartFreeDelivery2($deliveryFee, $km, $price, $data, $cart);
+            ['delivery_fee' => $deliveryFee, 'delivery_info' => $deliveryInfo] = $this->calculateCartFreeDelivery2($deliveryFee, $km, $price, $data, $cart, $deliveryInfo);
         }
 
 
@@ -302,10 +303,10 @@ class CartRepository extends CoreRepository
     }
 
 
-    private function calculateCartFreeDelivery2($deliveryFee, $km, $price, $data, Cart $cart)
+    private function calculateCartFreeDelivery2($deliveryFee, $km, $price, $data, Cart $cart, $deliveryInfo)
     {
         $user = auth('sanctum')->user();
-        
+
         $helper      = new Utility;
         $free_delivery_count = Benefit::where('type', Benefit::FREE_DELIVERY_COUNT)
             ->first();

@@ -5,7 +5,7 @@ namespace App\Http\Requests\Coupon;
 use App\Http\Requests\BaseRequest;
 use Illuminate\Validation\Rule;
 
-class StoreRequest extends BaseRequest
+class StoreRequestForAdmin extends BaseRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -21,6 +21,7 @@ class StoreRequest extends BaseRequest
                 Rule::unique('coupons', 'name')->ignore(request()->route('coupon'))
             ],
             'type'          => ['required', 'string', Rule::in('fix', 'percent')],
+            'target_type'   => ['required', 'string', Rule::in('shop', 'restaurant', 'all')],
             'for'           => ['string', Rule::in('total_price', 'delivery_fee')],
             'qty'           => 'required|numeric|min:1',
             'price'         => 'required|numeric|min:1',
@@ -34,4 +35,3 @@ class StoreRequest extends BaseRequest
         ];
     }
 }
-

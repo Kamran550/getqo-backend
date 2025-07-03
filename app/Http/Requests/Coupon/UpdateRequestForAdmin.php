@@ -5,7 +5,7 @@ namespace App\Http\Requests\Coupon;
 use App\Http\Requests\BaseRequest;
 use Illuminate\Validation\Rule;
 
-class StoreRequest extends BaseRequest
+class UpdateRequestForAdmin extends BaseRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -15,10 +15,12 @@ class StoreRequest extends BaseRequest
     public function rules(): array
     {
         return [
-            'name'          => [
+            'name' => [
                 'required',
                 'string',
-                Rule::unique('coupons', 'name')->ignore(request()->route('coupon'))
+                Rule::unique('coupons', 'name')
+                    ->where(fn($query) => $query->where('shop_id', request('shop_id')))
+                    ->ignore(request()->route('coupon'))
             ],
             'type'          => ['required', 'string', Rule::in('fix', 'percent')],
             'for'           => ['string', Rule::in('total_price', 'delivery_fee')],
@@ -34,4 +36,3 @@ class StoreRequest extends BaseRequest
         ];
     }
 }
-

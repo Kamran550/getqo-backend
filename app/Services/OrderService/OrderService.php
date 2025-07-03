@@ -372,6 +372,8 @@ class OrderService extends CoreService implements OrderServiceInterface
 		$deliveryFee = $order->delivery_fee;
 		$adminDeliveryFee = $order->admin_delivery_fee;
 
+		Log::info('orderdeki coupon:', ['orderdeki coupon:', $coupon]);
+
 		Log::info('orderdeki delivery fee:', ['orderdeki delivery fee:', $deliveryFee]);
 		Log::info('orderdeki admindelivery fee:', ['orderdeki admindelivery fee:', $adminDeliveryFee]);
 
@@ -479,6 +481,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 	 */
 	private function checkCoupon(Coupon $coupon, Order $order, $totalPrice): float|int|null
 	{
+		LOg::info('order check coupon');
 		if ($coupon->qty <= 0) {
 			return 0;
 		}
@@ -491,7 +494,9 @@ class OrderService extends CoreService implements OrderServiceInterface
 			'price'   => $couponPrice,
 		]);
 
-		$coupon->decrement('qty');
+		// $coupon->decrement('qty');
+		Coupon::where('name', $coupon->name)->decrement('qty');
+
 
 		return $couponPrice;
 	}
