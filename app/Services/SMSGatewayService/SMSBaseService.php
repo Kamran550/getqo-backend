@@ -103,8 +103,8 @@ class SMSBaseService extends CoreService
 
     public function setOTP(): array
     {
-        // return ['verifyId' => Str::uuid(), 'otpCode' => rand(100000, 999999)];
-        return ['verifyId' => Str::uuid(), 'otpCode' => 222222];
+        return ['verifyId' => Str::uuid(), 'otpCode' => rand(100000, 999999)];
+        // return ['verifyId' => Str::uuid(), 'otpCode' => 222222];
     }
 
     public function setOTPToCache($phone, $otp)
