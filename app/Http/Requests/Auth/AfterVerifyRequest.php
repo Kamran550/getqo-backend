@@ -17,7 +17,6 @@ class AfterVerifyRequest extends BaseRequest
             'password'  => 'string',
             'email' => 'nullable|email|unique:users,email',
             'firstname' => 'string|min:2|max:100',
-            'referral'  => 'string|exists:users,my_referral|max:255',
             'gender'    => 'in:male,female',
         ];
     }

@@ -26,6 +26,8 @@ use Illuminate\Support\Facades\Log;
 
 class ProfileController extends UserBaseController
 {
+
+    use \App\Traits\Notification;
     private  UserRepository $userRepository;
     private  UserService $userService;
 
