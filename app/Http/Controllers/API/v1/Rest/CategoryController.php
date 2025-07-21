@@ -11,14 +11,14 @@ use App\Repositories\Interfaces\CategoryRepoInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 
 class CategoryController extends RestBaseController
 {
 	public function __construct(
 		private CategoryRepoInterface $repository,
 		private RestCategoryRepository $restRepository
-	)
-	{
+	) {
 		parent::__construct();
 	}
 
@@ -55,6 +55,7 @@ class CategoryController extends RestBaseController
 
 	public function paginate(CategoryFilterRequest $request): AnonymousResourceCollection
 	{
+		Log::info('paginate shop category');
 		$filter = $request
 			->merge([
 				'active' => 1,
@@ -111,25 +112,25 @@ class CategoryController extends RestBaseController
 		return $this->successResponse(__('errors.' . ResponseError::NO_ERROR), CategoryResource::make($category));
 	}
 
-    /**
-     * Display the specified resource.
-     *
-     * @param string $slug
-     * @return JsonResponse
-     */
-    public function showSlug(string $slug): JsonResponse
-    {
-        $category = $this->repository->categoryBySlug($slug);
+	/**
+	 * Display the specified resource.
+	 *
+	 * @param string $slug
+	 * @return JsonResponse
+	 */
+	public function showSlug(string $slug): JsonResponse
+	{
+		$category = $this->repository->categoryBySlug($slug);
 
-        if (!$category) {
-            return $this->onErrorResponse(['code' => ResponseError::ERROR_404]);
-        }
+		if (!$category) {
+			return $this->onErrorResponse(['code' => ResponseError::ERROR_404]);
+		}
 
-        return $this->successResponse(
-            __('errors.' . ResponseError::NO_ERROR, locale: $this->language),
-            CategoryResource::make($category)
-        );
-    }
+		return $this->successResponse(
+			__('errors.' . ResponseError::NO_ERROR, locale: $this->language),
+			CategoryResource::make($category)
+		);
+	}
 
 	public function shopCategoryProduct(Request $request): AnonymousResourceCollection
 	{

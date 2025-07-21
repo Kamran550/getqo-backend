@@ -28,6 +28,12 @@ return [
 
     'env' => env('APP_ENV', 'production'),
 
+    
+    'odero' => [
+        'callback_url' => env('CALLBACK_URL'),
+    ],
+
+
     /*
     |--------------------------------------------------------------------------
     | Application Debug Mode
@@ -60,7 +66,7 @@ return [
 
     'front_url' => env('FRONT_URL'),
     'admin_url' => env('ADMIN_URL'),
-    'qr_url' 	=> env('QR_URL'),
+    'qr_url'     => env('QR_URL'),
 
     'telegram_bot_token' => env('TELEGRAM_BOT_TOKEN'),
 
@@ -114,7 +120,7 @@ return [
     |
     */
 
-    'faker_locale' => 'en_US',
+    'faker_locale' => 'en_EN',
 
     /*
     |--------------------------------------------------------------------------
@@ -171,7 +177,7 @@ return [
         Illuminate\View\ViewServiceProvider::class,
         Jenssegers\Agent\AgentServiceProvider::class,
 
-		/*
+        /*
 		 * Package Service Providers...
 		 */
 
@@ -183,7 +189,7 @@ return [
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
-//        App\Providers\TelescopeServiceProvider::class,
+        //        App\Providers\TelescopeServiceProvider::class,
         App\Providers\RepositoryProvider::class
     ],
 

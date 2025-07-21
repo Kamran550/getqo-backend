@@ -12,6 +12,7 @@ use App\Services\CouponService\CouponService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 
 class CouponController extends SellerBaseController
 {
@@ -50,6 +51,7 @@ class CouponController extends SellerBaseController
      */
     public function paginate(Request $request): AnonymousResourceCollection
     {
+        Log::info('paginate for seller');
         $coupons = $this->couponRepository->couponsPaginate($request->merge(['shop_id' => $this->shop->id])->all());
 
         return CouponResource::collection($coupons);

@@ -11,11 +11,11 @@ class LoginRequest extends BaseRequest
      * @return array
      */
     public function rules(): array
-	{
-		return [
+    {
+        return [
             'phone'     => ['numeric', 'exists:users,phone'],
             'password'  => ['required', 'string'],
             'email'     => ['email', 'exists:users,email'],
-		];
-	}
+        ];
+    }
 }

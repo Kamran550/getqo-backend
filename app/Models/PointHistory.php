@@ -33,7 +33,7 @@ use Illuminate\Support\Carbon;
  */
 class PointHistory extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $guarded = ['id'];
 

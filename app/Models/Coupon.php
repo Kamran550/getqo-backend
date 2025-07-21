@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 /**
  * App\Models\Coupon
@@ -84,7 +85,12 @@ class Coupon extends Model
         return $this->belongsTo(Shop::class);
     }
 
-    public static function scopeCheckCoupon($query, $coupon, $shopId) {
+    public static function scopeCheckCoupon($query, $coupon, $shopId)
+    {
+        Log::info('scope coupon:', ['coupon:', $coupon]);
+        Log::info('scope shopId:', ['shopId:', $shopId]);
+        Log::info('scope query:', ['query:', $query]);
+
         return $query
             ->where('name', '=', $coupon)
             ->where('shop_id', $shopId)

@@ -11,6 +11,7 @@ use App\Repositories\SmsPayloadRepository\SmsPayloadRepository;
 use App\Services\SmsPayloadService\SmsPayloadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 
 class SmsPayloadController extends AdminBaseController
 {
@@ -27,6 +28,7 @@ class SmsPayloadController extends AdminBaseController
      */
     public function index(FilterParamsRequest $request): AnonymousResourceCollection
     {
+        Log::info('index sms payload');
         $model = $this->repository->paginate($request->all());
 
         return SmsPayloadResource::collection($model);
@@ -40,9 +42,19 @@ class SmsPayloadController extends AdminBaseController
      */
     public function store(StoreRequest $request): JsonResponse
     {
+        Log::info('1111111111111111111111111111111');
+
         $validated = $request->validated();
 
+
+        LOg::info('validate:', ['val:', $validated]);
+
+
         $result = $this->service->create($validated);
+
+
+        LOg::info('result:', ['result:', $result]);
+
 
         if (!data_get($result, 'status')) {
             return data_get($result, 'params') ?
@@ -91,6 +103,7 @@ class SmsPayloadController extends AdminBaseController
      */
     public function update(string $smsType, UpdateRequest $request): JsonResponse
     {
+        Log::info('puttt smsm');
         $validated = $request->validated();
 
         $result = $this->service->update($smsType, $validated);
@@ -169,5 +182,4 @@ class SmsPayloadController extends AdminBaseController
             __('errors.' . ResponseError::RECORD_WAS_SUCCESSFULLY_DELETED, locale: $this->language)
         );
     }
-
 }

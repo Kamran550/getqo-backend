@@ -22,6 +22,7 @@ use App\Traits\Notification;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends UserBaseController
 {
@@ -64,11 +65,19 @@ class OrderController extends UserBaseController
 	 */
 	public function store(UserStoreRequest $request): JsonResponse
 	{
+		Log::info("post req geldi");
 		$validated = $request->validated();
 
+
+		Log::info('validate:', ['validate' => $validated]);
 		if ((int)data_get(Settings::where('key', 'order_auto_approved')->first(), 'value') === 1) {
 			$validated['status'] = Order::STATUS_ACCEPTED;
 		}
+
+		Log::info('1111111111111111111111111111111111111111111111111111111111');
+
+
+
 
 		$validated['user_id'] = auth('sanctum')->id();
 
@@ -79,7 +88,11 @@ class OrderController extends UserBaseController
 			->select('id')
 			->find(data_get($validated, 'cart_id'));
 
+
+
+		Log::info('cart:', ['cart:', $cart]);
 		if (empty($cart)) {
+			Log::info('empty');
 			return $this->onErrorResponse([
 				'code'      => ResponseError::ERROR_404,
 				'message'   => __('errors.' . ResponseError::ERROR_404, locale: $this->language)
@@ -88,6 +101,7 @@ class OrderController extends UserBaseController
 
 		/** @var Cart $cart */
 		if ($cart->user_carts_count === 0) {
+			Log::info('cart->user_carts_count === 0');
 			return $this->onErrorResponse([
 				'code'    => ResponseError::ERROR_400,
 				'message' => __('errors.' . ResponseError::USER_CARTS_IS_EMPTY, locale: $this->language)
@@ -95,6 +109,7 @@ class OrderController extends UserBaseController
 		}
 
 		if ($cart->userCarts()->withCount('cartDetails')->get()->sum('cart_details_count') === 0) {
+			Log::info('PRODUCTS_IS_EMPTY');
 			return $this->onErrorResponse([
 				'code'    => ResponseError::ERROR_400,
 				'message' => __('errors.' . ResponseError::PRODUCTS_IS_EMPTY, locale: $this->language)
@@ -102,8 +117,10 @@ class OrderController extends UserBaseController
 		}
 
 		$result = $this->orderService->create($validated);
+		Log::info('Res:', ['res:', $result]);
 
 		if (!data_get($result, 'status')) {
+			Log::info('onErrorResponse');
 			return $this->onErrorResponse($result);
 		}
 
@@ -121,6 +138,8 @@ class OrderController extends UserBaseController
 	 */
 	public function show(int $id): JsonResponse
 	{
+		Log::info('user show');
+		LOg::info('hemde admin show');
 		$order = $this->orderRepository->orderById($id, userId: auth('sanctum')->id());
 
 		if (optional($order)->user_id !== auth('sanctum')->id()) {

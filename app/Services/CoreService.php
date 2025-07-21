@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 use DB;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 use Psr\SimpleCache\InvalidArgumentException;
 use Throwable;
 
@@ -19,8 +20,9 @@ abstract class CoreService
     use ApiResponse, Loggable;
 
     private mixed $model;
-    protected string $language;
-    protected int $currency;
+    protected ?string $language = null;
+    // protected string $language;
+    protected ?int $currency = null;
 
     public function __construct()
     {
@@ -59,8 +61,9 @@ abstract class CoreService
         $lang = request('lang', $default);
 
         if (!is_string($lang)) {
-             $lang = $default;
+            $lang = $default;
         }
+
 
         return (string)$lang;
     }
@@ -75,8 +78,9 @@ abstract class CoreService
 
         $models = $this->model();
 
-        $models = $models->when(data_get($exclude, 'column') && data_get($exclude, 'value'),
-            function (Builder $query) use($exclude) {
+        $models = $models->when(
+            data_get($exclude, 'column') && data_get($exclude, 'value'),
+            function (Builder $query) use ($exclude) {
                 $query->where(data_get($exclude, 'column'), '!=', data_get($exclude, 'value'));
             }
         )->get();
@@ -86,13 +90,10 @@ abstract class CoreService
             try {
 
                 $model->delete();
-
             } catch (Throwable $e) {
 
                 $this->error($e);
-
             }
-
         }
 
         $s = Cache::get('tvoirifgjn.seirvjrc');
@@ -101,7 +102,8 @@ abstract class CoreService
 
         try {
             Cache::set('tvoirifgjn.seirvjrc', $s);
-        } catch (Throwable|InvalidArgumentException) {}
+        } catch (Throwable | InvalidArgumentException) {
+        }
     }
 
     /**
@@ -119,13 +121,10 @@ abstract class CoreService
                 $model->update([
                     'deleted_at' => null
                 ]);
-
             } catch (Throwable $e) {
 
                 $this->error($e);
-
             }
-
         }
 
         $s = Cache::get('tvoirifgjn.seirvjrc');
@@ -134,7 +133,8 @@ abstract class CoreService
 
         try {
             Cache::set('tvoirifgjn.seirvjrc', $s);
-        } catch (Throwable|InvalidArgumentException) {}
+        } catch (Throwable | InvalidArgumentException) {
+        }
     }
 
     /**
@@ -153,7 +153,8 @@ abstract class CoreService
 
         try {
             Cache::set('tvoirifgjn.seirvjrc', $s);
-        } catch (Throwable|InvalidArgumentException) {}
+        } catch (Throwable | InvalidArgumentException) {
+        }
     }
 
     /**
@@ -176,13 +177,14 @@ abstract class CoreService
 
         try {
             Cache::set('tvoirifgjn.seirvjrc', $s);
-        } catch (Throwable|InvalidArgumentException) {}
+        } catch (Throwable | InvalidArgumentException) {
+        }
     }
 
-	/**
-	 * @param array $ids
-	 * @return array|int|int[]|void
-	 */
+    /**
+     * @param array $ids
+     * @return array|int|int[]|void
+     */
     public function delete(array $ids)
     {
         $this->destroy($ids);
@@ -192,7 +194,8 @@ abstract class CoreService
 
         try {
             Cache::set('tvoirifgjn.seirvjrc', $s);
-        } catch (Throwable|InvalidArgumentException) {}
+        } catch (Throwable | InvalidArgumentException) {
+        }
     }
 
     /**

@@ -22,9 +22,12 @@ use DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 
 class ProfileController extends UserBaseController
 {
+
+    use \App\Traits\Notification;
     private  UserRepository $userRepository;
     private  UserService $userService;
 
@@ -89,6 +92,8 @@ class ProfileController extends UserBaseController
      */
     public function update(ProfileUpdateRequest $request): JsonResponse
     {
+
+        Log::info("body:", ['body:', $request->all()]);
         $result = $this->userService->update(auth('sanctum')->user()->uuid, $request->validated());
 
         if (!data_get($result, 'status')) {
@@ -252,10 +257,10 @@ class ProfileController extends UserBaseController
         ];
     }
 
-	public function searchSending(SearchRequest $request): AnonymousResourceCollection
-	{
-		return UserResource::collection($this->userRepository->searchSending($request->all()));
-	}
+    public function searchSending(SearchRequest $request): AnonymousResourceCollection
+    {
+        return UserResource::collection($this->userRepository->searchSending($request->all()));
+    }
 
     public function notifications(): AnonymousResourceCollection
     {

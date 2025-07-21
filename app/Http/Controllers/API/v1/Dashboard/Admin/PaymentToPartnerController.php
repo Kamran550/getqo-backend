@@ -10,45 +10,49 @@ use App\Repositories\PaymentToPartnerRepository\PaymentToPartnerRepository;
 use App\Services\PaymentToPartnerService\PaymentToPartnerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 
 class PaymentToPartnerController extends AdminBaseController
 {
 
     public function __construct(
-		private PaymentToPartnerRepository $repository,
-		private PaymentToPartnerService $service
-	)
-    {
+        private PaymentToPartnerRepository $repository,
+        private PaymentToPartnerService $service
+    ) {
         parent::__construct();
     }
 
     public function index(FilterParamsRequest $request): AnonymousResourceCollection
     {
+        Log::info('paytopart');
         $models = $this->repository->paginate($request->all());
 
         return PaymentToPartnerResource::collection($models);
     }
 
     public function storeMany(StoreRequest $request): JsonResponse
-	{
-		$result = $this->service->createMany($request->all());
+    {
+        Log::info('all:', ['all:', $request->all()]);
+        $result = $this->service->createMany($request->all());
 
-		if (data_get($result, 'params')) {
-			return $this->requestErrorResponse($result['status'], $result['message'], $result['params']);
-		}
+        if (data_get($result, 'params')) {
+            return $this->requestErrorResponse($result['status'], $result['message'], $result['params']);
+        }
 
-		if (!data_get($result, 'status')) {
-			return $this->onErrorResponse($result);
-		}
+        if (!data_get($result, 'status')) {
+            return $this->onErrorResponse($result);
+        }
 
-		return $this->successResponse(
-			__('errors.' . ResponseError::NO_ERROR, locale: $this->language),
-			data_get($result, 'data')
-		);
+        return $this->successResponse(
+            __('errors.' . ResponseError::NO_ERROR, locale: $this->language),
+            data_get($result, 'data')
+        );
     }
 
     public function show(int $id): JsonResponse
     {
+        Log::info('paytopart show');
+
         $model = $this->repository->show($id);
 
         if (empty($model)) {
@@ -59,9 +63,9 @@ class PaymentToPartnerController extends AdminBaseController
         }
 
         return $this->successResponse(
-			__('errors.' . ResponseError::NO_ERROR, locale: $this->language),
-			PaymentToPartnerResource::make($model)
-		);
+            __('errors.' . ResponseError::NO_ERROR, locale: $this->language),
+            PaymentToPartnerResource::make($model)
+        );
     }
 
     /**

@@ -13,11 +13,12 @@ use App\Traits\SetTranslations;
 use DB;
 use Exception;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class ShopService extends CoreService implements ShopServiceInterface
 {
-	use SetTranslations;
+    use SetTranslations;
 
     protected function getModelClass(): string
     {
@@ -32,7 +33,7 @@ class ShopService extends CoreService implements ShopServiceInterface
     public function create(array $data): array
     {
         try {
-            $shopId = DB::transaction(function () use($data) {
+            $shopId = DB::transaction(function () use ($data) {
 
                 /** @var Shop $shop */
                 $shop = $this->model()->query()->create($this->setShopParams($data));
@@ -59,7 +60,8 @@ class ShopService extends CoreService implements ShopServiceInterface
 
                 try {
                     Cache::forget('shops-location');
-                } catch (Throwable) {}
+                } catch (Throwable) {
+                }
 
                 return $shop->id;
             });
@@ -68,14 +70,14 @@ class ShopService extends CoreService implements ShopServiceInterface
                 'status' => true,
                 'code' => ResponseError::NO_ERROR,
                 'data' => Shop::with([
-                    'translation' 			 => fn($q) => $q->where('locale', $this->language),
-					'subscription' 			 => fn($q) => $q->where('expired_at', '>=', now())->where('active', true),
+                    'translation'              => fn($q) => $q->where('locale', $this->language),
+                    'subscription'              => fn($q) => $q->where('expired_at', '>=', now())->where('active', true),
                     'categories.translation' => fn($q) => $q->where('locale', $this->language),
-                    'tags.translation' 		 => fn($q) => $q->where('locale', $this->language),
-                    'seller' 				 => fn($q) => $q->select('id', 'firstname', 'lastname', 'uuid'),
-					'subscription.subscription',
-					'seller.roles',
-				])->find($shopId)
+                    'tags.translation'          => fn($q) => $q->where('locale', $this->language),
+                    'seller'                  => fn($q) => $q->select('id', 'firstname', 'lastname', 'uuid'),
+                    'subscription.subscription',
+                    'seller.roles',
+                ])->find($shopId)
             ];
         } catch (Throwable $e) {
             $this->error($e);
@@ -109,7 +111,7 @@ class ShopService extends CoreService implements ShopServiceInterface
 
             $shop->update($this->setShopParams($data, $shop));
 
-            if(data_get($data, 'categories.*', [])) {
+            if (data_get($data, 'categories.*', [])) {
                 (new ShopCategoryService)->update($data, $shop);
             }
 
@@ -124,9 +126,9 @@ class ShopService extends CoreService implements ShopServiceInterface
                 $shop->uploads(data_get($data, 'images'));
             }
 
-			if (data_get($data, 'documents.0')) {
-				$shop->uploads(data_get($data, 'documents'));
-			}
+            if (data_get($data, 'documents.0')) {
+                $shop->uploads(data_get($data, 'documents'));
+            }
 
             if (data_get($data, 'tags.0')) {
                 $shop->tags()->sync(data_get($data, 'tags', []));
@@ -136,13 +138,13 @@ class ShopService extends CoreService implements ShopServiceInterface
                 'status' => true,
                 'code' => ResponseError::NO_ERROR,
                 'data' => Shop::with([
-					'translation' 			 => fn($q) => $q->where('locale', $this->language),
-					'subscription' 			 => fn($q) => $q->where('expired_at', '>=', now())->where('active', true),
+                    'translation'              => fn($q) => $q->where('locale', $this->language),
+                    'subscription'              => fn($q) => $q->where('expired_at', '>=', now())->where('active', true),
                     'categories.translation' => fn($q) => $q->where('locale', $this->language),
-                    'tags.translation'  	 => fn($q) => $q->where('locale', $this->language),
-                    'seller' 				 => fn($q) => $q->select('id', 'firstname', 'lastname', 'uuid'),
-					'subscription.subscription',
-					'seller.roles',
+                    'tags.translation'       => fn($q) => $q->where('locale', $this->language),
+                    'seller'                  => fn($q) => $q->select('id', 'firstname', 'lastname', 'uuid'),
+                    'subscription.subscription',
+                    'seller.roles',
                     'workingDays',
                     'closedDates',
                 ])->find($shop->id)
@@ -180,7 +182,8 @@ class ShopService extends CoreService implements ShopServiceInterface
         try {
             Cache::forget('shops-location');
             Cache::forget('delivery-zone-list');
-        } catch (Exception) {}
+        } catch (Exception) {
+        }
 
         return ['status' => true, 'code' => ResponseError::NO_ERROR];
     }
@@ -195,19 +198,21 @@ class ShopService extends CoreService implements ShopServiceInterface
     {
         $location       = data_get($data, 'location', $shop?->location);
         $deliveryTime   = [
-            'from'	=> data_get($data, 'delivery_time_from', data_get($shop?->delivery_time, 'from', '0')),
-            'to'  	=> data_get($data, 'delivery_time_to',   data_get($shop?->delivery_time, 'to', '0')),
-            'type'	=> data_get($data, 'delivery_time_type', data_get($shop?->delivery_time, 'type', Shop::DELIVERY_TIME_MINUTE)),
+            'from'    => data_get($data, 'delivery_time_from', data_get($shop?->delivery_time, 'from', '0')),
+            'to'      => data_get($data, 'delivery_time_to',   data_get($shop?->delivery_time, 'to', '0')),
+            'type'    => data_get($data, 'delivery_time_type', data_get($shop?->delivery_time, 'type', Shop::DELIVERY_TIME_MINUTE)),
         ];
 
-		/** @var User $user */
-		$user = auth('sanctum')->user();
+        /** @var User $user */
+        $user = auth('sanctum')->user();
+
+        Log::info("my data:", ['data:', $data]);
 
         return [
             'user_id'        => data_get($data, 'user_id', !$user->hasRole('admin') ? auth('sanctum')->id() : null),
             'tax'            => data_get($data, 'tax', $shop?->tax),
-			'email_statuses' => data_get($data, 'email_statuses'),
-			'percentage'     => data_get($data, 'percentage', $shop?->percentage ?? 0),
+            'email_statuses' => data_get($data, 'email_statuses'),
+            'percentage'     => data_get($data, 'percentage', $shop?->percentage ?? 0),
             'min_amount'     => data_get($data, 'min_amount', $shop?->min_amount ?? 0),
             'phone'          => data_get($data, 'phone'),
             'order_payment'  => data_get($data, 'order_payment', Shop::ORDER_PAYMENT_BEFORE),
@@ -222,6 +227,9 @@ class ShopService extends CoreService implements ShopServiceInterface
             'verify'         => data_get($data, 'verify', $shop?->verify ?? 0),
             'wifi_password'  => data_get($data, 'wifi_password'),
             'wifi_name'      => data_get($data, 'wifi_name'),
+            'type'           => data_get($data, 'type', $shop?->type),
+            'free_delivery_price'           => data_get($data, 'free_delivery_price', $shop?->free_delivery_price), 
+
             'location'       => [
                 'latitude'   => data_get($location, 'latitude', data_get($shop?->location, 'latitude', 0)),
                 'longitude'  => data_get($location, 'longitude', data_get($shop?->location, 'longitude', 0)),
@@ -260,32 +268,31 @@ class ShopService extends CoreService implements ShopServiceInterface
         ];
     }
 
-	/**
-	 * @param int|string $uuid
-	 * @return array
-	 */
-	public function updateVerify(int|string $uuid): array
-	{
-		$shop = Shop::where('uuid', $uuid)->first();
+    /**
+     * @param int|string $uuid
+     * @return array
+     */
+    public function updateVerify(int|string $uuid): array
+    {
+        $shop = Shop::where('uuid', $uuid)->first();
 
-		if (empty($shop) || $shop->uuid !== $uuid) {
-			$shop = Shop::where('id', (int)$uuid)->first();
-		}
+        if (empty($shop) || $shop->uuid !== $uuid) {
+            $shop = Shop::where('id', (int)$uuid)->first();
+        }
 
-		if (empty($shop)) {
-			return [
-				'status'	=> false,
-				'code'      => ResponseError::ERROR_404,
-				'message'   => __('errors.' . ResponseError::ERROR_404, locale: $this->language)
-			];
-		}
+        if (empty($shop)) {
+            return [
+                'status'    => false,
+                'code'      => ResponseError::ERROR_404,
+                'message'   => __('errors.' . ResponseError::ERROR_404, locale: $this->language)
+            ];
+        }
 
-		$shop->update(['verify' => !$shop->verify]);
+        $shop->update(['verify' => !$shop->verify]);
 
-		return [
-			'status' => true,
-			'data'	 => $shop
-		];
-	}
-
+        return [
+            'status' => true,
+            'data'     => $shop
+        ];
+    }
 }

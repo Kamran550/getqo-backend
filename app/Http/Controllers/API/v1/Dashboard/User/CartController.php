@@ -15,6 +15,7 @@ use App\Repositories\CartRepository\CartRepository;
 use App\Services\CartService\CartService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class CartController extends UserBaseController
 {
@@ -234,6 +235,7 @@ class CartController extends UserBaseController
      */
     public function cartCalculate(int $id, CalculateRequest $request): JsonResponse
     {
+        Log::info('cartCalculate', ['cartCalculate body:', $request->all()]);
         $result = $this->repository->calculateByCartId($id, $request->all());
 
         if (!data_get($result, 'status')) {
@@ -241,8 +243,8 @@ class CartController extends UserBaseController
         }
 
         return $this->successResponse(
-            __('errors.' . ResponseError::SUCCESS, locale: $this->language), data_get($result, 'data')
+            __('errors.' . ResponseError::SUCCESS, locale: $this->language),
+            data_get($result, 'data')
         );
     }
-
 }

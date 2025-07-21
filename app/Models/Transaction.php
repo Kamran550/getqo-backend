@@ -70,7 +70,7 @@ class Transaction extends Model
     protected $guarded = ['id'];
 
     const STATUS_PROGRESS   = 'progress';
-    const STATUS_SPLIT   	= 'split';
+    const STATUS_SPLIT       = 'split';
     const STATUS_PAID       = 'paid';
     const STATUS_CANCELED   = 'canceled';
     const STATUS_REJECTED   = 'rejected';
@@ -103,7 +103,7 @@ class Transaction extends Model
 
     const TYPES = [
         self::TYPE_MODEL => self::TYPE_MODEL,
-        self::TYPE_TIP 	 => self::TYPE_TIP,
+        self::TYPE_TIP      => self::TYPE_TIP,
     ];
 
     public function payable(): MorphTo
@@ -116,15 +116,15 @@ class Transaction extends Model
         return $this->belongsTo(User::class);
     }
 
-	public function parent(): BelongsTo
-	{
-		return $this->belongsTo(self::class, 'parent_id');
-	}
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
 
-	public function children(): HasMany
-	{
-		return $this->hasMany(self::class, 'parent_id');
-	}
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id');
+    }
 
     public function paymentSystem(): BelongsTo
     {
@@ -150,7 +150,6 @@ class Transaction extends Model
                 $q->whereHasMorph('payable', Order::class, function (Builder $b) use ($shopId) {
                     $b->where('shop_id', $shopId);
                 });
-
             })
             ->when(isset($filter['deleted_at']), fn($q) => $q->onlyTrashed())
             ->when(data_get($filter, 'model') == 'wallet', fn($q) => $q->where(['payable_type' => Wallet::class]))

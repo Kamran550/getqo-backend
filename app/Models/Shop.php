@@ -160,13 +160,24 @@ class Shop extends Model
         self::ORDER_PAYMENT_BEFORE,
     ];
 
+
+    const RESTAURANT = "restaurant";
+    const SHOP = "shop";
+
+
+    const TYPE = [
+        self::RESTAURANT => self::RESTAURANT,
+        self::SHOP => self::SHOP,
+    ];
+
+
     protected $casts = [
-        'location'       		  => 'array',
-        'delivery_time'  		  => 'array',
-        'email_statuses' 		  => 'array',
-        'close_time'     		  => 'date:H:i',
-        'open'           		  => 'boolean',
-		'new_order_after_payment' => 'boolean',
+        'location'                 => 'array',
+        'delivery_time'            => 'array',
+        'email_statuses'           => 'array',
+        'close_time'               => 'date:H:i',
+        'open'                     => 'boolean',
+        'new_order_after_payment' => 'boolean',
     ];
 
     public function getRatePriceAttribute(): ?float
@@ -256,8 +267,14 @@ class Shop extends Model
 
     public function users(): HasManyThrough
     {
-        return $this->hasManyThrough(User::class, Invitation::class,
-            'shop_id', 'id', 'id', 'user_id');
+        return $this->hasManyThrough(
+            User::class,
+            Invitation::class,
+            'shop_id',
+            'id',
+            'id',
+            'user_id'
+        );
     }
 
     public function products(): HasMany
@@ -281,7 +298,7 @@ class Shop extends Model
     }
 
     public function deliveryZones(): HasMany
-	{
+    {
         return $this->hasMany(DeliveryZone::class);
     }
 
@@ -310,10 +327,10 @@ class Shop extends Model
         return $this->morphMany(ModelLog::class, 'model');
     }
 
-	public function documents(): MorphMany
-	{
-		return $this->morphMany(Gallery::class, 'loadable')->where('type', 'shop-documents');
-	}
+    public function documents(): MorphMany
+    {
+        return $this->morphMany(Gallery::class, 'loadable')->where('type', 'shop-documents');
+    }
 
     public function scopeFilter($query, $filter)
     {
@@ -321,54 +338,54 @@ class Shop extends Model
 
         if (data_get($filter, 'address.latitude') && data_get($filter, 'address.longitude')) {
             DeliveryZone::list()
-				->whereNotNull('shop_id')
-				->map(function (DeliveryZone $deliveryZone) use ($filter, &$orders) {
+                ->whereNotNull('shop_id')
+                ->map(function (DeliveryZone $deliveryZone) use ($filter, &$orders) {
 
-					$shop       = $deliveryZone->shop;
+                    $shop       = $deliveryZone->shop;
 
-					$location   = data_get($deliveryZone->shop, 'location', []);
+                    $location   = data_get($deliveryZone->shop, 'location', []);
 
-					$km         = (new Utility)->getDistance($location, data_get($filter, 'address', []));
-					$rate       = data_get($filter, 'currency.rate', 1);
+                    $km         = (new Utility)->getDistance($location, data_get($filter, 'address', []));
+                    $rate       = data_get($filter, 'currency.rate', 1);
 
-                	if (
-                	    Utility::pointInPolygon(data_get($filter, 'address'), $deliveryZone->address)
-                	) {
-						$orders[$deliveryZone->shop_id] = (new Utility)->getPriceByDistance($km, $shop, $rate);
-                	}
+                    if (
+                        Utility::pointInPolygon(data_get($filter, 'address'), $deliveryZone->address)
+                    ) {
+                        $orders[$deliveryZone->shop_id] = (new Utility)->getPriceByDistance($km, $shop, $rate);
+                    }
 
-                	return null;
-            	})
+                    return null;
+                })
                 ->reject(fn($data) => empty($data))
                 ->toArray();
 
             arsort($orders);
         }
 
-		$visibility = (int)Settings::where('key', 'by_subscription')->first()?->value;
+        $visibility = (int)Settings::where('key', 'by_subscription')->first()?->value;
 
-		if ($visibility && request()->is('api/v1/rest/*')) {
-			$filter['visibility'] = true;
-		}
+        if ($visibility && request()->is('api/v1/rest/*')) {
+            $filter['visibility'] = true;
+        }
 
         $query
-			->when(data_get($filter, 'slug'), fn($q, $slug) => $q->where('slug', $slug))
-			->when(data_get($filter, 'user_id'), function ($q, $userId) {
+            ->when(data_get($filter, 'slug'), fn($q, $slug) => $q->where('slug', $slug))
+            ->when(data_get($filter, 'user_id'), function ($q, $userId) {
                 $q->where('user_id', $userId);
             })
             ->when(data_get($filter, 'status'), function ($q, $status) {
                 $q->where('status', $status);
             })
-            ->when(isset($filter['open']), function ($q) use($filter) {
+            ->when(isset($filter['open']), function ($q) use ($filter) {
                 $q->where('open', $filter['open']);
             })
-			->when(isset($filter['new_order_after_payment']), function ($q) use($filter) {
-				$q->where('open', $filter['new_order_after_payment']);
-			})
+            ->when(isset($filter['new_order_after_payment']), function ($q) use ($filter) {
+                $q->where('open', $filter['new_order_after_payment']);
+            })
             ->when(isset($filter['visibility']), function ($q, $visibility) {
                 $q->where('visibility', $visibility);
             })
-            ->when(isset($filter['verify']), function ($q) use($filter) {
+            ->when(isset($filter['verify']), function ($q) use ($filter) {
                 $q->where('verify', $filter['verify']);
             })
             ->when(isset($filter['show_type']), function ($q, $showType) {
@@ -394,9 +411,11 @@ class Shop extends Model
                 });
             })
             ->when(data_get($filter, 'work_24_7'), function (Builder $query) {
-                $query->whereHas('workingDays', fn($q) => $q
-                    ->where('from', '01-00')
-                    ->where('to', '>=', '23-00')
+                $query->whereHas(
+                    'workingDays',
+                    fn($q) => $q
+                        ->where('from', '01-00')
+                        ->where('to', '>=', '23-00')
                 );
             })
             ->when(data_get($filter, 'address'), function ($query) use ($filter, $orders) {
@@ -412,9 +431,7 @@ class Shop extends Model
                         if (!in_array(data_get($filter, 'order_by'), $orderBys)) {
                             $builder->orderByRaw("FIELD(shops.id, $orderByIds) ASC");
                         }
-
                     });
-
             })
             ->when(data_get($filter, 'search'), function ($query, $search) {
                 $query->where(function ($query) use ($search) {
@@ -432,7 +449,6 @@ class Shop extends Model
                 $query->whereHas('tags', function (Builder $q) use ($take) {
                     $q->when(is_array($take), fn($q) => $q->whereIn('id', $take), fn($q) => $q->where('id', $take));
                 });
-
             })
             ->when(data_get($filter, 'free_delivery'), function (Builder $q) {
                 $q->where([
@@ -442,9 +458,9 @@ class Shop extends Model
             })
             ->when(data_get($filter, 'fast_delivery'), function (Builder $q) {
                 $q
-                    ->where('delivery_time->type','minute')
-                    ->orWhere('delivery_time->type','day')
-                    ->orWhere('delivery_time->type','month')
+                    ->where('delivery_time->type', 'minute')
+                    ->orWhere('delivery_time->type', 'day')
+                    ->orWhere('delivery_time->type', 'month')
                     ->orderByRaw('CAST(JSON_EXTRACT(delivery_time, "$.from") AS from)', 'desc');
             })
             ->when(data_get($filter, 'has_discount'), function (Builder $query) {

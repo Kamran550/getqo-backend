@@ -164,7 +164,7 @@ class User extends Authenticatable implements MustVerifyEmail
         HasFactory,
         HasRoles,
         Loadable,
-		RequestToModel,
+        RequestToModel,
         SoftDeletes;
 
     const DATES = [
@@ -241,8 +241,14 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function moderatorShop(): HasOneThrough
     {
-        return $this->hasOneThrough(Shop::class, Invitation::class,
-            'user_id', 'id', 'id', 'shop_id');
+        return $this->hasOneThrough(
+            Shop::class,
+            Invitation::class,
+            'user_id',
+            'id',
+            'id',
+            'shop_id'
+        );
     }
 
     public function wallet(): HasOne|Wallet
@@ -282,12 +288,12 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function socialProviders(): HasMany
     {
-        return $this->hasMany(SocialProvider::class,'user_id','id');
+        return $this->hasMany(SocialProvider::class, 'user_id', 'id');
     }
 
     public function orders(): HasMany
     {
-        return $this->hasMany(Order::class,'user_id');
+        return $this->hasMany(Order::class, 'user_id');
     }
 
     public function paymentProcess(): HasMany
@@ -297,12 +303,12 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function deliveryManOrders(): HasMany
     {
-        return $this->hasMany(Order::class,'deliveryman');
+        return $this->hasMany(Order::class, 'deliveryman');
     }
 
     public function orderDetails(): HasManyThrough
     {
-        return $this->hasManyThrough(OrderDetail::class,Order::class);
+        return $this->hasManyThrough(OrderDetail::class, Order::class);
     }
 
     public function point(): HasOne
@@ -350,25 +356,45 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(Currency::class);
     }
 
-	public function waiterTables(): BelongsToMany
-	{
-		return $this->belongsToMany(Table::class, WaiterTable::class);
-	}
+    public function waiterTables(): BelongsToMany
+    {
+        return $this->belongsToMany(Table::class, WaiterTable::class);
+    }
 
-	public function waiterTableAssigned(): HasMany
-	{
-		return $this->hasMany(WaiterTable::class);
-	}
+    public function waiterTableAssigned(): HasMany
+    {
+        return $this->hasMany(WaiterTable::class);
+    }
 
     public function deliveryManDeliveryZone(): HasOne
     {
         return $this->hasOne(DeliveryManDeliveryZone::class);
     }
 
-    public function scopeFilter($query, array $filter) {
+
+    public function decrementFreeDelivery(): void
+    {
+        $data = json_decode($this->free_delivery, true);
+
+        if (!is_array($data)) return;
+
+        $count = (int) data_get($data, 'count', 0);
+
+        if ($count <= 1) {
+            $this->free_delivery = null;
+        } else {
+            $data['count'] = $count - 1;
+            $this->free_delivery = json_encode($data);
+        }
+
+        $this->save();
+    }
+
+    public function scopeFilter($query, array $filter)
+    {
 
         $userIds  = [];
-		$addressCheckRequired = false;
+        $addressCheckRequired = false;
 
         if (data_get($filter, 'address.latitude') && data_get($filter, 'address.longitude')) {
 
@@ -385,29 +411,29 @@ class User extends Authenticatable implements MustVerifyEmail
                 })
                 ->toArray();
 
-			$addressCheckRequired = true;
+            $addressCheckRequired = true;
         }
 
         $query
-			->when(data_get($filter, 'role'), function ($query, $role) {
+            ->when(data_get($filter, 'role'), function ($query, $role) {
                 $query->whereHas('roles', fn($q) => $q->where('name', $role));
             })
             ->when(data_get($filter, 'roles'), function ($q, $roles) {
-                $q->whereHas('roles', function ($q) use($roles) {
+                $q->whereHas('roles', function ($q) use ($roles) {
                     $q->whereIn('name', (array)$roles);
                 });
             })
             ->when(data_get($filter, 'shop_id'), function ($query, $shopId) {
 
-				if (request('role') === 'deliveryman') {
-					return $query->where(function ($q) use ($shopId) {
-						$q
-							->whereHas('invitations', fn($q) => $q->where('shop_id', $shopId))
-							->orWhereDoesntHave('invitations');
-					});
-				}
+                if (request('role') === 'deliveryman') {
+                    return $query->where(function ($q) use ($shopId) {
+                        $q
+                            ->whereHas('invitations', fn($q) => $q->where('shop_id', $shopId))
+                            ->orWhereDoesntHave('invitations');
+                    });
+                }
 
-				return $query->whereHas('invitations', fn($q) => $q->where('shop_id', $shopId));
+                return $query->whereHas('invitations', fn($q) => $q->where('shop_id', $shopId));
             })
             ->when($addressCheckRequired, function ($query) use ($userIds) {
                 $query->whereIn('id', $userIds);
@@ -415,26 +441,26 @@ class User extends Authenticatable implements MustVerifyEmail
             ->when(data_get($filter, 'empty-shop'), function ($query) {
                 $query->whereDoesntHave('shop');
             })
-			->when(data_get($filter, 'empty-table'), function ($query) {
-				$query->whereDoesntHave('waiterTables');
-			})
-			->when(data_get($filter,'table_id'), function ($q, $id) {
-				$q->whereHas('waiterTableAssigned', fn($q) => $q->where('table_id', $id));
-			})
-			->when(data_get($filter,'table_ids'), function ($q, $ids) {
-				$q->whereHas('waiterTableAssigned', fn($q) => $q->whereIn('table_id', $ids));
-			})
+            ->when(data_get($filter, 'empty-table'), function ($query) {
+                $query->whereDoesntHave('waiterTables');
+            })
+            ->when(data_get($filter, 'table_id'), function ($q, $id) {
+                $q->whereHas('waiterTableAssigned', fn($q) => $q->where('table_id', $id));
+            })
+            ->when(data_get($filter, 'table_ids'), function ($q, $ids) {
+                $q->whereHas('waiterTableAssigned', fn($q) => $q->whereIn('table_id', $ids));
+            })
             ->when(data_get($filter, 'empty-kitchen'), function ($query) {
                 $query->whereNull('kitchen_id');
             })
-            ->when(data_get($filter,'kitchen_id'), function ($q) use ($filter) {
+            ->when(data_get($filter, 'kitchen_id'), function ($q) use ($filter) {
                 $q->where('kitchen_id', data_get($filter, 'kitchen_id'));
             })
-            ->when(data_get($filter,'isWork'), function ($q) use ($filter) {
-                $q->where('isWork', data_get($filter,'isWork'));
+            ->when(data_get($filter, 'isWork'), function ($q) use ($filter) {
+                $q->where('isWork', data_get($filter, 'isWork'));
             })
             ->when(data_get($filter, 'search'), function ($q, $search) {
-                $q->where(function($query) use ($search) {
+                $q->where(function ($query) use ($search) {
 
                     $firstNameLastName = explode(' ', $search);
 
@@ -460,7 +486,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
                 $statuses = array_intersect($statuses, Order::STATUSES);
 
-                return $query->when(data_get($filter, 'role') === 'deliveryman',
+                return $query->when(
+                    data_get($filter, 'role') === 'deliveryman',
                     fn($q) => $q->whereHas('deliveryManOrders', fn($q) => $q->whereIn('status', $statuses)),
                     fn($q) => $q->whereHas('orders', fn($q) => $q->whereIn('status', $statuses)),
                 );
@@ -472,37 +499,38 @@ class User extends Authenticatable implements MustVerifyEmail
 
                 $dateTo = date('Y-m-d', strtotime($dateTo . ' +1 day'));
 
-                return $query->when(data_get($filter, 'role') === 'deliveryman',
-                    fn($q) => $q->whereHas('deliveryManOrders',
+                return $query->when(
+                    data_get($filter, 'role') === 'deliveryman',
+                    fn($q) => $q->whereHas(
+                        'deliveryManOrders',
                         fn($q) => $q->where('created_at', '>=', $dateFrom)->where('created_at', '<=', $dateTo)
                     ),
-                    fn($q) => $q->whereHas('orders',
+                    fn($q) => $q->whereHas(
+                        'orders',
                         fn($q) => $q->where('created_at', '>=', $dateFrom)->where('created_at', '<=', $dateTo)
                     ),
                 );
             })
-            ->when(isset($filter['online']) || data_get($filter, 'type_of_technique'), function ($query) use($filter) {
+            ->when(isset($filter['online']) || data_get($filter, 'type_of_technique'), function ($query) use ($filter) {
 
-                $query->whereHas('deliveryManSetting', function (Builder $query) use($filter) {
+                $query->whereHas('deliveryManSetting', function (Builder $query) use ($filter) {
                     $online = data_get($filter, 'online');
 
                     $typeOfTechnique = data_get($filter, 'type_of_technique');
 
                     $query
-                        ->when($online === "1" || $online === "0", function ($q) use($online) {
+                        ->when($online === "1" || $online === "0", function ($q) use ($online) {
                             $q->whereOnline(!!(int)$online)->where('location', '!=', null);
                         })
                         ->when($typeOfTechnique, function ($q, $type) {
                             $q->where('type_of_technique', data_get(DeliveryManSetting::TYPE_OF_TECHNIQUES, $type));
                         });
-
                 });
-
             })
             ->when(isset($filter['active']), fn($q) => $q->where('active', $filter['active']))
             ->when(data_get($filter, 'exist_token'), fn($query) => $query->whereNotNull('firebase_token'))
-            ->when(data_get($filter, 'walletSort'), function ($q, $walletSort) use($filter) {
-                $q->whereHas('wallet', function ($q) use($walletSort, $filter) {
+            ->when(data_get($filter, 'walletSort'), function ($q, $walletSort) use ($filter) {
+                $q->whereHas('wallet', function ($q) use ($walletSort, $filter) {
                     $q->orderBy($walletSort, data_get($filter, 'sort', 'desc'));
                 });
             })
@@ -512,7 +540,7 @@ class User extends Authenticatable implements MustVerifyEmail
             ->when(isset($filter['deleted_at']), function ($q) {
                 $q->onlyTrashed();
             })
-            ->when(data_get($filter,'column'), function (Builder $query, $column) use($filter) {
+            ->when(data_get($filter, 'column'), function (Builder $query, $column) use ($filter) {
 
                 $addIfDeliveryMan = '';
 
@@ -548,6 +576,5 @@ class User extends Authenticatable implements MustVerifyEmail
 
                 return $query;
             }, fn($query) => $query->orderBy('id', 'desc'));
-
     }
 }

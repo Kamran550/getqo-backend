@@ -5,6 +5,7 @@ namespace App\Services\SmsPayloadService;
 use App\Helpers\ResponseError;
 use App\Models\SmsPayload;
 use App\Services\CoreService;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Throwable;
 
@@ -19,10 +20,14 @@ class SmsPayloadService extends CoreService
     {
         $prepareValidate = $this->prepareValidate($data);
 
+        Log::info('validateden kecdi');
         if (!data_get($prepareValidate, 'status')) {
+            Log::info('ife girdi');
             return $prepareValidate;
         }
 
+
+        Log::info('5555555555555555555555555555555');
         try {
 
             if ((int)data_get($data, 'default') === 1) {
@@ -33,6 +38,8 @@ class SmsPayloadService extends CoreService
                 });
             }
 
+            Log::info('666666666666666666666666666666');
+
             $payload = $this->model()->create($data);
 
             return [
@@ -41,6 +48,7 @@ class SmsPayloadService extends CoreService
                 'data'      => $payload,
             ];
         } catch (Throwable $e) {
+            LOg::info('error:', ['err:', $e]);
             $this->error($e);
         }
 
@@ -62,17 +70,17 @@ class SmsPayloadService extends CoreService
                 return $prepareValidate;
             }
 
-			$payload = SmsPayload::where('type', $smsType)->firstOrFail();
+            $payload = SmsPayload::where('type', $smsType)->firstOrFail();
 
             if ((int)data_get($data, 'default') === 1) {
                 SmsPayload::where('default', 1)
-					->where('type', '!=', $payload?->type)
-					->get()
-					->map(function (SmsPayload $payload) {
-                    	$payload->update([
-                    	    'default' => 0
-                    	]);
-					});
+                    ->where('type', '!=', $payload?->type)
+                    ->get()
+                    ->map(function (SmsPayload $payload) {
+                        $payload->update([
+                            'default' => 0
+                        ]);
+                    });
             }
 
             $payload->update($data);
@@ -122,7 +130,6 @@ class SmsPayloadService extends CoreService
             }
 
             return ['status' => true];
-
         } else if (data_get($data, 'type') === SmsPayload::TWILIO) {
 
             $validator = $this->twilio($data);
@@ -135,6 +142,28 @@ class SmsPayloadService extends CoreService
                 ];
             }
 
+            return ['status' => true];
+        } else if (data_get($data, 'type') === SmsPayload::SMILESMS) {
+            Log::info('2ci validation');
+            $validator = $this->smilesms($data);
+
+            if ($validator->fails()) {
+                return [
+                    'status' => false,
+                    'code'   => ResponseError::ERROR_422,
+                    'params' => $validator->errors()->toArray(),
+                ];
+            }
+            return ['status' => true];
+        } else if (data_get($data, 'type') === SmsPayload::WHATSAPP) {
+            $validator = $this->whatsapp($data);
+            if ($validator->fails()) {
+                return [
+                    'status' => false,
+                    'code'   => ResponseError::ERROR_422,
+                    'params' => $validator->errors()->toArray(),
+                ];
+            }
             return ['status' => true];
         }
 
@@ -171,6 +200,28 @@ class SmsPayloadService extends CoreService
      */
     public function twilio(array $data): \Illuminate\Contracts\Validation\Validator|\Illuminate\Validation\Validator
     {
+        return Validator::make($data, [
+            'payload.twilio_account_id' => ['required', 'string'],
+            'payload.twilio_auth_token' => ['required', 'string'],
+            'payload.twilio_number'     => ['required', 'string'],
+        ]);
+    }
+
+    public function smilesms(array $data): \Illuminate\Contracts\Validation\Validator|\Illuminate\Validation\Validator
+    {
+
+        Log::info('3 cu validate', ['arr:', $data]);
+        return Validator::make($data, [
+            'payload.smilesms_user' => ['required', 'string'],
+            'payload.smilesms_pass' => ['required', 'string'],
+            'payload.smilesms_number_id'     => ['required', 'string'],
+        ]);
+    }
+
+    public function whatsapp(array $data): \Illuminate\Contracts\Validation\Validator|\Illuminate\Validation\Validator
+    {
+
+        Log::info('3 cu validate', ['arr:', $data]);
         return Validator::make($data, [
             'payload.twilio_account_id' => ['required', 'string'],
             'payload.twilio_auth_token' => ['required', 'string'],

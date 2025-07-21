@@ -16,10 +16,10 @@ class StoreRequest extends BaseRequest
     {
         return [
             'name'          => [
-				'required',
-				'string',
-				Rule::unique('coupons', 'name')->ignore(request()->route('coupon'))
-			],
+                'required',
+                'string',
+                Rule::unique('coupons', 'name')->ignore(request()->route('coupon'))
+            ],
             'type'          => ['required', 'string', Rule::in('fix', 'percent')],
             'for'           => ['string', Rule::in('total_price', 'delivery_fee')],
             'qty'           => 'required|numeric|min:1',

@@ -7,8 +7,11 @@ use App\Helpers\ResponseError;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\AfterVerifyRequest;
 use App\Http\Requests\Auth\PhoneVerifyRequest;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\ResendPhoneRequest;
 use App\Http\Requests\Auth\ReSendVerifyRequest;
 use App\Http\Resources\UserResource;
+use App\Models\Benefit;
 use App\Models\Notification;
 use App\Models\PushNotification;
 use App\Models\User;
@@ -16,7 +19,11 @@ use App\Services\AuthService\AuthByMobilePhone;
 use App\Services\UserServices\UserWalletService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
+use Request;
 use Throwable;
+use Illuminate\Support\Carbon;
+
 
 class VerifyAuthController extends Controller
 {
@@ -24,7 +31,15 @@ class VerifyAuthController extends Controller
 
     public function verifyPhone(PhoneVerifyRequest $request): JsonResponse
     {
+        Log::info(' verify phone all body:', ['all:', $request->all()]);
         return (new AuthByMobilePhone)->confirmOPTCode($request->all());
+    }
+
+
+    public function verifyPhone2(PhoneVerifyRequest $request): JsonResponse
+    {
+        Log::info(' verify phone2 all body:', ['all:', $request->all()]);
+        return (new AuthByMobilePhone)->confirmOPTCode2($request->all());
     }
 
     public function resendVerify(ReSendVerifyRequest $request): JsonResponse
@@ -44,6 +59,30 @@ class VerifyAuthController extends Controller
         event((new SendEmailVerification($user)));
 
         return $this->successResponse(ResponseError::ERROR_216);
+    }
+
+
+    public function resendVerifyPhone(ResendPhoneRequest $request): JsonResponse
+    {
+        Log::info('req body:', ['req body:', $request->all()]);
+
+        $user = User::where('phone', $request->input('phone'))->first();
+
+        if (!$user) {
+            return (new AuthByMobilePhone)->authentication($request->validated());
+        }
+
+
+        // return $this->onErrorResponse([
+        //     'code'    => ResponseError::ERROR_400,
+        //     'message' => __('errors.' . ResponseError::PHONE_OR_EMAIL_NOT_FOUND, locale: $this->language)
+        // ]);
+
+        // Eger resendVerifyPhone -da bir probelm cixsa returnlari deyis
+        return $this->onErrorResponse([
+            'code'    => ResponseError::ERROR_400,
+            'message' => __('errors.' . ResponseError::PHONE_ALREADY_TAKEN, locale: $this->language)
+        ]);
     }
 
     public function verifyEmail(?string $verifyToken): JsonResponse
@@ -76,41 +115,69 @@ class VerifyAuthController extends Controller
 
     public function afterVerifyEmail(AfterVerifyRequest $request): JsonResponse
     {
-        $user = User::where('email', $request->input('email'))
-//            ->where('verify_token',  $request->input('verify_token'))
+        Log::info('salammmmmm', ['req:', $request->all()]);
+
+        // $user = User::where('email', $request->input('email'))
+        //     //            ->where('verify_token',  $request->input('verify_token'))
+        //     ->first();
+
+
+        $benefit = Benefit::where('type', Benefit::FREE_DELIVERY_COUNT)
+            ->where('default', 1)
             ->first();
 
+        $freeDelivery = null;
+
+        if ($benefit) {
+            $count = (int) data_get($benefit->payload, 'count');
+            $days = (int) data_get($benefit->payload, 'day');
+            $expireDate = now()->addDays($days)->toDateString(); // format: Y-m-d
+
+            $freeDelivery = [
+                'count' => $count,
+                'date' => $expireDate
+            ];
+        }
+
+
+        $phone = preg_replace('/\D/', '', $request->input('phone'));
+        Log::info('salammmmmm', ['phone:', $phone]);
+
+        $user = User::where('phone', $phone)
+            //            ->where('verify_token',  $request->input('verify_token'))
+            ->first();
+        Log::info('User query result:', ['user' => $user]);
+
         if (empty($user)) {
+            Log::info('empty user');
             return $this->onErrorResponse([
                 'code'      => ResponseError::ERROR_404,
                 'message'   => __('errors.' . ResponseError::ERROR_404, locale: $this->language)
             ]);
         }
 
+        Log::info('111111111111111111111111111111111111');
+
+        // $user->update([
+        //     'email' => $request->input('email'),
+        //     'firstname' => $request->input('firstname', $user->email),
+        //     'lastname'  => $request->input('lastname', $user->lastname),
+        //     'referral'  => $request->input('referral', $user->referral),
+        //     'gender'    => $request->input('gender', 'male'),
+        //     'password'  => bcrypt($request->input('password', 'password')),
+        // ]);
+
+
         $user->update([
-            'firstname' => $request->input('firstname', $user->email),
-            'lastname'  => $request->input('lastname', $user->lastname),
-            'referral'  => $request->input('referral', $user->referral),
-            'gender'    => $request->input('gender','male'),
+            'email' => $request->input('email'),
+            'firstname' => $request->input('firstname'),
+            'lastname'  => $request->input('lastname'),
+            'gender'    => $request->input('gender'),
             'password'  => bcrypt($request->input('password', 'password')),
+            'free_delivery' => $freeDelivery,
         ]);
 
-        $referral = User::where('my_referral', $request->input('referral', $user->referral))
-            ->first();
-
-        if (!empty($referral) && !empty($referral->firebase_token)) {
-            $this->sendNotification(
-                is_array($referral->firebase_token) ? $referral->firebase_token : [$referral->firebase_token],
-                "Congratulations! By your referral registered new user. $user->name_or_email",
-                $referral->id,
-                [
-                    'id'   => $referral->id,
-                    'type' => PushNotification::NEW_USER_BY_REFERRAL
-                ],
-                [$referral->id]
-            );
-        }
-
+        Log::info('44444444444444444444444444444444444444444444444444444');
         $id = Notification::where('type', Notification::PUSH)->select(['id', 'type'])->first()?->id;
 
         if ($id) {
@@ -125,9 +192,9 @@ class VerifyAuthController extends Controller
             'active' => true
         ]);
 
-		if (empty($user->wallet?->uuid)) {
-			$user = (new UserWalletService)->create($user);
-		}
+        if (empty($user->wallet?->uuid)) {
+            $user = (new UserWalletService)->create($user);
+        }
 
         $token = $user->createToken('api_token')->plainTextToken;
 
@@ -136,5 +203,4 @@ class VerifyAuthController extends Controller
             ['token' => $token, 'user'  => UserResource::make($user)]
         );
     }
-
 }

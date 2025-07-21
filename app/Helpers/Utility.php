@@ -6,8 +6,10 @@ use App\Models\Order;
 use App\Models\ParcelOrderSetting;
 use App\Models\Shop;
 use App\Models\User;
+use Carbon\Carbon;
 use DB;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Log;
 
 class Utility
 {
@@ -29,25 +31,25 @@ class Utility
 		self::SUNDAY    => self::SUNDAY,
 	];
 
-    /* Pagination for array */
-    public static function paginate($items, $perPage, $page = null, $options = []): LengthAwarePaginator
-    {
-        return new LengthAwarePaginator($items?->forPage($page, $perPage), $items?->count() ?? 0, $perPage, $page, $options);
-    }
+	/* Pagination for array */
+	public static function paginate($items, $perPage, $page = null, $options = []): LengthAwarePaginator
+	{
+		return new LengthAwarePaginator($items?->forPage($page, $perPage), $items?->count() ?? 0, $perPage, $page, $options);
+	}
 
-    /**
-     * @param ParcelOrderSetting $type
-     * @param float|null $km
-     * @param float|null $rate
-     * @return float|null
-     */
-    public function getParcelPriceByDistance(ParcelOrderSetting $type, ?float $km, ?float $rate): ?float
-    {
-        $price      = $type->special ? $type->special_price : $type->price;
-        $pricePerKm = $type->special ? $type->special_price_per_km : $type->price_per_km;
+	/**
+	 * @param ParcelOrderSetting $type
+	 * @param float|null $km
+	 * @param float|null $rate
+	 * @return float|null
+	 */
+	public function getParcelPriceByDistance(ParcelOrderSetting $type, ?float $km, ?float $rate): ?float
+	{
+		$price      = $type->special ? $type->special_price : $type->price;
+		$pricePerKm = $type->special ? $type->special_price_per_km : $type->price_per_km;
 
-        return round(($price + ($pricePerKm * $km)) * $rate, 2);
-    }
+		return round(($price + ($pricePerKm * $km)) * $rate, 2);
+	}
 
 	/**
 	 * @param float|null $km
@@ -63,46 +65,63 @@ class Utility
 		return round(($price + ($pricePerKm * $km)) * $rate, 2);
 	}
 
-    /**
-     * @param array $origin, Адрес селлера (откуда)
-     * @param array $destination, Адрес клиента (куда)
-     * @return float|int|null
-     */
-    public function getDistance(array $origin, array $destination): float|int|null
-    {
-        if (
-            !data_get($origin, 'latitude') && !data_get($origin, 'longitude') &&
-            !data_get($destination, 'latitude') && !data_get($destination, 'longitude')
-        ) {
-            return 0;
-        }
+	public function getPriceByDistance2(?float $extraKm, ?Shop $shop, ?float $rate): ?float
+	{
+		$price      = data_get($shop, 'price', 0);
+		$pricePerKm = data_get($shop, 'price_per_km');
 
-        $originLat          = $this->toRadian(data_get($origin, 'latitude'));
-        $originLong         = $this->toRadian(data_get($origin, 'longitude'));
-        $destinationLat     = $this->toRadian(data_get($destination, 'latitude'));
-        $destinationLong    = $this->toRadian(data_get($destination, 'longitude'));
+		if ($extraKm <= 0) {
+			// Əgər artıq km yoxdursa, sadəcə sabit qiyməti al
+			$deliveryPrice = $price;
+		} else {
+			// Əgər artıq km varsa, sabit qiymət + artıq km üçün əlavə qiymət
+			$deliveryPrice = $price + ($pricePerKm * $extraKm);
+		}
 
-        $deltaLat           = $destinationLat - $originLat;
-        $deltaLon           = $originLong - $destinationLong;
+		return round($deliveryPrice * $rate, 2);
+	}
 
-        $delta              = pow(sin($deltaLat / 2), 2);
-        $cos                = cos($destinationLong) * cos($destinationLat);
 
-        $sqrt               = ($delta + $cos * pow(sin($deltaLon / 2), 2));
-        $asin               = 2 * asin(sqrt($sqrt));
+	/**
+	 * @param array $origin, Адрес селлера (откуда)
+	 * @param array $destination, Адрес клиента (куда)
+	 * @return float|int|null
+	 */
+	public function getDistance(array $origin, array $destination): float|int|null
+	{
+		if (
+			!data_get($origin, 'latitude') && !data_get($origin, 'longitude') &&
+			!data_get($destination, 'latitude') && !data_get($destination, 'longitude')
+		) {
+			return 0;
+		}
 
-        $earthRadius        = 6371; // if you need in miles 3963
+		$originLat          = $this->toRadian(data_get($origin, 'latitude'));
+		$originLong         = $this->toRadian(data_get($origin, 'longitude'));
+		$destinationLat     = $this->toRadian(data_get($destination, 'latitude'));
+		$destinationLong    = $this->toRadian(data_get($destination, 'longitude'));
 
-        return (string)$asin != 'NAN' ? round($asin * $earthRadius, 2) : 1;
-    }
+		$deltaLat           = $destinationLat - $originLat;
+		$deltaLon           = $originLong - $destinationLong;
 
-    private function toRadian($degree = 0): ?float
-    {
-        return $degree * pi() / 180;
-    }
+		$delta              = pow(sin($deltaLat / 2), 2);
+		$cos                = cos($destinationLong) * cos($destinationLat);
 
-    public static function pointInPolygon(array $point, array $polygon): bool
-    {
+		$sqrt               = ($delta + $cos * pow(sin($deltaLon / 2), 2));
+		$asin               = 2 * asin(sqrt($sqrt));
+
+		$earthRadius        = 6371; // if you need in miles 3963
+
+		return (string)$asin != 'NAN' ? round($asin * $earthRadius, 2) : 1;
+	}
+
+	private function toRadian($degree = 0): ?float
+	{
+		return $degree * pi() / 180;
+	}
+
+	public static function pointInPolygon(array $point, array $polygon): bool
+	{
 		$lat  = $point['latitude'];
 		$long = $point['longitude'];
 
@@ -124,32 +143,32 @@ class Utility
 		}
 
 		return $inside;
-    }
+	}
 
-    public static function groupRating($reviews): array
-    {
-        $result = [
-            1 => 0.0,
-            2 => 0.0,
-            3 => 0.0,
-            4 => 0.0,
-            5 => 0.0,
-        ];
+	public static function groupRating($reviews): array
+	{
+		$result = [
+			1 => 0.0,
+			2 => 0.0,
+			3 => 0.0,
+			4 => 0.0,
+			5 => 0.0,
+		];
 
-        foreach ($reviews as $review) {
+		foreach ($reviews as $review) {
 
-            $rating = (int)data_get($review, 'rating');
+			$rating = (int)data_get($review, 'rating');
 
-            if (data_get($result, $rating)) {
-                $result[$rating] += data_get($review, 'count');
-                continue;
-            }
+			if (data_get($result, $rating)) {
+				$result[$rating] += data_get($review, 'count');
+				continue;
+			}
 
-            $result[$rating] = data_get($review, 'count');
-        }
+			$result[$rating] = data_get($review, 'count');
+		}
 
-        return $result;
-    }
+		return $result;
+	}
 
 	public static function getDriverAccessibleOrderIds(array $filter = []): array
 	{
@@ -197,4 +216,22 @@ class Utility
 		return $orderIds;
 	}
 
+
+	public static function isFreeDeliveryAvailable(?string $json, string $targetType, string $shopType): bool
+	{
+		if (!$json) {
+			return false;
+		}
+
+		$data = json_decode($json, true);
+
+		if (!isset($data['count'], $data['date'])) {
+			return false;
+		}
+
+		$count = (int) $data['count'];
+		$expiryDate = Carbon::parse($data['date']);
+
+		return $count > 0 && $expiryDate->isFuture() && ($targetType === 'all' || $targetType === $shopType);
+	}
 }

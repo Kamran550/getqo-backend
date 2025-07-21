@@ -12,6 +12,7 @@ use App\Services\Interfaces\ShopServiceInterface;
 use App\Services\ShopServices\ShopActivityService;
 use DB;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class ShopController extends SellerBaseController
@@ -48,7 +49,6 @@ class ShopController extends SellerBaseController
             __('errors.' . ResponseError::RECORD_WAS_SUCCESSFULLY_CREATED, locale: $this->language),
             ShopResource::make(data_get($result, 'data'))
         );
-
     }
 
     /**
@@ -58,6 +58,7 @@ class ShopController extends SellerBaseController
      */
     public function shopShow(): JsonResponse
     {
+        Log::info('shopShow');
         $locale = data_get(Language::languagesList()->where('default', 1)->first(), 'locale');
 
         if (empty($this->shop?->uuid)) {
@@ -76,23 +77,24 @@ class ShopController extends SellerBaseController
             ]);
         }
 
-		/** @var Shop $shop */
-		try {
-			DB::table('shop_subscriptions')
-				->where('shop_id', $shop->id)
-				->whereDate('expired_at', '<=', now())
-				->delete();
-		} catch (Throwable) {}
+        /** @var Shop $shop */
+        try {
+            DB::table('shop_subscriptions')
+                ->where('shop_id', $shop->id)
+                ->whereDate('expired_at', '<=', now())
+                ->delete();
+        } catch (Throwable) {
+        }
 
         return $this->successResponse(
             __('errors.' . ResponseError::NO_ERROR),
             ShopResource::make($shop->load([
-				'translations',
-				'seller.wallet',
-				'subscription' => fn($q) => $q->where('expired_at', '>=', now())->where('active', true),
-				'subscription.subscription',
-				'tags.translation' => fn($q) => $q->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale)),
-			]))
+                'translations',
+                'seller.wallet',
+                'subscription' => fn($q) => $q->where('expired_at', '>=', now())->where('active', true),
+                'subscription.subscription',
+                'tags.translation' => fn($q) => $q->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale)),
+            ]))
         );
     }
 
@@ -139,5 +141,4 @@ class ShopController extends SellerBaseController
     {
         //
     }
-
 }

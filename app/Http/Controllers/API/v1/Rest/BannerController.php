@@ -9,6 +9,7 @@ use App\Models\Banner;
 use App\Repositories\BannerRepository\BannerRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 
 class BannerController extends RestBaseController
 {
@@ -33,7 +34,7 @@ class BannerController extends RestBaseController
     public function paginate(FilterParamsRequest $request): AnonymousResourceCollection
     {
         $banners = $this->repository->bannersPaginate($request->merge(['active' => 1])->all());
-
+        
         return BannerResource::collection($banners);
     }
 
@@ -90,6 +91,7 @@ class BannerController extends RestBaseController
      */
     public function adsPaginate(FilterParamsRequest $request): array
     {
+        Log::info('banner page');
         return $this->repository->adsPaginate($request->merge(['active' => 1])->all());
     }
 
@@ -105,5 +107,4 @@ class BannerController extends RestBaseController
 
         return $this->successResponse(__('errors.' . ResponseError::NO_ERROR, locale: $this->language), $models);
     }
-
 }

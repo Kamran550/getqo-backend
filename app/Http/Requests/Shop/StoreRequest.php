@@ -15,6 +15,14 @@ class StoreRequest extends BaseRequest
      *
      * @return array
      */
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'free_delivery_price' => $this->input('free_delivery_price') === '' ? null : $this->input('free_delivery_price'),
+        ]);
+    }
+
     public function rules(): array
     {
         return [
@@ -24,7 +32,7 @@ class StoreRequest extends BaseRequest
             'price'                 => 'numeric|min:0',
             'price_per_km'          => 'numeric|min:0',
             'status'                => ['string',   Rule::in(Shop::STATUS)],
-            'active'                => ['numeric',  Rule::in(1,0)],
+            'active'                => ['numeric',  Rule::in(1, 0)],
             'title'                 => 'required|array',
             'title.*'               => 'required|string|min:2|max:191',
             'description'           => 'array',
@@ -35,6 +43,7 @@ class StoreRequest extends BaseRequest
             'location'              => 'array',
             'location.latitude'     => 'numeric',
             'location.longitude'    => 'numeric',
+            'type'                  => ['string', Rule::in(Shop::TYPE)],
             'images'                => 'array',
             'images.*'              => 'string',
             'documents'             => 'array',
@@ -51,9 +60,10 @@ class StoreRequest extends BaseRequest
             'show_type'             => 'in:0,1',
             'new_order_after_payment' => 'in:0,1',
             'status_note'           => 'string',
-			'email_statuses'        => 'array',
-			'email_statuses.*'      => ['string', Rule::in(Order::STATUSES)],
-            'order_payment'         => ['string',Rule::in(Shop::ORDER_PAYMENTS)],
+            'free_delivery_price' => 'nullable|numeric|min:0',
+            'email_statuses'        => 'array',
+            'email_statuses.*'      => ['string', Rule::in(Order::STATUSES)],
+            'order_payment'         => ['string', Rule::in(Shop::ORDER_PAYMENTS)],
             'categories.*'          => [
                 'nullable',
                 'integer',

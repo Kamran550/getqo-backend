@@ -12,16 +12,12 @@ class AfterVerifyRequest extends BaseRequest
      * @return array
      */
     public function rules(): array
-	{
-		return [
+    {
+        return [
             'password'  => 'string',
-            'email'     => [
-                'email',
-                Rule::unique('users', 'email')->whereNull('email_verified_at')
-            ],
+            'email' => 'nullable|email|unique:users,email',
             'firstname' => 'string|min:2|max:100',
-            'referral'  => 'string|exists:users,my_referral|max:255',
             'gender'    => 'in:male,female',
-		];
-	}
+        ];
+    }
 }

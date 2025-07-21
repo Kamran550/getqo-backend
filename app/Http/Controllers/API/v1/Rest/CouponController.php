@@ -12,6 +12,7 @@ use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 
 class CouponController extends RestBaseController
 {
@@ -47,7 +48,9 @@ class CouponController extends RestBaseController
      */
     public function check(CouponCheckRequest $request): JsonResponse
     {
+        Log::info('check coupon', ['inp:', $request->input('coupon')]);
         $coupon = Coupon::checkCoupon($request->input('coupon'), $request->input('shop_id'))->first();
+        Log::info('coupons:', ['coupons:', $coupon]);
 
         if (empty($coupon)) {
             return $this->onErrorResponse([
@@ -57,11 +60,13 @@ class CouponController extends RestBaseController
         }
 
         $result = OrderCoupon::where(function ($q) use ($request) {
-                $q->where('user_id', $request->input('user_id'))
-                    ->orWhere('user_id', auth('sanctum')->id());
-            })
+            $q->where('user_id', $request->input('user_id'))
+                ->orWhere('user_id', auth('sanctum')->id());
+        })
             ->where('name', $request->input('coupon'))
             ->first();
+
+        Log::info('result coupon check:', ['res:', $result]);
 
         if (empty($result)) {
             return $this->successResponse(

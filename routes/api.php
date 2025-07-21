@@ -3,6 +3,7 @@
 use App\Http\Controllers\API\v1\{GalleryController, PushNotificationController, Rest};
 use App\Http\Controllers\API\v1\Auth\{LoginController, RegisterController, VerifyAuthController};
 use App\Http\Controllers\API\v1\Dashboard\{Admin, Cook, Deliveryman, Payment, Seller, User, Waiter};
+use App\Http\Controllers\API\v1\Dashboard\Payment\OderoController;
 use App\Http\Controllers\Web\TelegramBotController;
 use App\Models\Page;
 use Illuminate\Support\Facades\Route;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+
 Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
     // Methods without AuthCheck
     Route::post('/auth/register',                       [RegisterController::class, 'register'])
@@ -25,14 +27,18 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
     Route::post('/auth/login',                          [LoginController::class, 'login'])
         ->middleware('sessions');
 
-	Route::post('/auth/check/phone',                    [LoginController::class, 'checkPhone'])
-		->middleware('sessions');
+    Route::post('/auth/check/phone',                    [LoginController::class, 'checkPhone'])
+        ->middleware('sessions');
 
     Route::post('/auth/logout',                         [LoginController::class, 'logout'])
         ->middleware('sessions');
 
     Route::post('/auth/verify/phone',                   [VerifyAuthController::class, 'verifyPhone'])
         ->middleware('sessions');
+
+    Route::post('/auth/verify/phone2',                   [VerifyAuthController::class, 'verifyPhone2'])
+        ->middleware('sessions');
+
 
     Route::post('/auth/resend-verify',                  [VerifyAuthController::class, 'resendVerify'])
         ->middleware('sessions');
@@ -46,6 +52,9 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
     Route::post('/auth/forgot/password',                [LoginController::class, 'forgetPassword'])
         ->middleware('sessions');
 
+    Route::post('/auth/resend/whatsapp',                [LoginController::class, 'resendWhatsapp'])
+        ->middleware('sessions');
+
     Route::post('/auth/forgot/password/confirm',        [LoginController::class, 'forgetPasswordVerify'])
         ->middleware('sessions');
 
@@ -55,7 +64,10 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
     Route::post('/auth/forgot/email-password/{hash}',   [LoginController::class, 'forgetPasswordVerifyEmail'])
         ->middleware('sessions');
 
-//    Route::get('/login/{provider}',                 [LoginController::class,'redirectToProvider']);
+    Route::post('/auth/resend-phone',                    [VerifyAuthController::class, 'resendVerifyPhone'])
+        ->middleware('sessions');
+
+    //    Route::get('/login/{provider}',                 [LoginController::class,'redirectToProvider']);
     Route::post('/auth/{provider}/callback',        [LoginController::class, 'handleProviderCallback']);
 
     Route::group(['prefix' => 'install'], function () {
@@ -69,6 +81,16 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
 
     Route::group(['prefix' => 'rest'], function () {
 
+
+        // Odero
+
+
+        Route::post('/odero/init', [OderoController::class, 'init']);
+        Route::post('/odero/callback', [OderoController::class, 'handle']);
+        Route::get('/odero/status/{token}', [OderoController::class, 'status']);
+        Route::post('/odero/refund', [OderoController::class, 'refund']);
+
+
         /* Languages */
         Route::get('bosya/test',                    [Rest\TestController::class, 'bosyaTest']);
         Route::get('project/version',               [Rest\SettingController::class, 'projectVersion']);
@@ -78,7 +100,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
         Route::get('referral',                      [Rest\SettingController::class, 'referral']);
         Route::get('system/information',            [Rest\SettingController::class, 'systemInformation']);
         Route::get('stat',                          [Rest\SettingController::class, 'stat']);
-        Route::get('default-sms-payload',			[Rest\SettingController::class, 'defaultSmsPayload']);
+        Route::get('default-sms-payload',            [Rest\SettingController::class, 'defaultSmsPayload']);
 
         /* Languages */
         Route::get('languages/default',             [Rest\LanguageController::class, 'default']);
@@ -109,7 +131,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
         Route::get('products/ids',                  [Rest\ProductController::class, 'productsByIDs']);
         Route::get('products/{uuid}',               [Rest\ProductController::class, 'show']);
         Route::get('products/slug/{slug}',          [Rest\ProductController::class, 'showSlug']);
-		Route::get('products/file/read',            [Rest\ProductController::class, 'fileRead']);
+        Route::get('products/file/read',            [Rest\ProductController::class, 'fileRead']);
 
         /* Categories */
         Route::get('categories/types',              [Rest\CategoryController::class, 'types']);
@@ -133,8 +155,8 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
         Route::get('landing-pages/{type}',          [Rest\LandingPageController::class, 'show']);
 
         /* Shops */
-		Route::get('branch/recommended/products',   [Rest\ShopController::class, 'productsRecPaginate']);
-		Route::get('shops/recommended',             [Rest\ShopController::class, 'recommended']);
+        Route::get('branch/recommended/products',   [Rest\ShopController::class, 'productsRecPaginate']);
+        Route::get('shops/recommended',             [Rest\ShopController::class, 'recommended']);
         Route::get('shops/paginate',                [Rest\ShopController::class, 'paginate']);
         Route::get('shops/select-paginate',         [Rest\ShopController::class, 'selectPaginate']);
         Route::get('shops/search',                  [Rest\ShopController::class, 'shopsSearch']);
@@ -143,7 +165,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
         Route::get('shops',                         [Rest\ShopController::class, 'shopsByIDs']);
         Route::get('shops-takes',                   [Rest\ShopController::class, 'takes']);
         Route::get('products-avg-prices',           [Rest\ShopController::class, 'productsAvgPrices']);
-		Route::get('branch/products',               [Rest\ShopController::class, 'branchProducts']);
+        Route::get('branch/products',               [Rest\ShopController::class, 'branchProducts']);
 
         Route::get('shops/{id}/categories',         [Rest\ShopController::class, 'categories'])
             ->where('id', '[0-9]+');
@@ -185,6 +207,8 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
 
         /* Payments */
         Route::get('payments',                      [Rest\PaymentController::class, 'index']);
+        Route::get('payments/user',                 [Rest\PaymentController::class, 'getPaymentsForUser']);
+        Route::get('payments/user2',                 [Rest\PaymentController::class, 'getPaymentsForUser2']);
         Route::get('payments/{id}',                 [Rest\PaymentController::class, 'show']);
 
         /* Blogs */
@@ -227,7 +251,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
         ]);
 
         Route::get('shop/delivery-zone/calculate/distance',  [Rest\DeliveryZoneController::class, 'distance']);
-		Route::get('shop/delivery-zone/check/distance',      [Rest\DeliveryZoneController::class, 'checkDistance']);
+        Route::get('shop/delivery-zone/check/distance',      [Rest\DeliveryZoneController::class, 'checkDistance']);
         Route::get('shop/{id}/delivery-zone/check/distance', [Rest\DeliveryZoneController::class, 'checkDistanceByShop']);
 
         Route::get('shop-payments/{id}',                     [Rest\ShopController::class, 'shopPayments']);
@@ -249,7 +273,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
         Route::apiResource('orders',                Rest\OrderController::class);
         Route::post('orders/update-tips/{id}',                [Rest\OrderController::class, 'updateTips']);
         Route::post('orders/review/{id}',                     [Rest\OrderController::class, 'addOrderReview']);
-		Route::post('orders/{id}/status/change',              [Rest\OrderController::class, 'orderStatusChange']);
+        Route::post('orders/{id}/status/change',              [Rest\OrderController::class, 'orderStatusChange']);
 
         Route::post('notifications',                          [PushNotificationController::class, 'restStore']);
 
@@ -258,46 +282,47 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
         Route::get('parcel-order/type/{id}',                  [Rest\ParcelOrderSettingController::class, 'show']);
         Route::get('parcel-order/calculate-price',            [Rest\ParcelOrderSettingController::class, 'calculatePrice']);
 
-		Route::get('orders/table/{id}',             		  [Rest\OrderController::class, 'showByTableId']);
-		Route::post('order-details/delete',         [Rest\OrderController::class, 'deleteOrderDetail']);
-		Route::get('orders/clicked/{id}',          			  [Rest\OrderController::class, 'clicked']);
-		Route::get('orders/call/waiter/{id}',				  [Rest\OrderController::class, 'callWaiter']);
-		Route::get('orders/deliveryman/{id}',          		  [Rest\OrderController::class, 'showDeliveryman']);
+        Route::get('orders/table/{id}',                       [Rest\OrderController::class, 'showByTableId']);
+        Route::post('order-details/delete',         [Rest\OrderController::class, 'deleteOrderDetail']);
+        Route::get('orders/clicked/{id}',                        [Rest\OrderController::class, 'clicked']);
+        Route::get('orders/call/waiter/{id}',                  [Rest\OrderController::class, 'callWaiter']);
+        Route::get('orders/deliveryman/{id}',                    [Rest\OrderController::class, 'showDeliveryman']);
 
-		/* rest payments */
-		Route::get('order-stripe-process', 		 [Payment\StripeController::class, 		'orderProcessTransaction']);
-		Route::get('order-my-fatoorah-process',  [Payment\MyFatoorahController::class, 	'orderProcessTransaction']);
-		Route::get('order-iyzico-process', 		 [Payment\IyzicoController::class, 		'orderProcessTransaction']);
-		Route::get('order-razorpay-process', 	 [Payment\RazorPayController::class, 	'orderProcessTransaction']);
-		Route::get('order-mercado-pago-process', [Payment\MercadoPagoController::class, 'orderProcessTransaction']);
-		Route::get('order-paystack-process', 	 [Payment\PayStackController::class, 	'orderProcessTransaction']);
-		Route::get('order-paypal-process', 		 [Payment\PayPalController::class, 		'orderProcessTransaction']);
-		Route::get('order-flutter-wave-process', [Payment\FlutterWaveController::class, 'orderProcessTransaction']);
-		Route::get('order-paytabs-process', 	 [Payment\PayTabsController::class, 	'orderProcessTransaction']);
-		Route::post('moya-sar-process', 		 [Payment\MoyasarController::class, 	'orderProcessTransaction']);
-		Route::post('zain-cash-process', 		 [Payment\ZainCashController::class, 	'orderProcessTransaction']);
-		Route::post('mollie-process', 			 [Payment\MollieController::class, 		'orderProcessTransaction']);
-		Route::any('maksekeskus-process', 		 [Payment\MaksekeskusController::class, 'orderProcessTransaction']);
-		Route::get('order-pay-fast-process', 	 [Payment\PayFastController::class, 	'orderProcessTransaction']);
+        /* rest payments */
 
-		/* rest payments */
-		Route::get('split-stripe-process', 		 [Payment\StripeController::class, 		'splitTransaction']);
-		Route::get('split-my-fatoorah-process',  [Payment\MyFatoorahController::class,  'splitTransaction']);
-		Route::get('split-iyzico-process', 		 [Payment\IyzicoController::class, 	 	'splitTransaction']);
-		Route::get('split-razorpay-process', 	 [Payment\RazorPayController::class,  	'splitTransaction']);
-		Route::get('split-mercado-pago-process', [Payment\MercadoPagoController::class, 'splitTransaction']);
-		Route::get('split-paystack-process', 	 [Payment\PayStackController::class,  	'splitTransaction']);
-		Route::get('split-paypal-process', 		 [Payment\PayPalController::class, 	 	'splitTransaction']);
-		Route::get('split-flutter-wave-process', [Payment\FlutterWaveController::class, 'splitTransaction']);
-		Route::get('split-paytabs-process', 	 [Payment\PayTabsController::class,  	'splitTransaction']);
-		Route::post('split-moya-sar-process', 	 [Payment\MoyasarController::class,  	'splitTransaction']);
-		Route::post('split-zain-cash-process', 	 [Payment\ZainCashController::class,  	'splitTransaction']);
-		Route::post('split-mollie-process', 	 [Payment\MollieController::class, 	 	'splitTransaction']);
-		Route::post('split-maksekeskus-process', [Payment\MaksekeskusController::class, 'splitTransaction']);
-		Route::get('split-pay-fast-process', 	 [Payment\PayFastController::class, 	'splitTransaction']);
+        Route::get('order-stripe-process',          [Payment\StripeController::class,         'orderProcessTransaction']);
+        Route::get('order-my-fatoorah-process',  [Payment\MyFatoorahController::class,     'orderProcessTransaction']);
+        Route::get('order-iyzico-process',          [Payment\IyzicoController::class,         'orderProcessTransaction']);
+        Route::get('order-razorpay-process',      [Payment\RazorPayController::class,     'orderProcessTransaction']);
+        Route::get('order-mercado-pago-process', [Payment\MercadoPagoController::class, 'orderProcessTransaction']);
+        Route::get('order-paystack-process',      [Payment\PayStackController::class,     'orderProcessTransaction']);
+        Route::get('order-paypal-process',          [Payment\PayPalController::class,         'orderProcessTransaction']);
+        Route::get('order-flutter-wave-process', [Payment\FlutterWaveController::class, 'orderProcessTransaction']);
+        Route::get('order-paytabs-process',      [Payment\PayTabsController::class,     'orderProcessTransaction']);
+        Route::post('moya-sar-process',          [Payment\MoyasarController::class,     'orderProcessTransaction']);
+        Route::post('zain-cash-process',          [Payment\ZainCashController::class,     'orderProcessTransaction']);
+        Route::post('mollie-process',              [Payment\MollieController::class,         'orderProcessTransaction']);
+        Route::any('maksekeskus-process',          [Payment\MaksekeskusController::class, 'orderProcessTransaction']);
+        Route::get('order-pay-fast-process',      [Payment\PayFastController::class,     'orderProcessTransaction']);
 
-		Route::apiResource('delivery-points', Rest\DeliveryPointController::class)->only(['index', 'show']);
-	});
+        /* rest payments */
+        Route::get('split-stripe-process',          [Payment\StripeController::class,         'splitTransaction']);
+        Route::get('split-my-fatoorah-process',  [Payment\MyFatoorahController::class,  'splitTransaction']);
+        Route::get('split-iyzico-process',          [Payment\IyzicoController::class,          'splitTransaction']);
+        Route::get('split-razorpay-process',      [Payment\RazorPayController::class,      'splitTransaction']);
+        Route::get('split-mercado-pago-process', [Payment\MercadoPagoController::class, 'splitTransaction']);
+        Route::get('split-paystack-process',      [Payment\PayStackController::class,      'splitTransaction']);
+        Route::get('split-paypal-process',          [Payment\PayPalController::class,          'splitTransaction']);
+        Route::get('split-flutter-wave-process', [Payment\FlutterWaveController::class, 'splitTransaction']);
+        Route::get('split-paytabs-process',      [Payment\PayTabsController::class,      'splitTransaction']);
+        Route::post('split-moya-sar-process',      [Payment\MoyasarController::class,      'splitTransaction']);
+        Route::post('split-zain-cash-process',      [Payment\ZainCashController::class,      'splitTransaction']);
+        Route::post('split-mollie-process',      [Payment\MollieController::class,          'splitTransaction']);
+        Route::post('split-maksekeskus-process', [Payment\MaksekeskusController::class, 'splitTransaction']);
+        Route::get('split-pay-fast-process',      [Payment\PayFastController::class,     'splitTransaction']);
+
+        Route::apiResource('delivery-points', Rest\DeliveryPointController::class)->only(['index', 'show']);
+    });
 
     Route::group(['prefix' => 'payments', 'as' => 'payment.'], function () {
 
@@ -305,7 +330,6 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
         Route::post('{type}/{id}/transactions', [Payment\TransactionController::class, 'store']);
         Route::put('{type}/{id}/transactions',  [Payment\TransactionController::class, 'updateStatus']);
         Route::post('wallet/payment/top-up',    [Payment\WalletPaymentController::class, 'paymentTopUp']);
-
     });
 
     Route::group(['prefix' => 'dashboard'], function () {
@@ -314,10 +338,10 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
         Route::get('/galleries/storage/files',          [GalleryController::class, 'getStorageFiles']);
         Route::post('/galleries/storage/files/delete',  [GalleryController::class, 'deleteStorageFile']);
         Route::post('/galleries',                       [GalleryController::class, 'store']);
-		Route::post('/galleries/store-many', 			[GalleryController::class, 'storeMany']);
+        Route::post('/galleries/store-many',             [GalleryController::class, 'storeMany']);
 
         // Notifications
-        Route::apiResource('notifications',PushNotificationController::class)
+        Route::apiResource('notifications', PushNotificationController::class)
             ->only(['index', 'show']);
         Route::post('notifications/{id}/read-at',   [PushNotificationController::class, 'readAt']);
         Route::post('notifications/read-all',       [PushNotificationController::class, 'readAll']);
@@ -331,15 +355,15 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::post('profile/password/update',              [User\ProfileController::class, 'passwordUpdate']);
             Route::get('profile/liked/looks',                   [User\ProfileController::class, 'likedLooks']);
             Route::get('profile/notifications-statistic',       [User\ProfileController::class, 'notificationStatistic']);
-			Route::get('search-sending',                        [User\ProfileController::class, 'searchSending']);
+            Route::get('search-sending',                        [User\ProfileController::class, 'searchSending']);
 
             Route::get('orders/paginate',                       [User\OrderController::class, 'paginate']);
             Route::post('orders/review/{id}',                   [User\OrderController::class, 'addOrderReview']);
             Route::post('orders/deliveryman-review/{id}',       [User\OrderController::class, 'addDeliverymanReview']);
             Route::post('orders/waiter-review/{id}',            [User\OrderController::class, 'addWaiterReview']);
             Route::post('orders/{id}/status/change',            [User\OrderController::class, 'orderStatusChange']);
-            Route::post('orders/{id}/repeat',		            [User\OrderController::class, 'repeatOrder']);
-            Route::delete('orders/{id}/delete-repeat',			[User\OrderController::class, 'repeatOrderDelete']);
+            Route::post('orders/{id}/repeat',                    [User\OrderController::class, 'repeatOrder']);
+            Route::delete('orders/{id}/delete-repeat',            [User\OrderController::class, 'repeatOrderDelete']);
             Route::apiResource('orders',              User\OrderController::class)->except('index');
 
             Route::apiResource('parcel-orders',        User\ParcelOrderController::class);
@@ -358,7 +382,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('/wallet/histories',                     [User\WalletController::class, 'walletHistories']);
             Route::post('/wallet/withdraw',                     [User\WalletController::class, 'store']);
             Route::post('/wallet/history/{uuid}/status/change', [User\WalletController::class, 'changeStatus']);
-			Route::post('wallet/send',                          [User\WalletController::class, 'send']);
+            Route::post('wallet/send',                          [User\WalletController::class, 'send']);
 
             /* Transaction */
             Route::get('transactions/paginate',                 [User\TransactionController::class, 'paginate']);
@@ -369,8 +393,8 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('shops',                                 [Seller\ShopController::class, 'shopShow']);
             Route::put('shops',                                 [Seller\ShopController::class, 'shopUpdate']);
 
-			/* RequestModel */
-			Route::apiResource('request-models',		User\RequestModelController::class);
+            /* RequestModel */
+            Route::apiResource('request-models',        User\RequestModelController::class);
 
             /* Ticket */
             Route::get('tickets/paginate',                      [User\TicketController::class, 'paginate']);
@@ -380,17 +404,17 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('export/order/{id}/pdf',                 [User\ExportController::class, 'orderExportPDF']);
 
             /* Carts */
-            Route::post('cart',                        			[User\CartController::class, 'store']);
-            Route::post('cart/insert-product',         			[User\CartController::class, 'insertProducts']);
-            Route::post('cart/open',                   			[User\CartController::class, 'openCart']);
-            Route::post('cart/set-group/{id}',         			[User\CartController::class, 'setGroup']);
-            Route::delete('cart/delete',               			[User\CartController::class, 'delete']);
-            Route::delete('cart/my-delete',            			[User\CartController::class, 'myDelete']);
-            Route::delete('cart/product/delete',       			[User\CartController::class, 'cartProductDelete']);
-            Route::delete('cart/member/delete',        			[User\CartController::class, 'userCartDelete']);
-            Route::get('cart',                         			[User\CartController::class, 'get']);
-            Route::post('cart/status/{user_cart_uuid}',			[User\CartController::class, 'statusChange']);
-            Route::post('cart/calculate/{id}',         			[User\CartController::class, 'cartCalculate']);
+            Route::post('cart',                                    [User\CartController::class, 'store']);
+            Route::post('cart/insert-product',                     [User\CartController::class, 'insertProducts']);
+            Route::post('cart/open',                               [User\CartController::class, 'openCart']);
+            Route::post('cart/set-group/{id}',                     [User\CartController::class, 'setGroup']);
+            Route::delete('cart/delete',                           [User\CartController::class, 'delete']);
+            Route::delete('cart/my-delete',                        [User\CartController::class, 'myDelete']);
+            Route::delete('cart/product/delete',                   [User\CartController::class, 'cartProductDelete']);
+            Route::delete('cart/member/delete',                    [User\CartController::class, 'userCartDelete']);
+            Route::get('cart',                                     [User\CartController::class, 'get']);
+            Route::post('cart/status/{user_cart_uuid}',            [User\CartController::class, 'statusChange']);
+            Route::post('cart/calculate/{id}',                     [User\CartController::class, 'cartCalculate']);
 
             /* Order Refunds */
             Route::get('order-refunds/paginate',                [User\OrderRefundsController::class, 'paginate']);
@@ -400,33 +424,34 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::post('update/notifications',                 [User\ProfileController::class, 'notificationsUpdate']);
             Route::get('notifications',                         [User\ProfileController::class, 'notifications']);
 
-			Route::get('order-stripe-process', [Payment\StripeController::class, 'orderProcessTransaction']);
+            Route::get('order-odero-process',          [Payment\OderoController::class,         'orderProcessTransaction']);
+            Route::get('order-stripe-process', [Payment\StripeController::class, 'orderProcessTransaction']);
 
-			Route::get('order-my-fatoorah-process', [Payment\MyFatoorahController::class, 'orderProcessTransaction']);
+            Route::get('order-my-fatoorah-process', [Payment\MyFatoorahController::class, 'orderProcessTransaction']);
 
-			Route::get('order-iyzico-process', [Payment\IyzicoController::class, 'orderProcessTransaction']);
+            Route::get('order-iyzico-process', [Payment\IyzicoController::class, 'orderProcessTransaction']);
 
-			Route::get('order-razorpay-process', [Payment\RazorPayController::class, 'orderProcessTransaction']);
+            Route::get('order-razorpay-process', [Payment\RazorPayController::class, 'orderProcessTransaction']);
 
-			Route::get('order-mercado-pago-process', [Payment\MercadoPagoController::class, 'orderProcessTransaction']);
+            Route::get('order-mercado-pago-process', [Payment\MercadoPagoController::class, 'orderProcessTransaction']);
 
-			Route::get('order-paystack-process', [Payment\PayStackController::class, 'orderProcessTransaction']);
+            Route::get('order-paystack-process', [Payment\PayStackController::class, 'orderProcessTransaction']);
 
-			Route::get('order-paypal-process', [Payment\PayPalController::class, 'orderProcessTransaction']);
+            Route::get('order-paypal-process', [Payment\PayPalController::class, 'orderProcessTransaction']);
 
-			Route::get('order-flutter-wave-process', [Payment\FlutterWaveController::class, 'orderProcessTransaction']);
+            Route::get('order-flutter-wave-process', [Payment\FlutterWaveController::class, 'orderProcessTransaction']);
 
-			Route::get('order-paytabs-process', [Payment\PayTabsController::class, 'orderProcessTransaction']);
+            Route::get('order-paytabs-process', [Payment\PayTabsController::class, 'orderProcessTransaction']);
 
-			Route::post('moya-sar-process', [Payment\MoyasarController::class, 'orderProcessTransaction']);
+            Route::post('moya-sar-process', [Payment\MoyasarController::class, 'orderProcessTransaction']);
 
-			Route::post('zain-cash-process', [Payment\ZainCashController::class, 'orderProcessTransaction']);
+            Route::post('zain-cash-process', [Payment\ZainCashController::class, 'orderProcessTransaction']);
 
-			Route::post('mollie-process', [Payment\MollieController::class, 'orderProcessTransaction']);
+            Route::post('mollie-process', [Payment\MollieController::class, 'orderProcessTransaction']);
 
-			Route::post('maksekeskus-process', [Payment\MaksekeskusController::class, 'orderProcessTransaction']);
+            Route::post('maksekeskus-process', [Payment\MaksekeskusController::class, 'orderProcessTransaction']);
 
-			Route::get('order-pay-fast-process', [Payment\PayFastController::class, 'orderProcessTransaction']);
+            Route::get('order-pay-fast-process', [Payment\PayFastController::class, 'orderProcessTransaction']);
         });
 
         // DELIVERYMAN BLOCK
@@ -445,8 +470,8 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('settings',                  [Deliveryman\DeliveryManSettingController::class, 'show']);
             Route::post('order/{id}/attach/me',     [Deliveryman\OrderController::class, 'orderDeliverymanUpdate']);
 
-            Route::get('shop/bans',		    		[Deliveryman\DashboardController::class, 'banList']);
-            Route::post('shop/bans',		    	[Deliveryman\DashboardController::class, 'banStore']);
+            Route::get('shop/bans',                    [Deliveryman\DashboardController::class, 'banList']);
+            Route::post('shop/bans',                [Deliveryman\DashboardController::class, 'banStore']);
 
             /* Payouts */
             Route::apiResource('payouts', Deliveryman\PayoutsController::class);
@@ -462,12 +487,12 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::post('parcel-order/{id}/current',        [Deliveryman\ParcelOrderController::class, 'setCurrent']);
             Route::post('parcel-order/{id}/attach/me',      [Deliveryman\ParcelOrderController::class, 'orderDeliverymanUpdate']);
 
-			Route::apiResource('payment-to-partners',    Deliveryman\PaymentToPartnerController::class)
-				->only(['index', 'show']);
+            Route::apiResource('payment-to-partners',    Deliveryman\PaymentToPartnerController::class)
+                ->only(['index', 'show']);
 
-			Route::get('delivery-zones',  [Deliveryman\DeliveryManDeliveryZoneController::class, 'show']);
-			Route::post('delivery-zones', [Deliveryman\DeliveryManDeliveryZoneController::class, 'store']);
-		});
+            Route::get('delivery-zones',  [Deliveryman\DeliveryManDeliveryZoneController::class, 'show']);
+            Route::post('delivery-zones', [Deliveryman\DeliveryManDeliveryZoneController::class, 'store']);
+        });
 
         // Waiter BLOCK
         Route::group(['prefix' => 'waiter', 'middleware' => ['sanctum.check', 'role:waiter'], 'as' => 'waiter.'], function () {
@@ -559,7 +584,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('shop-categories/paginate',        [Seller\ShopCategoryController::class, 'paginate']);
             Route::get('shop-categories/select-paginate', [Seller\ShopCategoryController::class, 'selectPaginate']);
             Route::delete('shop-categories/delete',       [Seller\ShopCategoryController::class, 'destroy']);
-            Route::apiResource('shop-categories',Seller\ShopCategoryController::class);
+            Route::apiResource('shop-categories', Seller\ShopCategoryController::class);
 
             /* Seller Product */
             Route::post('products/import',               [Seller\ProductController::class, 'fileImport']);
@@ -573,9 +598,9 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('stocks/select-paginate',         [Seller\ProductController::class, 'selectStockPaginate']);
             Route::get('stocks/{uuid}/status',           [Seller\ProductController::class, 'setActiveStock']);
             Route::post('products/{uuid}/active',        [Seller\ProductController::class, 'setActive']);
-			Route::post('products/multi/kitchen/update', [Seller\ProductController::class, 'multipleKitchenUpdate']);
+            Route::post('products/multi/kitchen/update', [Seller\ProductController::class, 'multipleKitchenUpdate']);
 
-			Route::delete('products/delete',            [Seller\ProductController::class, 'destroy']);
+            Route::delete('products/delete',            [Seller\ProductController::class, 'destroy']);
             Route::apiResource('products',    Seller\ProductController::class);
 
             /* Seller Coupon */
@@ -592,7 +617,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('users/paginate',                [Seller\UserController::class, 'paginate']);
             Route::get('users/{uuid}',                  [Seller\UserController::class, 'show']);
             Route::post('users',                        [Seller\UserController::class, 'store']);
-            Route::apiResource('users',    	Seller\UserController::class);
+            Route::apiResource('users',        Seller\UserController::class);
             Route::post('users/{uuid}/change/status',   [Seller\UserController::class, 'setUserActive']);
             Route::post('users/{uuid}/attach-waiter',   [Seller\UserController::class, 'attachTable']);
 
@@ -613,15 +638,15 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::apiResource('banners', Seller\BannerController::class);
 
             /* Seller Order */
-			Route::get('order/export',                  [Seller\OrderController::class, 'fileExport']);
-			Route::post('order/import',                 [Seller\OrderController::class, 'fileImport']);
-			Route::get('order/products/calculate',      [Seller\OrderController::class, 'orderStocksCalculate']);
-			Route::get('orders/paginate',               [Seller\OrderController::class, 'paginate']);
-			Route::post('order/{id}/deliveryman',       [Seller\OrderController::class, 'orderDeliverymanUpdate']);
-			Route::post('orders/{id}/waiter',           [Seller\OrderController::class, 'orderWaiterUpdate']);
-			Route::post('order/{id}/status',            [Seller\OrderController::class, 'orderStatusUpdate']);
-			Route::apiResource('orders',     Seller\OrderController::class)->except('index');
-			Route::delete('orders/delete',              [Seller\OrderController::class, 'destroy']);
+            Route::get('order/export',                  [Seller\OrderController::class, 'fileExport']);
+            Route::post('order/import',                 [Seller\OrderController::class, 'fileImport']);
+            Route::get('order/products/calculate',      [Seller\OrderController::class, 'orderStocksCalculate']);
+            Route::get('orders/paginate',               [Seller\OrderController::class, 'paginate']);
+            Route::post('order/{id}/deliveryman',       [Seller\OrderController::class, 'orderDeliverymanUpdate']);
+            Route::post('orders/{id}/waiter',           [Seller\OrderController::class, 'orderWaiterUpdate']);
+            Route::post('order/{id}/status',            [Seller\OrderController::class, 'orderStatusUpdate']);
+            Route::apiResource('orders',     Seller\OrderController::class)->except('index');
+            Route::delete('orders/delete',              [Seller\OrderController::class, 'destroy']);
             Route::get('orders/pending/transaction',    [Seller\OrderController::class, 'ordersPendingTransaction']);
             Route::post('order/details/{id}/cook',      [Seller\OrderDetailController::class, 'orderCookUpdate']);
             Route::post('order/details/{id}/status',    [Seller\OrderDetailController::class, 'orderStatusUpdate']);
@@ -647,10 +672,10 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('shop-tags/paginate',     [Seller\TagController::class, 'shopTagsPaginate']);
 
             /* Delivery Zones */
-			Route::get('delivery-zones/list',      	[Seller\DeliveryZoneController::class, 'list']);
-			Route::apiResource('delivery-zones', Seller\DeliveryZoneController::class);
+            Route::get('delivery-zones/list',          [Seller\DeliveryZoneController::class, 'list']);
+            Route::apiResource('delivery-zones', Seller\DeliveryZoneController::class);
 
-			Route::delete('delivery-zones/delete',      [Seller\DeliveryZoneController::class, 'destroy']);
+            Route::delete('delivery-zones/delete',      [Seller\DeliveryZoneController::class, 'destroy']);
 
             /* Payments */
             Route::post('shop-payments/{id}/active/status', [Seller\ShopPaymentController::class, 'setActive']);
@@ -678,42 +703,42 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
 
             Route::delete('payouts/delete', [Seller\PayoutsController::class, 'destroy']);
 
-			/* Report Orders */
-			Route::get('order/report',              [Seller\OrderReportController::class, 'report']);
-			Route::get('orders/report/chart',    [Seller\OrderReportController::class, 'reportChart']);
-			Route::get('orders/report/transactions', [Seller\OrderReportController::class, 'reportTransactions']);
-			Route::get('orders/report/paginate', [Seller\OrderReportController::class, 'reportChartPaginate']);
+            /* Report Orders */
+            Route::get('order/report',              [Seller\OrderReportController::class, 'report']);
+            Route::get('orders/report/chart',    [Seller\OrderReportController::class, 'reportChart']);
+            Route::get('orders/report/transactions', [Seller\OrderReportController::class, 'reportTransactions']);
+            Route::get('orders/report/paginate', [Seller\OrderReportController::class, 'reportChartPaginate']);
 
             /* Reviews */
             Route::get('reviews/paginate',          [Seller\ReviewController::class, 'paginate']);
             Route::apiResource('reviews', Seller\ReviewController::class)->only('show');
 
             /* Receipts */
-            Route::apiResource('receipts',Seller\ReceiptController::class);
+            Route::apiResource('receipts', Seller\ReceiptController::class);
             Route::delete('receipts/delete',        [Seller\ReceiptController::class, 'destroy']);
 
             /* Galleries */
-            Route::apiResource('galleries',Seller\ShopGalleriesController::class)->except('show');
+            Route::apiResource('galleries', Seller\ShopGalleriesController::class)->except('show');
 
             /* Shop Deliveryman Setting */
-            Route::apiResource('shop-deliveryman-settings',Seller\ShopDeliverymanSettingController::class);
+            Route::apiResource('shop-deliveryman-settings', Seller\ShopDeliverymanSettingController::class);
             Route::delete('shop-deliveryman-settings/delete',        [Seller\ShopDeliverymanSettingController::class, 'destroy']);
 
             /* Menu */
-            Route::apiResource('menus',Seller\MenuController::class);
+            Route::apiResource('menus', Seller\MenuController::class);
             Route::delete('menus/delete',        [Seller\MenuController::class, 'destroy']);
 
             /* Branch */
-            Route::apiResource('branches',Seller\BranchController::class);
+            Route::apiResource('branches', Seller\BranchController::class);
             Route::delete('branches/delete',        [Seller\BranchController::class, 'destroy']);
 
-			/* Inventory */
-			Route::apiResource('inventories',Seller\InventoryController::class);
-			Route::delete('inventories/delete',        [Seller\InventoryController::class, 'destroy']);
+            /* Inventory */
+            Route::apiResource('inventories', Seller\InventoryController::class);
+            Route::delete('inventories/delete',        [Seller\InventoryController::class, 'destroy']);
 
-			/* Inventory Items */
-			Route::apiResource('inventory-items', Seller\InventoryItemController::class);
-			Route::delete('inventory-items/delete', [Seller\InventoryItemController::class, 'destroy']);
+            /* Inventory Items */
+            Route::apiResource('inventory-items', Seller\InventoryItemController::class);
+            Route::delete('inventory-items/delete', [Seller\InventoryItemController::class, 'destroy']);
 
             /* AdsPackage */
             Route::apiResource('ads-packages',        Seller\AdsPackageController::class)
@@ -722,22 +747,22 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::apiResource('shop-ads-packages',   Seller\ShopAdsPackageController::class)
                 ->only(['index', 'store', 'show']);
 
-			/* RequestModel */
-			Route::apiResource('request-models',Seller\RequestModelController::class);
-			Route::delete('request-models/delete',        [Seller\RequestModelController::class, 'destroy']);
+            /* RequestModel */
+            Route::apiResource('request-models', Seller\RequestModelController::class);
+            Route::delete('request-models/delete',        [Seller\RequestModelController::class, 'destroy']);
 
-			Route::apiResource('payment-to-partners',    Seller\PaymentToPartnerController::class)
-				->only(['index', 'show']);
+            Route::apiResource('payment-to-partners',    Seller\PaymentToPartnerController::class)
+                ->only(['index', 'show']);
 
             /* User address */
             Route::apiResource('user-addresses', Seller\UserAddressController::class)->only(['index', 'store', 'show']);
 
-			Route::apiResource('delivery-man-delivery-zones', Seller\DeliveryManDeliveryZoneController::class);
+            Route::apiResource('delivery-man-delivery-zones', Seller\DeliveryManDeliveryZoneController::class);
 
-			/* Combo */
-			Route::apiResource('combos', Seller\ComboController::class);
-			Route::delete('combos/delete', [Seller\ComboController::class, 'destroy']);
-		});
+            /* Combo */
+            Route::apiResource('combos', Seller\ComboController::class);
+            Route::delete('combos/delete', [Seller\ComboController::class, 'destroy']);
+        });
 
         // ADMIN BLOCK
         Route::group(['prefix' => 'admin', 'middleware' => ['sanctum.check', 'role:admin|manager'], 'as' => 'admin.'], function () {
@@ -752,6 +777,14 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('statistics/products',       [Admin\DashboardController::class, 'productsStatistic']);
             Route::get('statistics/users',          [Admin\DashboardController::class, 'usersStatistic']);
 
+            /* Coupons */
+            Route::get('coupons/paginate',              [Admin\CouponController::class, 'paginate']);
+            Route::delete('coupons/delete',             [Admin\CouponController::class, 'destroy']);
+            Route::apiResource('coupons',     Admin\CouponController::class);
+
+
+
+
             /* Terms & Condition */
             Route::post('term',                     [Admin\TermsController::class, 'store']);
             Route::get('term',                      [Admin\TermsController::class, 'show']);
@@ -759,6 +792,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('term/drop/all',             [Admin\TermsController::class, 'dropAll']);
             Route::get('term/restore/all',          [Admin\TermsController::class, 'restoreAll']);
             Route::get('term/truncate/db',          [Admin\TermsController::class, 'truncate']);
+
 
             /* Privacy & Policy */
             Route::post('policy',                   [Admin\PrivacyPolicyController::class, 'store']);
@@ -805,9 +839,9 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::post('categories/import',                [Admin\CategoryController::class, 'fileImport']);
             Route::apiResource('categories',      Admin\CategoryController::class);
             Route::post('category-input/{uuid}',            [Admin\CategoryController::class, 'changeInput']);
-			Route::post('categories/{uuid}/active',         [Admin\CategoryController::class, 'changeActive']);
-			Route::post('categories/{uuid}/status',         [Admin\CategoryController::class, 'changeStatus']);
-			Route::delete('categories/delete',              [Admin\CategoryController::class, 'destroy']);
+            Route::post('categories/{uuid}/active',         [Admin\CategoryController::class, 'changeActive']);
+            Route::post('categories/{uuid}/status',         [Admin\CategoryController::class, 'changeStatus']);
+            Route::delete('categories/delete',              [Admin\CategoryController::class, 'destroy']);
             Route::get('categories/drop/all',               [Admin\CategoryController::class, 'dropAll']);
             Route::get('categories/restore/all',            [Admin\CategoryController::class, 'restoreAll']);
             Route::get('categories/truncate/db',            [Admin\CategoryController::class, 'truncate']);
@@ -882,7 +916,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('products/export',                [Admin\ProductController::class, 'fileExport']);
             Route::get('most-popular/products',          [Admin\ProductController::class, 'mostPopulars']);
             Route::post('products/import',               [Admin\ProductController::class, 'fileImport']);
-			Route::get('products/paginate',              [Admin\ProductController::class, 'paginate']);
+            Route::get('products/paginate',              [Admin\ProductController::class, 'paginate']);
             Route::get('products/select-paginate',       [Admin\ProductController::class, 'selectPaginate']);
             Route::get('products/search',                [Admin\ProductController::class, 'productsSearch']);
             Route::post('products/{uuid}/stocks',        [Admin\ProductController::class, 'addInStock']);
@@ -903,23 +937,23 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('stocks/select-paginate',         [Admin\ProductController::class, 'selectStockPaginate']);
 
             /* Orders */
-			Route::get('order/export',                   [Admin\OrderController::class, 'fileExport']);
-			Route::post('order/import',                  [Admin\OrderController::class, 'fileImport']);
-			Route::get('orders/paginate',                [Admin\OrderController::class, 'paginate']);
-			Route::get('order/details/paginate',         [Admin\OrderDetailController::class, 'paginate']);
-			Route::post('order/details/{id}/cook',       [Admin\OrderDetailController::class, 'orderCookUpdate']);
+            Route::get('order/export',                   [Admin\OrderController::class, 'fileExport']);
+            Route::post('order/import',                  [Admin\OrderController::class, 'fileImport']);
+            Route::get('orders/paginate',                [Admin\OrderController::class, 'paginate']);
+            Route::get('order/details/paginate',         [Admin\OrderDetailController::class, 'paginate']);
+            Route::post('order/details/{id}/cook',       [Admin\OrderDetailController::class, 'orderCookUpdate']);
             Route::post('order/details/{id}/status',     [Admin\OrderDetailController::class, 'orderStatusUpdate']);
-			Route::get('order/products/calculate',       [Admin\OrderController::class, 'orderStocksCalculate']);
-			Route::post('order/{id}/deliveryman',        [Admin\OrderController::class, 'orderDeliverymanUpdate']);
-			Route::post('order/{id}/waiter',             [Admin\OrderController::class, 'orderWaiterUpdate']);
-			Route::post('order/{id}/status',             [Admin\OrderController::class, 'orderStatusUpdate']);
-			Route::apiResource('orders',       Admin\OrderController::class);
-			Route::delete('orders/delete',               [Admin\OrderController::class, 'destroy']);
-			Route::get('orders/drop/all',                [Admin\OrderController::class, 'dropAll']);
-			Route::get('orders/restore/all',             [Admin\OrderController::class, 'restoreAll']);
-			Route::get('orders/truncate/db',             [Admin\OrderController::class, 'truncate']);
-			Route::get('user-orders/{id}',               [Admin\OrderController::class, 'userOrder']);
-			Route::get('user-orders/{id}/paginate',      [Admin\OrderController::class, 'userOrders']);
+            Route::get('order/products/calculate',       [Admin\OrderController::class, 'orderStocksCalculate']);
+            Route::post('order/{id}/deliveryman',        [Admin\OrderController::class, 'orderDeliverymanUpdate']);
+            Route::post('order/{id}/waiter',             [Admin\OrderController::class, 'orderWaiterUpdate']);
+            Route::post('order/{id}/status',             [Admin\OrderController::class, 'orderStatusUpdate']);
+            Route::apiResource('orders',                  Admin\OrderController::class);
+            Route::delete('orders/delete',               [Admin\OrderController::class, 'destroy']);
+            Route::get('orders/drop/all',                [Admin\OrderController::class, 'dropAll']);
+            Route::get('orders/restore/all',             [Admin\OrderController::class, 'restoreAll']);
+            Route::get('orders/truncate/db',             [Admin\OrderController::class, 'truncate']);
+            Route::get('user-orders/{id}',               [Admin\OrderController::class, 'userOrder']);
+            Route::get('user-orders/{id}/paginate',      [Admin\OrderController::class, 'userOrders']);
             Route::get('orders/pending/transaction',     [Admin\OrderController::class, 'ordersPendingTransaction']);
 
             /* Parcel Orders */
@@ -946,7 +980,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('parcel-order-settings/drop/all',     [Admin\ParcelOrderSettingController::class, 'dropAll']);
             Route::get('parcel-order-settings/restore/all',  [Admin\ParcelOrderSettingController::class, 'restoreAll']);
             Route::get('parcel-order-settings/truncate/db',  [Admin\ParcelOrderSettingController::class, 'truncate']);
-			Route::post('parcel-order-settings/active/{id}', [Admin\ParcelOrderSettingController::class, 'setActive']);
+            Route::post('parcel-order-settings/active/{id}', [Admin\ParcelOrderSettingController::class, 'setActive']);
 
             /* Users */
             Route::get('users/search',                  [Admin\UserController::class, 'usersSearch']);
@@ -997,11 +1031,11 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
 
             /* Translations */
             Route::get('translations/paginate',         [Admin\TranslationController::class, 'paginate']);
-			Route::post('translations/import',          [Admin\TranslationController::class, 'import']);
-			Route::get('translations/export',           [Admin\TranslationController::class, 'export']);
-            Route::apiResource('translations',Admin\TranslationController::class);
-			Route::delete('translations/delete',        [Admin\TranslationController::class, 'destroy']);
-			Route::get('translations/drop/all',         [Admin\TranslationController::class, 'dropAll']);
+            Route::post('translations/import',          [Admin\TranslationController::class, 'import']);
+            Route::get('translations/export',           [Admin\TranslationController::class, 'export']);
+            Route::apiResource('translations', Admin\TranslationController::class);
+            Route::delete('translations/delete',        [Admin\TranslationController::class, 'destroy']);
+            Route::get('translations/drop/all',         [Admin\TranslationController::class, 'dropAll']);
             Route::get('translations/restore/all',      [Admin\TranslationController::class, 'restoreAll']);
             Route::get('translations/truncate/db',      [Admin\TranslationController::class, 'truncate']);
 
@@ -1014,7 +1048,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
 
             /* Payment To Partner */
             Route::apiResource('payment-to-partners',    Admin\PaymentToPartnerController::class)
-				->except(['store', 'update']);
+                ->except(['store', 'update']);
 
             Route::post('payment-to-partners/store/many',  [Admin\PaymentToPartnerController::class, 'storeMany']);
             Route::get('payment-to-partners/drop/all',     [Admin\PaymentToPartnerController::class, 'dropAll']);
@@ -1090,7 +1124,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
 
             /* Delivery Zones */
             Route::apiResource('delivery-zones', Admin\DeliveryZoneController::class);
-            Route::get('delivery-zones-list',      		[Admin\DeliveryZoneController::class, 'list']);
+            Route::get('delivery-zones-list',              [Admin\DeliveryZoneController::class, 'list']);
             Route::delete('delivery-zones/delete',      [Admin\DeliveryZoneController::class, 'destroy']);
             Route::get('delivery-zones/drop/all',       [Admin\DeliveryZoneController::class, 'dropAll']);
             Route::get('delivery-zones/restore/all',    [Admin\DeliveryZoneController::class, 'restoreAll']);
@@ -1098,7 +1132,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
 
             /* Delivery Man Delivery Zones */
             Route::apiResource('delivery-man-delivery-zones', Admin\DeliveryManDeliveryZoneController::class);
-            Route::get('delivery-man-delivery-zones-list',      	 [Admin\DeliveryManDeliveryZoneController::class, 'list']);
+            Route::get('delivery-man-delivery-zones-list',           [Admin\DeliveryManDeliveryZoneController::class, 'list']);
             Route::delete('delivery-man-delivery-zones/delete',      [Admin\DeliveryManDeliveryZoneController::class, 'destroy']);
             Route::get('delivery-man-delivery-zones/drop/all',       [Admin\DeliveryManDeliveryZoneController::class, 'dropAll']);
             Route::get('delivery-man-delivery-zones/restore/all',    [Admin\DeliveryManDeliveryZoneController::class, 'restoreAll']);
@@ -1164,11 +1198,11 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('notifications/restore/all', [Admin\NotificationController::class, 'restoreAll']);
             Route::get('notifications/truncate/db', [Admin\NotificationController::class, 'truncate']);
 
-			/* Email Subscriptions */
-			Route::get('email-subscriptions',               [Admin\SubscriptionController::class, 'emailSubscriptions']);
-			Route::get('email-subscriptions/drop/all',      [Admin\SubscriptionController::class, 'dropAll']);
-			Route::get('email-subscriptions/restore/all',   [Admin\SubscriptionController::class, 'restoreAll']);
-			Route::get('email-subscriptions/truncate/db',   [Admin\SubscriptionController::class, 'truncate']);
+            /* Email Subscriptions */
+            Route::get('email-subscriptions',               [Admin\SubscriptionController::class, 'emailSubscriptions']);
+            Route::get('email-subscriptions/drop/all',      [Admin\SubscriptionController::class, 'dropAll']);
+            Route::get('email-subscriptions/restore/all',   [Admin\SubscriptionController::class, 'restoreAll']);
+            Route::get('email-subscriptions/truncate/db',   [Admin\SubscriptionController::class, 'truncate']);
 
             /* Payouts */
             Route::apiResource('payouts', Admin\PayoutsController::class);
@@ -1179,37 +1213,44 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('payouts/truncate/db',       [Admin\PayoutsController::class, 'truncate']);
 
             /* Shop tags */
-            Route::apiResource('shop-tags',Admin\ShopTagController::class);
+            Route::apiResource('shop-tags', Admin\ShopTagController::class);
             Route::delete('shop-tags/delete',        [Admin\ShopTagController::class, 'destroy']);
             Route::get('shop-tags/drop/all',         [Admin\ShopTagController::class, 'dropAll']);
             Route::get('shop-tags/restore/all',      [Admin\ShopTagController::class, 'restoreAll']);
             Route::get('shop-tags/truncate/db',      [Admin\ShopTagController::class, 'truncate']);
 
             /* PaymentPayload tags */
-            Route::apiResource('payment-payloads',Admin\PaymentPayloadController::class);
+            Route::apiResource('payment-payloads', Admin\PaymentPayloadController::class);
             Route::delete('payment-payloads/delete',        [Admin\PaymentPayloadController::class, 'destroy']);
             Route::get('payment-payloads/drop/all',         [Admin\PaymentPayloadController::class, 'dropAll']);
             Route::get('payment-payloads/restore/all',      [Admin\PaymentPayloadController::class, 'restoreAll']);
             Route::get('payment-payloads/truncate/db',      [Admin\PaymentPayloadController::class, 'truncate']);
 
             /* SmsPayload tags */
-            Route::apiResource('sms-payloads',Admin\SmsPayloadController::class);
+            Route::apiResource('sms-payloads', Admin\SmsPayloadController::class);
             Route::delete('sms-payloads/delete',        [Admin\SmsPayloadController::class, 'destroy']);
             Route::get('sms-payloads/drop/all',         [Admin\SmsPayloadController::class, 'dropAll']);
             Route::get('sms-payloads/restore/all',      [Admin\SmsPayloadController::class, 'restoreAll']);
             Route::get('sms-payloads/truncate/db',      [Admin\SmsPayloadController::class, 'truncate']);
 
+            /* Benefits */
+            Route::apiResource('benefits', Admin\BenefitsController::class);
+            Route::delete('benefits/delete',        [Admin\BenefitsController::class, 'destroy']);
+            Route::get('benefits/drop/all',         [Admin\BenefitsController::class, 'dropAll']);
+            Route::get('benefits/restore/all',      [Admin\BenefitsController::class, 'restoreAll']);
+            Route::get('benefits/truncate/db',      [Admin\BenefitsController::class, 'truncate']);
+
             /* Bonuses*/
             Route::get('bonuses',                       [Admin\BonusController::class, 'index']);
 
-            Route::apiResource('referrals',       		Admin\ReferralController::class);
+            Route::apiResource('referrals',               Admin\ReferralController::class);
             Route::get('referrals/transactions/paginate',   [Admin\ReferralController::class,  'transactions']);
 
             /* Report Categories */
             Route::get('categories/report/chart',   [Admin\CategoryController::class,   'reportChart']);
 
             /* Report Extras */
-//            Route::get('extras/report/paginate',    [Admin\ProductController::class,   'extrasReportPaginate']);
+            //            Route::get('extras/report/paginate',    [Admin\ProductController::class,   'extrasReportPaginate']);
 
             /* Report Stocks */
             Route::get('stocks/report/paginate',    [Admin\ProductController::class,    'stockReportPaginate']);
@@ -1219,9 +1260,9 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('products/report/paginate',  [Admin\ProductController::class,    'reportPaginate']);
 
             /* Report Orders */
-            Route::get('orders/report/chart',    	 [Admin\OrderController::class, 'reportChart']);
+            Route::get('orders/report/chart',         [Admin\OrderController::class, 'reportChart']);
             Route::get('orders/report/transactions', [Admin\OrderController::class, 'reportTransactions']);
-            Route::get('orders/report/paginate', 	 [Admin\OrderController::class, 'reportChartPaginate']);
+            Route::get('orders/report/paginate',      [Admin\OrderController::class, 'reportChartPaginate']);
 
             /* Report Revenues */
             Route::get('revenue/report', [Admin\OrderController::class, 'revenueReport']);
@@ -1239,28 +1280,28 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('receipts/truncate/db', [Admin\ReceiptController::class, 'truncate']);
 
             /* Shop Deliveryman Setting */
-            Route::apiResource('shop-deliveryman-settings',	Admin\ShopDeliverymanSettingController::class);
+            Route::apiResource('shop-deliveryman-settings',    Admin\ShopDeliverymanSettingController::class);
             Route::delete('shop-deliveryman-settings/delete',   [Admin\ShopDeliverymanSettingController::class, 'destroy']);
             Route::get('shop-deliveryman-settings/drop/all',    [Admin\ShopDeliverymanSettingController::class, 'dropAll']);
             Route::get('shop-deliveryman-settings/restore/all', [Admin\ShopDeliverymanSettingController::class, 'restoreAll']);
             Route::get('shop-deliveryman-settings/truncate/db', [Admin\ShopDeliverymanSettingController::class, 'truncate']);
 
             /* Menus */
-            Route::apiResource('menus',	Admin\MenuController::class);
+            Route::apiResource('menus',    Admin\MenuController::class);
             Route::delete('menus/delete',   [Admin\MenuController::class, 'destroy']);
             Route::get('menus/drop/all',    [Admin\MenuController::class, 'dropAll']);
             Route::get('menus/restore/all', [Admin\MenuController::class, 'restoreAll']);
             Route::get('menus/truncate/db', [Admin\MenuController::class, 'truncate']);
 
             /* Career */
-            Route::apiResource('careers',	  Admin\CareerController::class);
+            Route::apiResource('careers',      Admin\CareerController::class);
             Route::delete('careers/delete',   [Admin\CareerController::class, 'destroy']);
             Route::get('careers/drop/all',    [Admin\CareerController::class, 'dropAll']);
             Route::get('careers/restore/all', [Admin\CareerController::class, 'restoreAll']);
             Route::get('careers/truncate/db', [Admin\CareerController::class, 'truncate']);
 
             /* Pages */
-            Route::apiResource('pages',	Admin\PageController::class);
+            Route::apiResource('pages',    Admin\PageController::class);
             Route::delete('pages/delete',   [Admin\PageController::class, 'destroy']);
             Route::get('pages/drop/all',    [Admin\PageController::class, 'dropAll']);
             Route::get('pages/restore/all', [Admin\PageController::class, 'restoreAll']);
@@ -1272,7 +1313,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('model/logs/paginate', [Admin\ModelLogController::class, 'paginate']);
 
             /* User address */
-            Route::apiResource('user-addresses',	 Admin\UserAddressController::class);
+            Route::apiResource('user-addresses',     Admin\UserAddressController::class);
             Route::delete('user-addresses/delete',   [Admin\UserAddressController::class, 'destroy']);
             Route::get('user-addresses/drop/all',    [Admin\UserAddressController::class, 'dropAll']);
             Route::get('user-addresses/restore/all', [Admin\UserAddressController::class, 'restoreAll']);
@@ -1292,12 +1333,12 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('inventories/restore/all', [Admin\InventoryController::class, 'restoreAll']);
             Route::get('inventories/truncate/db', [Admin\InventoryController::class, 'truncate']);
 
-			/* Inventory Items */
-			Route::apiResource('inventory-items', 	Admin\InventoryItemController::class);
-			Route::delete('inventory-items/delete', 	[Admin\InventoryItemController::class, 'destroy']);
-			Route::get('inventory-items/drop/all',      [Admin\InventoryItemController::class, 'dropAll']);
-			Route::get('inventory-items/restore/all',   [Admin\InventoryItemController::class, 'restoreAll']);
-			Route::get('inventory-items/truncate/db',   [Admin\InventoryItemController::class, 'truncate']);
+            /* Inventory Items */
+            Route::apiResource('inventory-items',     Admin\InventoryItemController::class);
+            Route::delete('inventory-items/delete',     [Admin\InventoryItemController::class, 'destroy']);
+            Route::get('inventory-items/drop/all',      [Admin\InventoryItemController::class, 'dropAll']);
+            Route::get('inventory-items/restore/all',   [Admin\InventoryItemController::class, 'restoreAll']);
+            Route::get('inventory-items/truncate/db',   [Admin\InventoryItemController::class, 'truncate']);
 
             /* Ads Package */
             Route::apiResource('ads-packages',        Admin\AdsPackageController::class);
@@ -1319,49 +1360,49 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             /* Kitchen */
             Route::apiResource('kitchen', Admin\KitchenController::class);
 
-			/* RequestModel */
-			Route::apiResource('request-models',   Admin\RequestModelController::class);
-			Route::post('request-model/status/{id}', [Admin\RequestModelController::class, 'changeStatus']);
-			Route::delete('request-models/delete',   [Admin\RequestModelController::class, 'destroy']);
-			Route::get('request-models/drop/all',    [Admin\RequestModelController::class, 'dropAll']);
-			Route::get('request-models/restore/all', [Admin\RequestModelController::class, 'restoreAll']);
-			Route::get('request-models/truncate/db', [Admin\RequestModelController::class, 'truncate']);
+            /* RequestModel */
+            Route::apiResource('request-models',   Admin\RequestModelController::class);
+            Route::post('request-model/status/{id}', [Admin\RequestModelController::class, 'changeStatus']);
+            Route::delete('request-models/delete',   [Admin\RequestModelController::class, 'destroy']);
+            Route::get('request-models/drop/all',    [Admin\RequestModelController::class, 'dropAll']);
+            Route::get('request-models/restore/all', [Admin\RequestModelController::class, 'restoreAll']);
+            Route::get('request-models/truncate/db', [Admin\RequestModelController::class, 'truncate']);
 
             /* Kitchen */
             Route::apiResource('kitchen',          Admin\KitchenController::class);
 
-			/* Delivery Point */
-			Route::apiResource('delivery-points', Admin\DeliveryPointController::class);
-			Route::delete('delivery-points/delete',   [Admin\DeliveryPointController::class, 'destroy']);
-			Route::get('delivery-points/{id}/active', [Admin\DeliveryPointController::class, 'changeActive']);
-			Route::get('delivery-points/drop/all',    [Admin\DeliveryPointController::class, 'dropAll']);
+            /* Delivery Point */
+            Route::apiResource('delivery-points', Admin\DeliveryPointController::class);
+            Route::delete('delivery-points/delete',   [Admin\DeliveryPointController::class, 'destroy']);
+            Route::get('delivery-points/{id}/active', [Admin\DeliveryPointController::class, 'changeActive']);
+            Route::get('delivery-points/drop/all',    [Admin\DeliveryPointController::class, 'dropAll']);
 
-			/* Delivery Point Working Days */
-			Route::apiResource('delivery-point-working-days', Admin\DeliveryPointWorkingDayController::class);
-			Route::delete('delivery-point-working-days/delete',     [Admin\DeliveryPointWorkingDayController::class, 'destroy']);
-			Route::get('delivery-point-working-days/{id}/disabled', [Admin\DeliveryPointWorkingDayController::class, 'changeDisabled']);
-			Route::get('delivery-point-working-days/drop/all',      [Admin\DeliveryPointWorkingDayController::class, 'dropAll']);
+            /* Delivery Point Working Days */
+            Route::apiResource('delivery-point-working-days', Admin\DeliveryPointWorkingDayController::class);
+            Route::delete('delivery-point-working-days/delete',     [Admin\DeliveryPointWorkingDayController::class, 'destroy']);
+            Route::get('delivery-point-working-days/{id}/disabled', [Admin\DeliveryPointWorkingDayController::class, 'changeDisabled']);
+            Route::get('delivery-point-working-days/drop/all',      [Admin\DeliveryPointWorkingDayController::class, 'dropAll']);
 
-			/* Delivery Point Closed Days */
-			Route::apiResource('delivery-point-closed-dates', Admin\DeliveryPointClosedDateController::class);
-			Route::delete('delivery-point-closed-dates/delete', [Admin\DeliveryPointClosedDateController::class, 'destroy']);
-			Route::get('delivery-point-closed-dates/drop/all',  [Admin\DeliveryPointClosedDateController::class, 'dropAll']);
+            /* Delivery Point Closed Days */
+            Route::apiResource('delivery-point-closed-dates', Admin\DeliveryPointClosedDateController::class);
+            Route::delete('delivery-point-closed-dates/delete', [Admin\DeliveryPointClosedDateController::class, 'destroy']);
+            Route::get('delivery-point-closed-dates/drop/all',  [Admin\DeliveryPointClosedDateController::class, 'dropAll']);
 
-			/* Combo */
-			Route::apiResource('combos', Admin\ComboController::class);
-			Route::delete('combos/delete', [Admin\ComboController::class, 'destroy']);
-			Route::get('combos/drop/all',  [Admin\ComboController::class, 'dropAll']);
-
-		});
-
+            /* Combo */
+            Route::apiResource('combos', Admin\ComboController::class);
+            Route::delete('combos/delete', [Admin\ComboController::class, 'destroy']);
+            Route::get('combos/drop/all',  [Admin\ComboController::class, 'dropAll']);
+        });
     });
+
 
     Route::group(['prefix' => 'webhook'], function () {
         Route::any('paypal/payment',        [Payment\PayPalController::class,       'paymentWebHook']);
         Route::any('razorpay/payment',      [Payment\RazorPayController::class,     'paymentWebHook']);
         Route::any('stripe/payment',        [Payment\StripeController::class,       'paymentWebHook']);
+        Route::any('odero/payment',        [Payment\OderoController::class,       'paymentWebHook']);
         Route::any('my-fatoorah/payment',   [Payment\MyFatoorahController::class,   'paymentWebHook']);
-        Route::any('iyzico/payment',        [Payment\IyzicoController::class, 		'orderProcessTransaction']);
+        Route::any('iyzico/payment',        [Payment\IyzicoController::class,         'orderProcessTransaction']);
         Route::any('flw/payment',           [Payment\FlutterWaveController::class,  'paymentWebHook']);
         Route::any('mercado-pago/payment',  [Payment\MercadoPagoController::class,  'paymentWebHook']);
         Route::any('paystack/payment',      [Payment\PayStackController::class,     'paymentWebHook']);
