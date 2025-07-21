@@ -121,7 +121,7 @@ class SmileSmsService
             ]);
 
 
-            // return ['status' => true, 'message' => 'SMS sent successfully'];
+            return ['status' => true, 'message' => 'SMS sent successfully'];
             $response = Http::get($url);
             // // // // logger()->info('Göndərilən URL:', ['url' => $url]);
 
