@@ -192,26 +192,27 @@ class UserService extends CoreService implements UserServiceInterface
                     ]);
                 }
             }
-            Log::info('menim reff:', ['reff:', $data['referral']]);
+            if (!empty($data['referral'])) {
+                Log::info('menim reff:', ['reff:' => $data['referral']]);
 
-            $referral = User::where('my_referral', $data['referral'])
-                ->first();
+                $referral = User::where('my_referral', $data['referral'])->first();
 
-            Log::info('referal:', ['ref' => $referral]);
+                Log::info('referal:', ['ref' => $referral]);
 
-            if (!empty($referral) && !empty($referral->firebase_token)) {
+                if (!empty($referral) && !empty($referral->firebase_token)) {
+                    Log::info('333333333333333333333333333333333333333333');
 
-                Log::info('333333333333333333333333333333333333333333');
-                $this->sendNotification(
-                    is_array($referral->firebase_token) ? $referral->firebase_token : [$referral->firebase_token],
-                    "Təbrik edirik! Sizin referalınızla yeni istifadəçi qeydiyyatdan keçib. $user->name_or_email",
-                    $referral->id,
-                    [
-                        'id'   => $referral->id,
-                        'type' => PushNotification::NEW_USER_BY_REFERRAL
-                    ],
-                    [$referral->id]
-                );
+                    $this->sendNotification(
+                        is_array($referral->firebase_token) ? $referral->firebase_token : [$referral->firebase_token],
+                        "Təbrik edirik! Sizin referalınızla yeni istifadəçi qeydiyyatdan keçib. $user->name_or_email",
+                        $referral->id,
+                        [
+                            'id'   => $referral->id,
+                            'type' => PushNotification::NEW_USER_BY_REFERRAL
+                        ],
+                        [$referral->id]
+                    );
+                }
             }
 
 

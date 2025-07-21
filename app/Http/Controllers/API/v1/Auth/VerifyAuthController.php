@@ -115,7 +115,7 @@ class VerifyAuthController extends Controller
 
     public function afterVerifyEmail(AfterVerifyRequest $request): JsonResponse
     {
-        Log::info('salammmmmm');
+        Log::info('salammmmmm', ['req:', $request->all()]);
 
         // $user = User::where('email', $request->input('email'))
         //     //            ->where('verify_token',  $request->input('verify_token'))
@@ -141,6 +141,7 @@ class VerifyAuthController extends Controller
 
 
         $phone = preg_replace('/\D/', '', $request->input('phone'));
+        Log::info('salammmmmm', ['phone:', $phone]);
 
         $user = User::where('phone', $phone)
             //            ->where('verify_token',  $request->input('verify_token'))

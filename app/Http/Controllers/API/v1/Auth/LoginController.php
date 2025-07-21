@@ -8,6 +8,7 @@ use App\Http\Requests\Auth\ForgetPasswordRequest;
 use App\Http\Requests\Auth\PhoneVerifyRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\ProvideLoginRequest;
+use App\Http\Requests\Auth\ResendPhoneRequest;
 use App\Http\Requests\Auth\ReSendVerifyRequest;
 use App\Http\Requests\FilterParamsRequest;
 use App\Http\Resources\UserResource;
@@ -249,6 +250,13 @@ class LoginController extends Controller
         Log::info('forgetPassword');
 
         return (new AuthByMobilePhone)->authentication($request->validated());
+    }
+
+    public function resendWhatsapp(ResendPhoneRequest $request): JsonResponse
+    {
+        Log::info('resendWhatsapp', ['bdy:', $request->validated()]);
+
+        return (new AuthByMobilePhone)->resendWhatsapp($request->validated());
     }
 
     public function forgetPasswordEmail(Request $request): JsonResponse

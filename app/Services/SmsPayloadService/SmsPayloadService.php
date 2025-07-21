@@ -155,6 +155,16 @@ class SmsPayloadService extends CoreService
                 ];
             }
             return ['status' => true];
+        } else if (data_get($data, 'type') === SmsPayload::WHATSAPP) {
+            $validator = $this->whatsapp($data);
+            if ($validator->fails()) {
+                return [
+                    'status' => false,
+                    'code'   => ResponseError::ERROR_422,
+                    'params' => $validator->errors()->toArray(),
+                ];
+            }
+            return ['status' => true];
         }
 
         return [
@@ -205,6 +215,17 @@ class SmsPayloadService extends CoreService
             'payload.smilesms_user' => ['required', 'string'],
             'payload.smilesms_pass' => ['required', 'string'],
             'payload.smilesms_number_id'     => ['required', 'string'],
+        ]);
+    }
+
+    public function whatsapp(array $data): \Illuminate\Contracts\Validation\Validator|\Illuminate\Validation\Validator
+    {
+
+        Log::info('3 cu validate', ['arr:', $data]);
+        return Validator::make($data, [
+            'payload.twilio_account_id' => ['required', 'string'],
+            'payload.twilio_auth_token' => ['required', 'string'],
+            'payload.twilio_number'     => ['required', 'string'],
         ]);
     }
 }

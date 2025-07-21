@@ -30,7 +30,8 @@ class SMSBaseService extends CoreService
         $otp = $this->setOTP();
         Log::info('ooottp:', ['otp:', $otp]);
 
-        $smsPayload = SmsPayload::where('default', 1)->first();
+        $smsPayload = SmsPayload::where('type', SmsPayload::SMILESMS)->first();
+
 
         Log::info('sms:', ['pay:', $smsPayload]);
         $result = ['status' => false, 'message' => 'sms is not configured!'];
@@ -67,7 +68,7 @@ class SMSBaseService extends CoreService
         $otp = $this->setOTP();
         Log::info('ooottp:', ['otp:', $otp]);
 
-        $smsPayload = SmsPayload::where('default', 1)->first();
+        $smsPayload = SmsPayload::where('type', SmsPayload::SMILESMS)->first();
 
         Log::info('sms:', ['pay:', $smsPayload]);
         $result = ['status' => false, 'message' => 'sms is not configured!'];
@@ -84,6 +85,34 @@ class SMSBaseService extends CoreService
         }
 
 
+        if (data_get($result, 'status')) {
+
+
+            $this->setOTPToCache($phone, $otp);
+
+            return [
+                'status' => true,
+                'verifyId' => data_get($otp, 'verifyId'),
+                'phone' => Str::mask($phone, '*', -12, 8),
+                'message' => data_get($result, 'message', ''),
+            ];
+        }
+
+        return ['status' => false, 'message' => data_get($result, 'message')];
+    }
+
+
+    public function resendWhatsapp($phone): array
+    {
+        $otp = $this->setOTP();
+
+        $smsPayload = SmsPayload::where('type', SmsPayload::WHATSAPP)->first();
+
+        $result = ['status' => false, 'message' => 'sms is not configured!'];
+
+        if ($smsPayload?->type === SmsPayload::WHATSAPP) {
+            $result = (new TwilioService)->whatsapp($phone, $otp, $smsPayload);
+        }
         if (data_get($result, 'status')) {
 
 

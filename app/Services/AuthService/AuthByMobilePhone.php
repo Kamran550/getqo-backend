@@ -54,6 +54,31 @@ class AuthByMobilePhone extends CoreService
         ]);
     }
 
+
+    public function resendWhatsapp(array $array): JsonResponse
+    {
+        $phone = preg_replace('/\D/', '', data_get($array, 'phone'));
+
+        Log::info('smsserviceden evvel');
+
+        $sms = (new SMSBaseService)->resendWhatsapp($phone);
+        Log::info('smsserviceden sonra');
+
+        if (!data_get($sms, 'status')) {
+
+            return $this->onErrorResponse([
+                'code'    => ResponseError::ERROR_400,
+                'message' => data_get($sms, 'message', '')
+            ]);
+        }
+
+        return $this->successResponse(__('errors.' . ResponseError::SUCCESS, locale: $this->language), [
+            'verifyId'  => data_get($sms, 'verifyId'),
+            'phone'     => data_get($sms, 'phone'),
+            'message'   => data_get($sms, 'message', '')
+        ]);
+    }
+
     /**
      * @param array $array
      * @return JsonResponse
