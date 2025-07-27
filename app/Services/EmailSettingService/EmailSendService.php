@@ -285,6 +285,10 @@ class EmailSendService extends CoreService
         $mail = new PHPMailer(true);
         $mail->isHTML();
         $mail->CharSet = 'UTF-8';
+        Log::info('host:', ['host:', $emailSetting->host]);
+        Log::info('Username:', ['Username:', $emailSetting->from_to]);
+        Log::info('smtp_auth:', ['smtp_auth:', $emailSetting->smtp_auth]);
+        Log::info('password:', ['password:', $emailSetting->password]);
         /*$mail->isSMTP();
         $mail->SMTPAuth     = $emailSetting->smtp_auth;
         $mail->SMTPDebug    = $emailSetting->smtp_debug;*/
