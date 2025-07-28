@@ -7,38 +7,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Pagination Language Lines
+    | Tərcümə Sətirləri
     |--------------------------------------------------------------------------
     |
-    | The following language lines are used by the paginator library to build
-    | the simple pagination links. You are free to change them to anything
-    | you want to customize your views to better match your application.
+    | Bu fayl, rezervasiya və yaşayış statuslarının tərcümələrini ehtiva edir.
     |
     */
 
+    ResidenceStatusType::Created->name => 'Yaradıldı',
+    ResidenceStatusType::Edited->name => 'Redaktə edildi',
+    ResidenceStatusType::Approved->name => 'Təsdiqləndi',
+    ResidenceStatusType::Rejected->name => 'Rədd edildi',
+    BookingStatusType::Canceled->name => 'Ləğv edildi',
+    BookingStatusType::Paid->name => 'Ödənildi',
 
-    ResidenceStatusType::Created->name => 'Created',
-    ResidenceStatusType::Edited->name => 'Edited',
-    ResidenceStatusType::Approved->name => 'Approved',
-    ResidenceStatusType::Rejected->name => 'Rejected',
-    BookingStatusType::Canceled->name => 'Canceled',
-    BookingStatusType::Paid->name => 'Paid',
+    'booking_successfully_created' => 'Rezervasiya uğurla yaradıldı',
+    'booking_successfully_updated' => 'Rezervasiya uğurla yeniləndi',
+    'booking_found' => 'Rezervasiya tapıldı',
 
-    'booking_successfully_created' => 'Successfully booked',
-    'booking_successfully_updated' => 'Booking successfully updated',
-    'booking_found' => 'Booking found',
+    'residence_successfully_created' => 'Yaşayış yeri uğurla yaradıldı',
+    'residence_successfully_updated' => 'Yaşayış yeri uğurla yeniləndi',
+    'residence_found' => 'Yaşayış yeri tapıldı',
 
-    'residence_successfully_created' => 'Residence successfully created',
-    'residence_successfully_updated' => 'Residence successfully updated',
-    'residence_found' => 'Residence found',
+    'user_details_successfully_updated' => 'İstifadəçi məlumatları uğurla yeniləndi',
 
-    'user_details_successfully_updated' => 'User details successfully updated',
+    'guide_successfully_created' => 'Bələdçi uğurla yaradıldı',
+    'guide_successfully_updated' => 'Bələdçi uğurla yeniləndi',
+    'guide_found' => 'Bələdçi tapıldı',
 
-    'guide_successfully_created' => 'Guide successfully created',
-    'guide_successfully_updated' => 'Guide successfully updated',
-    'guide_found' => 'Guide found',
-
-    'transport_successfully_created' => 'Transport successfully created',
-    'transport_successfully_updated' => 'Transport successfully updated',
-    'transport_found' => 'Transport found',
+    'transport_successfully_created' => 'Nəqliyyat uğurla yaradıldı',
+    'transport_successfully_updated' => 'Nəqliyyat uğurla yeniləndi',
+    'transport_found' => 'Nəqliyyat tapıldı',
 ];

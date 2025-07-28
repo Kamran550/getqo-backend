@@ -4,17 +4,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Authentication Language Lines
+    | Giriş (Təsdiqləmə) Dil Sətirləri
     |--------------------------------------------------------------------------
     |
-    | The following language lines are used during authentication for various
-    | messages that we need to display to the user. You are free to modify
-    | these language lines according to your application's requirements.
+    | Aşağıdakı dil sətirləri giriş zamanı istifadəçiyə göstərilən
+    | məlumatları əhatə edir. Siz bu mesajları layihənizə uyğun dəyişə bilərsiniz.
     |
     */
 
-    'failed' => 'These credentials do not match our records.',
-    'password' => 'The provided password is incorrect.',
-    'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
+    'failed' => 'Daxil etdiyiniz məlumatlar bizim qeydlərlə uyğun gəlmir.',
+    'password' => 'Daxil etdiyiniz şifrə yanlışdır.',
+    'throttle' => 'Çox sayda uğursuz giriş cəhdi. Zəhmət olmasa :seconds saniyə sonra yenidən cəhd edin.',
 
 ];
