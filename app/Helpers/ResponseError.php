@@ -81,6 +81,8 @@ class ResponseError
     public const ERROR_509 = 'ERROR_509'; // 'Invalid date format.'
     public const ERROR_510 = 'ERROR_510'; // 'Address in correct.'
     public const ERROR_511 = 'ERROR_511'; // 'You cannot attach.'
+    public const ERROR_512 = 'ERROR_512'; // 'You cannot attach.'
+
 
     public const NEW_ORDER                          = 'NEW_ORDER';
     public const WALLET_TOP_UP                         = 'WALLET_TOP_UP';

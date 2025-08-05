@@ -105,7 +105,7 @@ class CartRepository extends CoreRepository
         $locale   = data_get(Language::languagesList()->where('default', 1)->first(), 'locale');
         $currency = Currency::currenciesList()->where('id', data_get($data, 'currency_id'))->first();
         $cart = Cart::with([
-            'shop:id,location,tax,price,price_per_km,uuid,logo_img,status,free_delivery_price,type',
+            'shop:id,location,tax,price,price_per_km,uuid,logo_img,status,free_delivery_price,type,min_amount,max_small_order_fee',
             'shop.translation' => fn($q) => $q->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale)),
             'shop.bonus' => fn($q) => $q->where('expired_at', '>', now())->where('status', true),
             'userCarts.cartDetails' => fn($q) => $q->whereNull('parent_id'),
@@ -275,10 +275,19 @@ class CartRepository extends CoreRepository
 
         $tips = data_get($data, 'tips', 0);
 
-        Log::info('total price 2:', ['total price2:', $totalPrice]);
+        $serviceFeeInfo = null;
+        if ($cart->total_price < $cart->shop->min_amount) {
+            $smallOrderFee = min(
+                $cart->shop->min_amount - $cart->total_price,
+                $cart->shop->max_small_order_fee
+            );
+            $serviceFeeInfo = "Minimum sifariş məbləği {$cart->shop->min_amount} AZN-dir. Sifarişiniz bu məbləğə çatmadığı üçün {$smallOrderFee} AZN əlavə xidmət haqqı tətbiq olundu.";
+
+            $serviceFee += $smallOrderFee;
+        }
+
 
         $totalPrice = max($totalPrice + $deliveryFee + $shopTax + $serviceFee + $tips, 0);
-        Log::info('total price 3:', ['total price3:', $totalPrice]);
 
         return [
             'status' => true,
@@ -291,6 +300,7 @@ class CartRepository extends CoreRepository
                 'total_price'       => $totalPrice,
                 'total_discount'    => $discount,
                 'delivery_info'     => $deliveryInfo,
+                'service_fee_info'  => $serviceFeeInfo,
                 'delivery_fee'      => $deliveryFee,
                 'service_fee'       => $serviceFee,
                 'tips'              => $tips,

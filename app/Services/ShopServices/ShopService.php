@@ -228,8 +228,8 @@ class ShopService extends CoreService implements ShopServiceInterface
             'wifi_password'  => data_get($data, 'wifi_password'),
             'wifi_name'      => data_get($data, 'wifi_name'),
             'type'           => data_get($data, 'type', $shop?->type),
-            'free_delivery_price'           => data_get($data, 'free_delivery_price', $shop?->free_delivery_price), 
-
+            'free_delivery_price'           => data_get($data, 'free_delivery_price', $shop?->free_delivery_price),
+            'max_small_order_fee'       => data_get($data, 'max_small_order_fee', $shop?->max_small_order_fee),
             'location'       => [
                 'latitude'   => data_get($location, 'latitude', data_get($shop?->location, 'latitude', 0)),
                 'longitude'  => data_get($location, 'longitude', data_get($shop?->location, 'longitude', 0)),

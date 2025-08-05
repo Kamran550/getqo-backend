@@ -146,6 +146,7 @@ class Order extends Model
 	protected $casts = [
 		'location' => 'array',
 		'address'  => 'array',
+		'info'     => 'array',
 	];
 
 	const STATUS_NEW        = 'new';
@@ -221,7 +222,6 @@ class Order extends Model
 		if ($this->relationLoaded('coupon')) {
 
 			$couponPrice = $this->coupon?->price ?? 0;
-
 		}
 
 		return $couponPrice;
@@ -534,8 +534,8 @@ class Order extends Model
 			->when(data_get($filter, 'table_ids'), 	fn($q, $tableIds) 	=> $q->where('table_id',  $tableIds))
 			->when(data_get($filter, 'waiter_id'),	fn($q, $waiterId)	=> $q->where('waiter_id', (int)$waiterId))
 			->when(data_get($filter, 'status'),     fn($q, $status)     => $q->where('status', $status))
-			->when(data_get($filter, 'delivery_type'),  fn ($q, $type)	=> $q->where('delivery_type', $type))
-			->when(data_get($filter, 'order_statuses'), fn ($q) 		=> $q->orderBy('id', 'desc'))
+			->when(data_get($filter, 'delivery_type'),  fn($q, $type)	=> $q->where('delivery_type', $type))
+			->when(data_get($filter, 'order_statuses'), fn($q) 		=> $q->orderBy('id', 'desc'))
 
 			->when(data_get($filter, 'search'), function ($q, $search) {
 				$q->where(function ($b) use ($search) {
@@ -545,11 +545,13 @@ class Order extends Model
 						->orWhere('phone', "%$search%")
 						->orWhere('email', "%$search%")
 						->orWhere('username', "%$search%")
-						->orWhereHas('user', fn($q) => $q
-							->where('firstname',  'LIKE', "%$search%")
-							->orWhere('lastname', 'LIKE', "%$search%")
-							->orWhere('email',    'LIKE', "%$search%")
-							->orWhere('phone',    'LIKE', "%$search%")
+						->orWhereHas(
+							'user',
+							fn($q) => $q
+								->where('firstname',  'LIKE', "%$search%")
+								->orWhere('lastname', 'LIKE', "%$search%")
+								->orWhere('email',    'LIKE', "%$search%")
+								->orWhere('phone',    'LIKE', "%$search%")
 						)
 						->orWhere('note', 'LIKE', "%$search%");
 				});
@@ -567,7 +569,7 @@ class Order extends Model
 			})
 			->when(data_get($filter, 'delivery_date_from'), function (Builder $query, $dateFrom) use ($filter) {
 
-				$dateFrom = date('Y-m-d', strtotime($dateFrom));// . ' -1 day'
+				$dateFrom = date('Y-m-d', strtotime($dateFrom)); // . ' -1 day'
 
 				$query->whereDate('delivery_date', '>=', $dateFrom);
 
@@ -577,16 +579,19 @@ class Order extends Model
 
 					$query->whereDate('delivery_date', '<=', $dateTo);
 				}
-
 			})
-			->when(data_get($filter, 'deliveryman'), fn(Builder $q, $deliveryman) =>
-			$q->whereHas('deliveryMan', fn($q) => $q->where('id', $deliveryman))
+			->when(
+				data_get($filter, 'deliveryman'),
+				fn(Builder $q, $deliveryman) =>
+				$q->whereHas('deliveryMan', fn($q) => $q->where('id', $deliveryman))
 			)
-			->when(data_get($filter, 'empty-deliveryman'), fn($q) => $q
-				->whereIn('id', $orderIds)
-				->where(function ($q) {
-					$q->whereNull('deliveryman')->orWhere('deliveryman', '=', null)->orWhere('deliveryman', '=', 0);
-				})
+			->when(
+				data_get($filter, 'empty-deliveryman'),
+				fn($q) => $q
+					->whereIn('id', $orderIds)
+					->where(function ($q) {
+						$q->whereNull('deliveryman')->orWhere('deliveryman', '=', null)->orWhere('deliveryman', '=', 0);
+					})
 			)
 			->when(data_get($filter, 'request'), function ($q, $request) {
 				$q->whereHas('transaction', function ($q) use ($request) {
@@ -605,5 +610,4 @@ class Order extends Model
 			})
 			->orderBy($column, data_get($filter, 'sort', 'desc'));
 	}
-
 }
