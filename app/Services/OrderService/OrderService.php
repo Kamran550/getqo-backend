@@ -107,7 +107,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 		/** @var Shop $shop */
 		$shop = Shop::find(data_get($data, 'shop_id'));
 
-
+		Log::info('createdeki arr:', ['arr:', $data]);
 		if (data_get($data, 'table_id') && !$shop?->new_order_after_payment) {
 			Log::info('order service if 1');
 
@@ -351,9 +351,9 @@ class OrderService extends CoreService implements OrderServiceInterface
 		LOg::info('calculate order');
 		/** @var Order $order */
 		$order = $order->fresh(['orderDetails', 'transaction', 'user', 'coupon', 'shop.subscription.subscription']);
-
 		$totalDiscount  = $order->orderDetails->sum('discount');
 		$totalPrice     = $order->orderDetails->sum('total_price');
+
 
 		$shopTax = max($totalPrice / 100 * $shop?->tax, 0);
 
@@ -362,8 +362,31 @@ class OrderService extends CoreService implements OrderServiceInterface
 		$totalDiscount += $this->recalculateReceipt($order);
 
 		$isSubscribe = (int)Settings::where('key', 'by_subscription')->first()?->value;
-		// $serviceFee  = (float)Settings::where('key', 'service_fee')->first()?->value ?? 0;
-		// Log::info('calculateOrder serviceFee', ['serviceFee:', $serviceFee]);
+		// Retrieve info from order, set to empty array if missing
+		$info = $order->info;
+		if (empty($info) || !is_array($info)) {
+			$info = [];
+		}		
+		$serviceFee2 = null;
+		// $serviceFee  = (float)Settings::where(column: 'key', 'service_fee')->first()?->value ?? 0;
+		$price = data_get($order, 'total_price');
+		$price2 = data_get($data, 'total_price');
+		if ($totalPrice < $shop->min_amount) {
+			Log::info('Order servicede service fee logicine girdi');
+
+			$smallOrderFee = min(
+				$shop->min_amount - $price,
+				$shop->max_small_order_fee
+			);
+
+			$info[] = ['service_info' => "Minimum sifariş məbləği {$shop->min_amount} AZN-dir. Sifarişiniz bu məbləğə çatmadığı üçün {$smallOrderFee} AZN əlavə xidmət haqqı tətbiq olundu."];
+			$serviceFee2 += $smallOrderFee;
+		}
+
+
+
+		$globalServiceFee = (float) Settings::where('key', 'service_fee')->value('value') ?? 0;
+		$serviceFee = $serviceFee2 + $globalServiceFee;
 		$totalPrice = max(max($totalPrice, 0) - max($totalDiscount, 0), 0);
 
 		$coupon = Coupon::checkCoupon(data_get($data, 'coupon'), $order->shop_id)->first();
@@ -371,10 +394,6 @@ class OrderService extends CoreService implements OrderServiceInterface
 		$deliveryFee = $order->delivery_fee;
 		$adminDeliveryFee = $order->admin_delivery_fee;
 
-		Log::info('orderdeki coupon:', ['orderdeki coupon:', $coupon]);
-
-		Log::info('orderdeki delivery fee:', ['orderdeki delivery fee:', $deliveryFee]);
-		Log::info('orderdeki admindelivery fee:', ['orderdeki admindelivery fee:', $adminDeliveryFee]);
 
 		if ($coupon?->for === 'delivery_fee') {
 
@@ -384,7 +403,8 @@ class OrderService extends CoreService implements OrderServiceInterface
 			$totalPrice -= max($this->checkCoupon($coupon, $order, $totalPrice - $shopTax), 0);
 		}
 
-		// $totalPrice += $serviceFee;
+		$totalPrice += $serviceFee;
+
 
 		$waiterFeeRate = $order->waiter_fee;
 
@@ -438,18 +458,21 @@ class OrderService extends CoreService implements OrderServiceInterface
 				$waiterId = $workingWaiter->id;
 			}
 		}
+		Log::info('son total price calculate order3:', ['total price:', $totalPrice]);
+		
 
 		$order->update([
 			'total_price'    => $totalPrice,
 			'delivery_fee'   => $deliveryFee,
 			'commission_fee' => $commissionFee,
 			'admin_delivery_fee' => $adminDeliveryFee,
-			// 'service_fee'    => $serviceFee,
+			'service_fee'    => $serviceFee,
 			'total_discount' => max($totalDiscount, 0),
 			'tax'            => $shopTax,
 			'waiter_fee'     => $waiterFeeRate,
 			'tips'           => $tipsRate,
 			'status'		 => $status,
+			'info'           => $info,
 			'waiter_id'		 => $waiterId,
 		]);
 
@@ -801,19 +824,19 @@ class OrderService extends CoreService implements OrderServiceInterface
 
 
 		$price = data_get($cart, 'total_price');
-		if ($price < $shop->min_amount) {
-			Log::info('Order servicede service fee logicine girdi');
+		// if ($price < $shop->min_amount) {
+		// 	Log::info('Order servicede service fee logicine girdi');
 
-			$smallOrderFee = min(
-				$shop->min_amount - $price,
-				$shop->max_small_order_fee
-			);
-			Log::info('smallOrderFee:', ['smallOrderFee:', $smallOrderFee]);
-			Log::info('sifariş məbləği:', ['sifariş məbləği:', $cart]);
+		// 	$smallOrderFee = min(
+		// 		$shop->min_amount - $price,
+		// 		$shop->max_small_order_fee
+		// 	);
+		// 	Log::info('smallOrderFee:', ['smallOrderFee:', $smallOrderFee]);
+		// 	Log::info('sifariş məbləği:', ['sifariş məbləği:', $cart]);
 
-			$info[] = ['service_info' => "Minimum sifariş məbləği {$cart->shop->min_amount} AZN-dir. Sifarişiniz bu məbləğə çatmadığı üçün {$smallOrderFee} AZN əlavə xidmət haqqı tətbiq olundu."];
-			$serviceFee += $smallOrderFee;
-		}
+		// 	$info[] = ['service_info' => "Minimum sifariş məbləği {$cart->shop->min_amount} AZN-dir. Sifarişiniz bu məbləğə çatmadığı üçün {$smallOrderFee} AZN əlavə xidmət haqqı tətbiq olundu."];
+		// 	$serviceFee += $smallOrderFee;
+		// }
 
 
 		Log::info('son service fee:', ['service fee:', $serviceFee]);
@@ -855,8 +878,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 			'delivery_time'     => data_get($data, 'delivery_time'),
 			'admin_delivery_fee' => max($adminDeliveryFee, 0),
 			'total_discount'    => 0,
-			'info'              => $info
-			// 'service_fee_info'  => $serviceFeeInfo
+			'info'              => $info,
 		];
 	}
 
@@ -929,7 +951,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 		}
 		Log::info('sonda hesablanan deliveryFee:', ['DelivFEe:', $deliveryFee]);
 		Log::info('sonda hesablanan admindeliveryFee:', ['AdminDelivFEe:', $adminDeliveryFee]);
-
+		
 
 		return [
 			'delivery_fee' => $deliveryFee,

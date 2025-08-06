@@ -41,6 +41,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $background_img
  * @property string|null $logo_img
  * @property float $min_amount
+ * @property float $max_small_order_fee
  * @property string $status
  * @property array $email_statuses
  * @property string $order_payment
