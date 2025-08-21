@@ -21,70 +21,93 @@ class BannerRepository extends CoreRepository
 	 * @return mixed
 	 */
 	public function bannersPaginate(array $filter): mixed
-	{
-		$locale = data_get(Language::languagesList()->where('default', 1)->first(), 'locale');
+{
+    $locale = data_get(Language::languagesList()->where('default', 1)->first(), 'locale');
 
-		return $this->model()
-			->withCount('likes')
-			->with([
-				'translation' => fn($q) => $q
-					->when(data_get($filter, 'search'), function ($query, $search) {
-						$query->where('title', 'LIKE', "%$search%");
-					})
-					->where(fn($q) => $q->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale)))
-					->select('id', 'banner_id', 'locale', 'title')
-			])
-//			->when(request()->is('api/v1/rest/*'), fn($q) => $q->whereDoesntHave('shopAdsPackage'))
-			->when(data_get($filter, 'search'), function ($query, $search) use ($locale) {
-				$query->whereHas('translations', function ($q) use ($search, $locale) {
-					$q
-						->where('title', 'LIKE', "%$search%")
-						->where(fn($q) => $q->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale)))
-						->select('id', 'banner_id', 'locale', 'title');
-				});
-			})
-			->when(data_get($filter, 'active'), fn($q, $active) => $q->where('active', $active))
-			->when(data_get($filter, 'type'),   fn($q, $type)   => $q->where('type',   $type))
-			->when(data_get($filter, 'shop_ids'), function ($q, $shopIds) {
-				$q->whereHas('shops', fn($q) => $q->whereIn('shop_id', $shopIds));
-			})
-			->when(isset($filter['deleted_at']), fn($q) => $q->onlyTrashed())
-			->select([
-				'id',
-				'url',
-				'type',
-				'img',
-				'active',
-				'created_at',
-				'updated_at',
-				'deleted_at',
-				'clickable',
-			])
-			->orderBy(data_get($filter, 'column', 'id'), data_get($filter, 'sort', 'desc'))
-			->paginate(data_get($filter, 'perPage', 10));
-	}
+    return $this->model()
+        ->withCount('likes')
+        ->with([
+            'translation' => fn($q) => $q
+                ->when(data_get($filter, 'search'), function ($query, $search) {
+                    $query->where('title', 'LIKE', "%$search%");
+                })
+                ->where(fn($q) => $q->where(fn($q) => $q
+                    ->where('locale', $this->language)
+                    ->orWhere('locale', $locale)
+                ))
+                ->select(
+                    'id',
+                    'banner_id',
+                    'locale',
+                    'title',
+                    'description', // əlavə edildi
+                    'button_text'  // əlavə edildi
+                )
+        ])
+        ->when(data_get($filter, 'search'), function ($query, $search) use ($locale) {
+            $query->whereHas('translations', function ($q) use ($search, $locale) {
+                $q->where('title', 'LIKE', "%$search%")
+                    ->where(fn($q) => $q->where(fn($q) => $q
+                        ->where('locale', $this->language)
+                        ->orWhere('locale', $locale)
+                    ))
+                    ->select(
+                        'id',
+                        'banner_id',
+                        'locale',
+                        'title',
+                        'description', // əlavə edildi
+                        'button_text'  // əlavə edildi
+                    );
+            });
+        })
+        ->when(data_get($filter, 'active'), fn($q, $active) => $q->where('active', $active))
+        ->when(data_get($filter, 'type'),   fn($q, $type)   => $q->where('type',   $type))
+        ->when(data_get($filter, 'shop_ids'), function ($q, $shopIds) {
+            $q->whereHas('shops', fn($q) => $q->whereIn('shop_id', $shopIds));
+        })
+        ->when(isset($filter['deleted_at']), fn($q) => $q->onlyTrashed())
+        ->select([
+            'id',
+            'url',
+            'type',
+            'img',
+            'active',
+            'created_at',
+            'updated_at',
+            'deleted_at',
+            'clickable',
+        ])
+        ->orderBy(data_get($filter, 'column', 'id'), data_get($filter, 'sort', 'desc'))
+        ->paginate(data_get($filter, 'perPage', 10));
+}
 
-	/**
-	 * @param int $id
-	 * @return mixed
-	 */
-	public function bannerDetails(int $id): mixed
-	{
-		return $this->model()
-			->withCount('likes')
-			->withCount('shops')
-			->with([
-				'galleries',
-				'shops:id,uuid,user_id,status,logo_img,open,delivery_time',
-				'shops' 			=> fn($q) => $q->withAvg('reviews', 'rating')->withCount('reviews')->paginate(request('perPage', 2)),
-				'shops.translation' => fn($q) => $q->where('locale', $this->language),
-				'shops.workingDays',
-				'shops.closedDates',
-				'translation' 		=> fn($q) => $q->where('locale', $this->language),
-				'translations',
-			])
-			->find($id);
-	}
+public function bannerDetails(int $id): mixed
+{
+    return $this->model()
+        ->withCount('likes')
+        ->withCount('shops')
+        ->with([
+            'galleries',
+            'shops:id,uuid,user_id,status,logo_img,open,delivery_time',
+            'shops'             => fn($q) => $q->withAvg('reviews', 'rating')->withCount('reviews')->paginate(request('perPage', 2)),
+            'shops.translation' => fn($q) => $q->where('locale', $this->language),
+            'shops.workingDays',
+            'shops.closedDates',
+            'translation'       => fn($q) => $q->where('locale', $this->language)
+                ->select(
+                    'id',
+                    'banner_id',
+                    'locale',
+                    'title',
+                    'description', // əlavə edildi
+                    'button_text'  // əlavə edildi
+                ),
+            'translations',
+        ])
+        ->find($id);
+}
+
 
 	/**
 	 * @param array $filter
