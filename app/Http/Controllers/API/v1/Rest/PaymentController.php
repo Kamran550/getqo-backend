@@ -36,6 +36,8 @@ class PaymentController extends RestBaseController
 
         Log::info('index payment;');
         $payments = $this->repository->paymentsList($request->merge(['active' => 1])->all());
+        $pay = PaymentResource::collection($payments);
+        Log::info('pay:',['pay:',$pay]);
         return PaymentResource::collection($payments);
     }
 

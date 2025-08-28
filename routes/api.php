@@ -1313,6 +1313,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('model/logs/paginate', [Admin\ModelLogController::class, 'paginate']);
 
             /* User address */
+            Route::get('/user-addresses/get-by-user',   [Admin\UserAddressController::class, 'getByUser']);
             Route::apiResource('user-addresses',     Admin\UserAddressController::class);
             Route::delete('user-addresses/delete',   [Admin\UserAddressController::class, 'destroy']);
             Route::get('user-addresses/drop/all',    [Admin\UserAddressController::class, 'dropAll']);

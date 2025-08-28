@@ -82,6 +82,7 @@ class ResponseError
     public const ERROR_510 = 'ERROR_510'; // 'Address in correct.'
     public const ERROR_511 = 'ERROR_511'; // 'You cannot attach.'
     public const ERROR_512 = 'ERROR_512'; // 'You cannot attach.'
+    public const ERROR_513 = 'ERROR_513';
 
 
     public const NEW_ORDER                          = 'NEW_ORDER';

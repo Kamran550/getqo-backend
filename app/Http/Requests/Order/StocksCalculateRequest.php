@@ -45,6 +45,8 @@ class StocksCalculateRequest extends BaseRequest
             'products.*.quantity'   => 'required|numeric',
 
 			'products.*.addons'     => 'array',
+            'user'                  => 'array',
+            'transaction'           => 'array',
             'products.*.addons.*.stock_id'  => [
                 'integer',
                 Rule::exists('stocks', 'id')

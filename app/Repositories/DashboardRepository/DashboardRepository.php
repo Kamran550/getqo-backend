@@ -33,8 +33,7 @@ class DashboardRepository extends CoreRepository
     }
 
     /**
-     * @param array $filter
-     * @return array
+     * ADMIN/SHOP paneli üçün ümumi statistika
      */
     public function ordersStatistics(array $filter = []): array
     {
@@ -48,27 +47,28 @@ class DashboardRepository extends CoreRepository
         $date       = date('Y-m-d 00:00:01');
 
         $productsOutOfStock = Product::whereHas('stocks', fn($q) => $q->where('quantity', '<=', 0))
-		->where('addon', false)
-        ->when(data_get($filter, 'shop_id'), fn($q, $shopId) => $q->where('shop_id', '=', $shopId))
-        ->select(['id', 'addon', 'shop_id'])
-        ->count();
+            ->where('addon', false)
+            ->when(data_get($filter, 'shop_id'), fn($q, $shopId) => $q->where('shop_id', '=', $shopId))
+            ->select(['id', 'addon', 'shop_id'])
+            ->count();
 
         $productsCount = Product::select('id')
-			->where('addon', false)
+            ->where('addon', false)
             ->when(data_get($filter, 'shop_id'), fn($q, $shopId) => $q->where('shop_id', '=', $shopId))
-			->select(['id', 'addon', 'shop_id'])
-			->count();
+            ->select(['id', 'addon', 'shop_id'])
+            ->count();
 
-        $reviews = Review::when(data_get($filter, 'shop_id'), fn($q, $shopId) => $q
-				->whereHasMorph('assignable', Shop::class, function ($query) use($shopId) {
-					$query->where('assignable_id', '=', $shopId);
-				})
-				->whereHasMorph('reviewable', Order::class, function ($query) use($shopId) {
-            		$query->where('shop_id', '=', $shopId);
-            	}),
-			fn($q) => $q->whereHasMorph('reviewable', Order::class)
-        )
-			->count('id');
+        $reviews = Review::when(
+            data_get($filter, 'shop_id'),
+            fn($q, $shopId) => $q
+                ->whereHasMorph('assignable', Shop::class, function ($query) use($shopId) {
+                    $query->where('assignable_id', '=', $shopId);
+                })
+                ->whereHasMorph('reviewable', Order::class, function ($query) use($shopId) {
+                    $query->where('shop_id', '=', $shopId);
+                }),
+            fn($q) => $q->whereHasMorph('reviewable', Order::class)
+        )->count('id');
 
         $orders = $this->preDataStatistic($time, $filter)
             ->select([
@@ -81,10 +81,19 @@ class DashboardRepository extends CoreRepository
                 DB::raw("count(if(orders.status = '$onAWay', 1, null)) as on_a_way"),
                 DB::raw("count(if(orders.status = '$delivered', 1, null)) as delivered_orders_count"),
                 DB::raw("count(if(orders.status = '$new', 1, null) or if(orders.status = '$accepted', 1, null) or if(orders.status = '$ready', 1, null) or if(orders.status = '$onAWay', 1, null)) as progress_orders_count"),
-                DB::raw("sum(if(orders.status   = '$delivered', orders.total_price, 0)) as total_earned"),
-                DB::raw("sum(if(orders.status   = '$delivered', orders.delivery_fee, 0)) as delivery_earned"),
-                DB::raw("sum(if(orders.status   = '$delivered', orders.tax, 0)) as tax_earned"),
-                DB::raw("sum(if(orders.status   = '$delivered', orders.commission_fee, 0)) as commission_earned"),
+
+                // Müştərinin ödədiyi total (referans üçün)
+                DB::raw("sum(if(orders.status = '$delivered', orders.total_price, 0)) as total_earned"),
+
+                // Kuryer tərəfi üçün ayrılıqda toplar:
+                DB::raw("sum(if(orders.status = '$delivered', orders.delivery_fee, 0)) as delivery_fee_total"),
+                DB::raw("sum(if(orders.status = '$delivered', IFNULL(orders.admin_delivery_fee,0), 0)) as admin_delivery_fee_total"),
+
+                // Kuryerin ümumi qazancı (delivery_fee + admin_delivery_fee)
+                DB::raw("sum(if(orders.status = '$delivered', (orders.delivery_fee + IFNULL(orders.admin_delivery_fee,0)), 0)) as balance_earned"),
+
+                DB::raw("sum(if(orders.status = '$delivered', orders.tax, 0)) as tax_earned"),
+                DB::raw("sum(if(orders.status = '$delivered', orders.commission_fee, 0)) as commission_earned"),
             ])
             ->first();
 
@@ -175,8 +184,7 @@ class DashboardRepository extends CoreRepository
     }
 
     /**
-     * @param array $filter
-     * @return array
+     * DELIVERYMAN paneli üçün: statusa görə statistika
      */
     public function orderByStatusStatistics(array $filter = []): array
     {
@@ -188,21 +196,26 @@ class DashboardRepository extends CoreRepository
         $ready     = Order::STATUS_READY;
         $onAWay    = Order::STATUS_ON_A_WAY;
 
-        $date      = date('Y-m-d 00:00:01');
+        $date   = date('Y-m-d 00:00:01');
 
-        $result    = [
-            'count'                 => 0,
-            'total_price'           => 0,
-			$new                    => 0,
-			$accepted               => 0,
-			$ready                  => 0,
-			$onAWay                 => 0,
-			$delivered              => 0,
-			$canceled               => 0,
-			$cooking                => 0,
-            'today_count'           => 0,
-            'total_delivered_price' => 0,
-            'last_delivered_fee'    => 0,
+        $result = [
+            'count'                     => 0,
+            'total_price'               => 0,
+            $new                        => 0,
+            $accepted                   => 0,
+            $ready                      => 0,
+            $onAWay                     => 0,
+            $delivered                  => 0,
+            $canceled                   => 0,
+            $cooking                    => 0,
+            'today_count'               => 0,
+            'total_delivered_price'     => 0,
+            'last_delivered_fee'        => 0,
+
+            // 🔥 ƏLAVƏ OLUNANLAR:
+            'delivery_fee_total'        => 0.0,
+            'admin_delivery_fee_total'  => 0.0,
+            'balance_earned'            => 0.0,
         ];
 
         $status = data_get($filter, 'status');
@@ -210,24 +223,35 @@ class DashboardRepository extends CoreRepository
 
         unset($filter['status']);
 
-		if (!isset($filter['column'])) {
-			$filter['sort'] = 'asc';
-			$filter['column'] = 'id';
-		}
+        if (!isset($filter['column'])) {
+            $filter['sort']   = 'asc';
+            $filter['column'] = 'id';
+        }
 
         Order::filter($filter)
-            ->select(['id', 'total_price', 'status', 'delivery_fee', 'created_at'])
+            ->select([
+                'id',
+                'total_price',
+                'status',
+                'delivery_fee',
+                'admin_delivery_fee', // <-- mütləq lazımdır
+                'created_at',
+            ])
             ->chunkMap(function (Order $order) use (&$result, $date, $delivered, $canceled, $new, $accepted, $cooking, $ready, $onAWay, $status, &$total) {
 
-                $result['count'] += 1;
-                $result['total_price'] += $order->total_price;
+                $result['count']       += 1;
+                $result['total_price'] += (float)$order->total_price;
 
-                if ($order->status === Order::STATUS_DELIVERED) {
-                    $result['total_delivered_price'] += $order->total_price;
-                }
+                if ($order->status === $delivered) {
+                    $result['total_delivered_price'] += (float)$order->total_price;
 
-                if ($order->status === Order::STATUS_DELIVERED) {
-                    $result['last_delivered_fee'] = $order->delivery_fee;
+                    // son sifarişin (delivery + admin_delivery) cəmi
+                    $lastFee = (float)$order->delivery_fee + (float)($order->admin_delivery_fee ?? 0);
+                    $result['last_delivered_fee'] = $lastFee;
+
+                    // TOPLAMLAR
+                    $result['delivery_fee_total']       += (float)$order->delivery_fee;
+                    $result['admin_delivery_fee_total'] += (float)($order->admin_delivery_fee ?? 0);
                 }
 
                 if ($order->created_at >= $date) {
@@ -237,77 +261,65 @@ class DashboardRepository extends CoreRepository
                 switch ($order->status) {
                     case $delivered:
                         $result[$delivered] += 1;
-                        if ($status === $delivered) {
-                            $total += 1;
-                        }
+                        if ($status === $delivered) $total += 1;
                         break;
                     case $canceled:
                         $result[$canceled] += 1;
-                        if ($status === $canceled) {
-                            $total += 1;
-                        }
+                        if ($status === $canceled) $total += 1;
                         break;
                     case $new:
                         $result[$new] += 1;
-                        if ($status === $new) {
-                            $total += 1;
-                        }
+                        if ($status === $new) $total += 1;
                         break;
                     case $accepted:
                         $result[$accepted] += 1;
-                        if ($status === $accepted) {
-                            $total += 1;
-                        }
+                        if ($status === $accepted) $total += 1;
                         break;
                     case $cooking:
                         $result[$cooking] += 1;
-                        if ($status === $cooking) {
-                            $total += 1;
-                        }
+                        if ($status === $cooking) $total += 1;
                         break;
                     case $ready:
                         $result[$ready] += 1;
-                        if ($status === $ready) {
-                            $total += 1;
-                        }
+                        if ($status === $ready) $total += 1;
                         break;
                     case $onAWay:
                         $result[$onAWay] += 1;
-                        if ($status === $onAWay) {
-                            $total += 1;
-                        }
+                        if ($status === $onAWay) $total += 1;
                         break;
                 }
-
             });
 
         $progress = $result[$new] + $result[$accepted] + $result[$cooking] + $result[$ready] + $result[$onAWay];
 
+        // Ümumi kuryer qazancı
+        $result['balance_earned'] = (float)$result['delivery_fee_total'] + (float)$result['admin_delivery_fee_total'];
+
         return [
-            'progress_orders_count'  => $progress,
-            'delivered_orders_count' => data_get($result, $delivered),
-            'total_delivered_price'  => data_get($result, 'total_delivered_price'),
-            'last_delivered_fee'     => data_get($result, 'last_delivered_fee'),
-            'last_delivered'     	=> data_get($result, 'last_delivered'),
-            'cancel_orders_count'    => data_get($result, $canceled),
-            'new_orders_count'       => data_get($result, $new),
-            'accepted_orders_count'  => data_get($result, $accepted),
-            'cooking_orders_count'   => data_get($result, $cooking),
-            'ready_orders_count'     => data_get($result, $ready),
-            'on_a_way_orders_count'  => data_get($result, $onAWay),
-            'orders_count'           => data_get($result, 'count'),
-            'total_price'            => data_get($result, 'total_price'),
-            'today_count'            => data_get($result, 'today_count'),
-            'total'                  => !$status ? data_get($result, 'count') : $total,
+            'progress_orders_count'   => $progress,
+            'delivered_orders_count'  => data_get($result, $delivered),
+            'total_delivered_price'   => data_get($result, 'total_delivered_price'),
+            'last_delivered_fee'      => data_get($result, 'last_delivered_fee'),
+
+            // 🔥 Flutter üçün lazım olan açarlar:
+            'delivery_fee_total'      => data_get($result, 'delivery_fee_total'),
+            'admin_delivery_fee_total'=> data_get($result, 'admin_delivery_fee_total'),
+            'balance_earned'          => data_get($result, 'balance_earned'),
+
+            'last_delivered'          => data_get($result, 'last_delivered'),
+            'cancel_orders_count'     => data_get($result, $canceled),
+            'new_orders_count'        => data_get($result, $new),
+            'accepted_orders_count'   => data_get($result, $accepted),
+            'cooking_orders_count'    => data_get($result, $cooking),
+            'ready_orders_count'      => data_get($result, $ready),
+            'on_a_way_orders_count'   => data_get($result, $onAWay),
+            'orders_count'            => data_get($result, 'count'),
+            'total_price'             => data_get($result, 'total_price'),
+            'today_count'             => data_get($result, 'today_count'),
+            'total'                   => !$status ? data_get($result, 'count') : $total,
         ];
     }
 
-    /**
-     * @param int $perPage
-     * @param array $statistic
-     * @param string|null $status
-     * @return int
-     */
     public function getLastPage(int $perPage = 10, array $statistic = [], ?string $status = null): int
     {
         $lastPage = match ($status) {

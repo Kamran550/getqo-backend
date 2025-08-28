@@ -50,6 +50,7 @@ class BaseService extends CoreService
 	public function afterHook($token, $status, $token2 = null)
 	{
 
+		Log::info('afterhooka girdi');
 
 		$paymentProcess = PaymentProcess::where('id', $token)->first();
 
@@ -69,8 +70,8 @@ class BaseService extends CoreService
 
 		/** @var PaymentProcess $paymentProcess */
 		$paymentId = $paymentProcess->data['payment_id'] ?? Payment::first()?->id;
-
-
+		Log::info('paymentprocess:', ['model_type:', $paymentProcess->model_type]);
+		LOg::info('status:', ['status:', $status]);
 
 		if (
 			($paymentProcess->model_type === Cart::class || $paymentProcess->model_type === Order::KIOSK)
@@ -216,6 +217,7 @@ class BaseService extends CoreService
 			$order = $paymentProcess->model;
 
 			if ($split === 1) { // for not qr orders
+				Log::info('stripe olan ifdirmi 2 birde if');
 
 				$tip = ($paymentProcess->data['after_payment_tips'] ?? 0 / $order->rate);
 
@@ -241,7 +243,7 @@ class BaseService extends CoreService
 					->where('transaction_status', OrderDetail::TRANSACTION_STATUS_PROGRESS)
 					->update(['transaction_status' => $status]);
 
-				return;
+				return $order->id;
 			}
 
 			$splitPaidCount = Transaction::whereNotNull('parent_id')
@@ -304,8 +306,8 @@ class BaseService extends CoreService
 					->where('status', Transaction::STATUS_SPLIT)
 					->update(['status' => $status]);
 			}
-
-			return;
+			Log::info('ujey return olur');
+			return $order->id;
 		}
 
 		if ($paymentProcess->model_type === Order::class && isset($paymentProcess->data['tips'])) {

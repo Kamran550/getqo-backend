@@ -34,7 +34,7 @@ class BannerRepository extends CoreRepository
 					->where(fn($q) => $q->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale)))
 					->select('id', 'banner_id', 'locale', 'title')
 			])
-//			->when(request()->is('api/v1/rest/*'), fn($q) => $q->whereDoesntHave('shopAdsPackage'))
+			//			->when(request()->is('api/v1/rest/*'), fn($q) => $q->whereDoesntHave('shopAdsPackage'))
 			->when(data_get($filter, 'search'), function ($query, $search) use ($locale) {
 				$query->whereHas('translations', function ($q) use ($search, $locale) {
 					$q
@@ -80,7 +80,15 @@ class BannerRepository extends CoreRepository
 				'shops.translation' => fn($q) => $q->where('locale', $this->language),
 				'shops.workingDays',
 				'shops.closedDates',
-				'translation' 		=> fn($q) => $q->where('locale', $this->language),
+				'translation'       => fn($q) => $q->where('locale', $this->language)
+					->select(
+						'id',
+						'banner_id',
+						'locale',
+						'title',
+						'description',
+						'button_text'
+					),
 				'translations',
 			])
 			->find($id);
@@ -202,5 +210,4 @@ class BannerRepository extends CoreRepository
 			'shops'  => $result,
 		];
 	}
-
 }

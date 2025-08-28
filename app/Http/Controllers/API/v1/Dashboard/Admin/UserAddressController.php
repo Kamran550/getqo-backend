@@ -11,14 +11,14 @@ use App\Repositories\UserAddressRepository\UserAddressRepository;
 use App\Services\UserAddressService\UserAddressService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Log;
 
 class UserAddressController extends AdminBaseController
 {
     public function __construct(
         private UserAddressService $service,
         private UserAddressRepository $repository
-    )
-    {
+    ) {
         parent::__construct();
     }
 
@@ -31,6 +31,25 @@ class UserAddressController extends AdminBaseController
     public function index(FilterParamsRequest $request): AnonymousResourceCollection
     {
         $model = $this->repository->paginate($request->all());
+        return UserAddressResource::collection($model);
+    }
+
+
+    public function getByUser(FilterParamsRequest $request): AnonymousResourceCollection
+    {
+        Log::info('salam getByUser');
+        $userId = $request->get('user_id');
+
+        if (!$userId) {
+            return UserAddressResource::collection([]);
+        }
+
+        $filters = $request->all();
+        $filters['user_id'] = $userId;
+        Log::info("getByUser filters:", ['filt:', $filters]);
+
+        $model = $this->repository->paginate($filters);
+        Log::info("getByUser model:", ['model:', $model]);
 
         return UserAddressResource::collection($model);
     }
@@ -63,6 +82,9 @@ class UserAddressController extends AdminBaseController
      */
     public function show(UserAddress $userAddress): JsonResponse
     {
+
+        Log::info('User Addresses show');
+
         $result = $this->repository->show($userAddress);
 
         return $this->successResponse(

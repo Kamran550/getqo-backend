@@ -32,6 +32,9 @@ class UserAddressRepository extends CoreRepository
             ->paginate(data_get($filter, 'perPage', 10));
     }
 
+
+    
+
     /**
      * @param UserAddress $model
      * @return UserAddress

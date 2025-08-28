@@ -202,7 +202,6 @@ class OrderController extends AdminBaseController
 		}
 
 		$sonOrder = $this->orderRepository->reDataOrder($order);
-		Log::info('sonorder:', ['sonorder:', $sonOrder]);
 
 		return $this->successResponse(
 			__('errors.' . ResponseError::SUCCESS, locale: $this->language),
@@ -441,7 +440,7 @@ class OrderController extends AdminBaseController
 	{
 		Log::info('salammmmmm');
 		try {
-			Log::info('1111111111111111');
+			Log::info('reportTransactions body:', ['body:', $request->validated()]);
 			$result = $this->orderRepository->orderReportTransaction($request->validated());
 			Log::info('res:', ['res:', $result]);
 			return $this->successResponse('Successfully', $result);

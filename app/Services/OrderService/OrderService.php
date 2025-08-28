@@ -246,6 +246,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 	public function update(int $id, array $data): array
 	{
 		try {
+			Log::info('orderun service update:', ['dataa:', $data]);
 			$order = DB::transaction(function () use ($data, $id) {
 
 				/** @var Shop $shop */
@@ -260,7 +261,11 @@ class OrderService extends CoreService implements OrderServiceInterface
 
 				$data['user_id']     = $order->user_id;
 				$data['deliveryman'] = $order->deliveryman;
-				$order->update($this->setOrderParams($data, $shop));
+				// Bax delivery fee ve admin delivery fee burda yeniden hesablanir
+
+				Log::info('setOrderParams2-e getmezden evvelki order:');
+				// admin panelden datani duzelt ele etki admin panelden total_price-de gonderilsin
+				$order->update($this->setOrderParams2($order, $data, $shop));
 
 				if (data_get($data, 'images.0')) {
 
@@ -270,8 +275,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 				}
 
 				$order = (new OrderDetailService)->create($order, data_get($data, 'products', []));
-
-				$this->calculateOrder($order, $shop, $data);
+				$this->calculateOrder2($order, $shop, $data);
 
 				return $order;
 			});
@@ -353,7 +357,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 		$order = $order->fresh(['orderDetails', 'transaction', 'user', 'coupon', 'shop.subscription.subscription']);
 		$totalDiscount  = $order->orderDetails->sum('discount');
 		$totalPrice     = $order->orderDetails->sum('total_price');
-
+		Log::info('totalPrice:', ['tot:', $totalPrice]);
 
 		$shopTax = max($totalPrice / 100 * $shop?->tax, 0);
 
@@ -366,35 +370,39 @@ class OrderService extends CoreService implements OrderServiceInterface
 		$info = $order->info;
 		if (empty($info) || !is_array($info)) {
 			$info = [];
-		}		
+		}
 		$serviceFee2 = null;
 		// $serviceFee  = (float)Settings::where(column: 'key', 'service_fee')->first()?->value ?? 0;
 		$price = data_get($order, 'total_price');
-		$price2 = data_get($data, 'total_price');
 		if ($totalPrice < $shop->min_amount) {
 			Log::info('Order servicede service fee logicine girdi');
 
 			$smallOrderFee = min(
-				$shop->min_amount - $price,
+				$shop->min_amount - $totalPrice,
 				$shop->max_small_order_fee
 			);
-
+			Log::info("min_amount:", ['shop min amount:', $shop->min_amount]);
+			Log::info("price:", ['price:', $price]);
+			Log::info("max_small_order_fee:", ['max_small_order_fee:', $shop->max_small_order_fee]);
+			Log::info('smallOrderFee:', ['smallOrderFee:', $smallOrderFee]);
 			$info[] = ['service_info' => "Minimum sifariş məbləği {$shop->min_amount} AZN-dir. Sifarişiniz bu məbləğə çatmadığı üçün {$smallOrderFee} AZN əlavə xidmət haqqı tətbiq olundu."];
 			$serviceFee2 += $smallOrderFee;
 		}
+
+		Log::info('serviceFee2:', ['serviceFee2:', $serviceFee2]);
 
 
 
 		$globalServiceFee = (float) Settings::where('key', 'service_fee')->value('value') ?? 0;
 		$serviceFee = $serviceFee2 + $globalServiceFee;
 		$totalPrice = max(max($totalPrice, 0) - max($totalDiscount, 0), 0);
-
+		Log::info('sonda service fee:', ['service fee:', $serviceFee]);
 		$coupon = Coupon::checkCoupon(data_get($data, 'coupon'), $order->shop_id)->first();
 
 		$deliveryFee = $order->delivery_fee;
 		$adminDeliveryFee = $order->admin_delivery_fee;
-
-
+		lOG::info('updatedeki delivery feedir bu:', ['del fee:', $deliveryFee]);
+		lOG::info('updatedeki adminDeliveryFee feedir bu:', ['admin del fee:', $adminDeliveryFee]);
 		if ($coupon?->for === 'delivery_fee') {
 
 			$deliveryFee -= max($this->checkCoupon($coupon, $order, $deliveryFee), 0);
@@ -459,7 +467,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 			}
 		}
 		Log::info('son total price calculate order3:', ['total price:', $totalPrice]);
-		
+
 
 		$order->update([
 			'total_price'    => $totalPrice,
@@ -494,6 +502,177 @@ class OrderService extends CoreService implements OrderServiceInterface
 			}
 		}
 	}
+
+
+	public function calculateOrder2(Order $order, ?Shop $shop, array $data): void
+	{
+		LOg::info('calculate order');
+		/** @var Order $order */
+		$order = $order->fresh(['orderDetails', 'transaction', 'user', 'coupon', 'shop.subscription.subscription']);
+		$totalDiscount  = $order->orderDetails->sum('discount');
+		$totalPrice     = $order->orderDetails->sum('total_price');
+		Log::info('totalPrice:', ['tot:', $totalPrice]);
+		$rate 	     = (float)data_get($data, 'rate', 1);
+		if (data_get($data, 'location') && data_get($data, 'delivery_type') === Order::DELIVERY) {
+			$helper      = new Utility;
+			$km          = $helper->getDistance($shop->location, data_get($data, 'location'));
+			// Function cagir
+			Log::info('orderin updatesindeki setOrder');
+			['delivery_fee' => $deliveryFee, 'admin_delivery_fee' => $adminDeliveryFee] =
+				$this->calculateOrderFreeDelivery3($km, $shop, $data, $rate, $totalPrice);
+
+			Log::info('ser ortder params blokdan cixdi', ['delivery:', $deliveryFee]);
+			Log::info('ser ortder params blokdan cixdi', ['adminDeliveryFee:', $adminDeliveryFee]);
+		}
+
+
+		if (data_get($data, 'delivery_type') === Order::POINT) {
+			$deliveryPoint = DeliveryPoint::find($data['delivery_point_id'])?->price;
+			$deliveryFee   = $deliveryPoint * $rate;
+		}
+
+
+		$shopTax = max($totalPrice / 100 * $shop?->tax, 0);
+
+		$totalPrice += ($shopTax + $totalDiscount);
+
+		$totalDiscount += $this->recalculateReceipt($order);
+
+		$isSubscribe = (int)Settings::where('key', 'by_subscription')->first()?->value;
+		// Retrieve info from order, set to empty array if missing
+		$info = $order->info;
+		if (empty($info) || !is_array($info)) {
+			$info = [];
+		}
+		$serviceFee2 = null;
+		// $serviceFee  = (float)Settings::where(column: 'key', 'service_fee')->first()?->value ?? 0;
+		if ($totalPrice < $shop->min_amount) {
+			Log::info('Order servicede service fee logicine girdi');
+
+			$smallOrderFee = min(
+				$shop->min_amount - $totalPrice,
+				$shop->max_small_order_fee
+			);
+			Log::info("min_amount:", ['shop min amount:', $shop->min_amount]);
+			Log::info("max_small_order_fee:", ['max_small_order_fee:', $shop->max_small_order_fee]);
+			Log::info('smallOrderFee:', ['smallOrderFee:', $smallOrderFee]);
+			$info[] = ['service_info' => "Minimum sifariş məbləği {$shop->min_amount} AZN-dir. Sifarişiniz bu məbləğə çatmadığı üçün {$smallOrderFee} AZN əlavə xidmət haqqı tətbiq olundu."];
+			$serviceFee2 += $smallOrderFee;
+		}
+
+
+		Log::info('serviceFee2:', ['serviceFee2:', $serviceFee2]);
+
+
+
+		$globalServiceFee = (float) Settings::where('key', 'service_fee')->value('value') ?? 0;
+		$serviceFee = $serviceFee2 + $globalServiceFee;
+		$totalPrice = max(max($totalPrice, 0) - max($totalDiscount, 0), 0);
+		Log::info('sonda service fee:', ['service fee:', $serviceFee]);
+		$coupon = Coupon::checkCoupon(data_get($data, 'coupon'), $order->shop_id)->first();
+
+		lOG::info('updatedeki delivery feedir bu:', ['del fee:', $deliveryFee]);
+		lOG::info('updatedeki adminDeliveryFee feedir bu:', ['admin del fee:', $adminDeliveryFee]);
+		if ($coupon?->for === 'delivery_fee') {
+
+			$deliveryFee -= max($this->checkCoupon($coupon, $order, $deliveryFee), 0);
+		} else if ($coupon?->for === 'total_price') {
+
+			$totalPrice -= max($this->checkCoupon($coupon, $order, $totalPrice - $shopTax), 0);
+		}
+
+		$totalPrice += $serviceFee;
+
+
+		$waiterFeeRate = $order->waiter_fee;
+
+		if ($order->delivery_type === Order::DINE_IN) {
+			$waiterFeeRate = $totalPrice / 100 * $shop->service_fee;
+		}
+
+		$tipsRate = 0;
+
+		if (data_get($data, 'tip_type') && data_get($data, 'tips')) {
+
+			$tipsRate += data_get($data, 'tip_type') === 'fix' ?
+				data_get($data, 'tips') :
+				$totalPrice / 100 * data_get($data, 'tips');
+
+			$totalPrice += $tipsRate;
+		}
+
+		$totalPrice = $totalPrice + $waiterFeeRate + $deliveryFee;
+
+		if (data_get($data, 'tips')) {
+
+			$tipsRate += (data_get($data, 'tips') / $order->rate);
+
+			$totalPrice += $tipsRate;
+		}
+
+		$commissionFee = 0;
+
+		if (!$isSubscribe && $shop?->percentage > 0) {
+			$commissionFee = max(($totalPrice / 100 * $shop?->percentage), 0);
+		}
+
+		$status = $order->status;
+
+		if ($order->delivery_type === Order::DINE_IN) {
+			$status = Order::STATUS_ACCEPTED;
+		}
+
+		$waiterId = $order->waiter_id;
+
+		if (data_get($data, 'table_id') && empty($waiterId)) {
+
+			$waiters = Table::find($data['table_id'])?->waiters;
+
+			$waiterId = $waiters?->first()?->id;
+
+			$workingWaiter = $waiters?->where('isWork', true)?->first();
+
+			if ($workingWaiter) {
+				$waiterId = $workingWaiter->id;
+			}
+		}
+		Log::info('son total price calculate order3:', ['total price:', $totalPrice]);
+
+
+		$order->update([
+			'total_price'    => $totalPrice,
+			'delivery_fee'   => $deliveryFee,
+			'commission_fee' => $commissionFee,
+			'admin_delivery_fee' => $adminDeliveryFee,
+			'service_fee'    => $serviceFee,
+			'total_discount' => max($totalDiscount, 0),
+			'tax'            => $shopTax,
+			'waiter_fee'     => $waiterFeeRate,
+			'tips'           => $tipsRate,
+			'status'		 => $status,
+			'info'           => $info,
+			'waiter_id'		 => $waiterId,
+		]);
+
+		$isSubscribe = (int)Settings::where('key', 'by_subscription')->first()?->value;
+
+		if ($isSubscribe) {
+
+			$orderLimit = $order->shop?->subscription?->subscription?->order_limit;
+
+			$shopOrdersCount = DB::table('orders')
+				->select(['shop_id'])
+				->where('shop_id', $order->shop_id)
+				->count('shop_id');
+
+			if ($orderLimit < $shopOrdersCount) {
+				$shop?->update([
+					'visibility' => 0
+				]);
+			}
+		}
+	}
+
 
 	/**
 	 * @param Coupon $coupon
@@ -804,9 +983,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 			$helper      = new Utility;
 			$km          = $helper->getDistance($shop->location, data_get($data, 'location'));
 			// Function cagir
-			Log::info('order total price:', ['order price:', $data]);
-			Log::info('order shop:', ['order shop:', $shop]);
-
+			Log::info('orderin updatesindeki setOrder');
 			['delivery_fee' => $deliveryFee, 'admin_delivery_fee' => $adminDeliveryFee, 'info' => $info] =
 				$this->calculateOrderFreeDelivery2($km, $shop, $data, $rate, $price, $info);
 
@@ -883,8 +1060,121 @@ class OrderService extends CoreService implements OrderServiceInterface
 	}
 
 
+	/**
+	 * @param array $data
+	 * @param Shop $shop
+	 * @return array
+	 */
+	private function setOrderParams2(Order $order, array $data, Shop $shop): array
+	{
+
+		Log::info('setOrderParams 2-e girdi', ['data:', $data]);
+		$defaultCurrencyId = Currency::whereDefault(1)->first('id');
+
+		$currencyId  = data_get($data, 'currency_id', data_get($defaultCurrencyId, 'id'));
+		$currency	 = Currency::find($currencyId);
+
+		$waiterFee	 = 0;
+		// $deliveryFee = 0;
+		$rate 	     = (float)data_get($data, 'rate', 1);
+
+
+		$cartId = data_get($data, 'cart_id');
+		$cart = Cart::find($cartId);
+		$price     = $order->orderDetails->sum('total_price');
+		Log::info('BU son pricedi qardas:', ['price:', $price]);
+
+		// $price = data_get($data, 'origin_price');
+
+		// if (data_get($data, 'location') && data_get($data, 'delivery_type') === Order::DELIVERY) {
+		// 	$helper      = new Utility;
+		// 	$km          = $helper->getDistance($shop->location, data_get($data, 'location'));
+		// 	$deliveryFee = $helper->getPriceByDistance($km, $shop, $rate) / $rate;
+		// }
+
+		// if (data_get($data, 'location') && data_get($data, 'delivery_type') === Order::DELIVERY) {
+		// 	$helper      = new Utility;
+		// 	$km          = $helper->getDistance($shop->location, data_get($data, 'location'));
+		// 	// Function cagir
+		// 	Log::info('orderin updatesindeki setOrder');
+		// 	['delivery_fee' => $deliveryFee, 'admin_delivery_fee' => $adminDeliveryFee] =
+		// 		$this->calculateOrderFreeDelivery3($km, $shop, $data, $rate, $price);
+
+		// 	Log::info('ser ortder params blokdan cixdi', ['delivery:', $deliveryFee]);
+		// 	Log::info('ser ortder params blokdan cixdi', ['adminDeliveryFee:', $adminDeliveryFee]);
+		// }
+
+
+		$serviceFee  = (float)Settings::where('key', 'service_fee')->first()?->value;
+		$serviceFee  = $serviceFee ?: 0;
+
+
+		$price = data_get($cart, 'total_price');
+		// if ($price < $shop->min_amount) {
+		// 	Log::info('Order servicede service fee logicine girdi');
+
+		// 	$smallOrderFee = min(
+		// 		$shop->min_amount - $price,
+		// 		$shop->max_small_order_fee
+		// 	);
+		// 	Log::info('smallOrderFee:', ['smallOrderFee:', $smallOrderFee]);
+		// 	Log::info('sifariş məbləği:', ['sifariş məbləği:', $cart]);
+
+		// 	$info[] = ['service_info' => "Minimum sifariş məbləği {$cart->shop->min_amount} AZN-dir. Sifarişiniz bu məbləğə çatmadığı üçün {$smallOrderFee} AZN əlavə xidmət haqqı tətbiq olundu."];
+		// 	$serviceFee += $smallOrderFee;
+		// }
+
+
+		Log::info('son service fee:', ['service fee:', $serviceFee]);
+
+		try {
+			$otp = random_int(1000, 9999);
+		} catch (Throwable) {
+			$otp = 1234;
+		}
+
+		return [
+			'user_id'           => $data['user_id'] ?? auth('sanctum')->id(),
+			'waiter_id'         => data_get($data, 'waiter_id'),
+			'table_id'          => data_get($data, 'table_id'),
+			'booking_id'        => data_get($data, 'booking_id'),
+			'user_booking_id'   => data_get($data, 'user_booking_id'),
+			'total_price'       => 0,
+			'otp'       		=> $otp,
+			'currency_id'       => $currency?->id ?? $currencyId,
+			'rate'              => $currency?->rate ?? 1,
+			'note'              => data_get($data, 'note'),
+			'shop_id'           => data_get($data, 'shop_id'),
+			'phone'             => data_get($data, 'phone'),
+			'username'          => data_get($data, 'username'),
+			'tax'               => 0,
+			'commission_fee'    => 0,
+			'service_fee'       => $serviceFee,
+			'status'            => ($shop?->type === Shop::SHOP) ? Order::STATUS_READY : data_get($data, 'status', Order::STATUS_NEW),
+			'waiter_fee'        => max($waiterFee, 0),
+			'delivery_type'     => data_get($data, 'delivery_type'),
+			'location'          => data_get($data, 'location'),
+			'address'           => data_get($data, 'address'),
+			'address_id'        => data_get($data, 'address_id'),
+			'deliveryman'       => data_get($data, 'deliveryman'),
+			'delivery_date'     => data_get($data, 'delivery_date'),
+			'delivery_time'     => data_get($data, 'delivery_time'),
+			// 'admin_delivery_fee' => max($adminDeliveryFee, 0),
+			'total_discount'    => 0,
+		];
+	}
+
+
+
 	public function calculateOrderFreeDelivery2($km, $shop, $data, $rate, $price, &$info)
 	{
+
+		Log::info('calculateOrderFreeDelivery2 order update:', ['km:', $km]);
+		Log::info('calculateOrderFreeDelivery2 order update:', ['shop:', $shop]);
+		Log::info('calculateOrderFreeDelivery2 order update:', ['data:', $data]);
+		Log::info('calculateOrderFreeDelivery2 order update:', ['rate:', $rate]);
+		Log::info('calculateOrderFreeDelivery2 order update:', ['price:', $price]);
+		Log::info('calculateOrderFreeDelivery2 order update:', ['rate:', $info]);
 		/** @var User|null $user */
 		$user = User::find(data_get($data, 'user_id'));
 
@@ -951,7 +1241,7 @@ class OrderService extends CoreService implements OrderServiceInterface
 		}
 		Log::info('sonda hesablanan deliveryFee:', ['DelivFEe:', $deliveryFee]);
 		Log::info('sonda hesablanan admindeliveryFee:', ['AdminDelivFEe:', $adminDeliveryFee]);
-		
+
 
 		return [
 			'delivery_fee' => $deliveryFee,
@@ -959,6 +1249,94 @@ class OrderService extends CoreService implements OrderServiceInterface
 			'info'    => $info
 		];
 	}
+
+
+	public function calculateOrderFreeDelivery3($km, $shop, $data, $rate, $price)
+	{
+
+		/** @var User|null $user */
+		$user = User::find(data_get($data, 'user_id'));
+		Log::info('111111111111111111111111111111111111111111111');
+		$helper      = new Utility;
+
+		$free_delivery_count = Benefit::where('type', Benefit::FREE_DELIVERY_COUNT)
+			->first();
+		Log::info('22222222222222222222222222222222222222222222');
+		$free_delivery_distance = Benefit::where('type', Benefit::FREE_DELIVERY_DISTANCE)
+			->where('default', 1)
+			->first();
+
+		Log::info('33333333333333333333333333333333333333333333');
+		$fix_price = $shop->free_delivery_price;
+		Log::info('fix_price:', ['fix:', $fix_price]);
+		$target_type = $free_delivery_count ? data_get($free_delivery_count->payload, 'target_type') : null;
+		Log::info('target_type:', ['target_type:', $target_type]);
+
+
+
+		$deliveryFee = $helper->getPriceByDistance($km, $shop, $rate) / $rate;
+		Log::info('deliveryFee:', ['deliveryFee:', $deliveryFee]);
+
+		$adminDeliveryFee = 0;
+		if (!$free_delivery_distance) {
+			Log::info('Default free delivery benefit not found or payload is missing.');
+			return [
+				'delivery_fee' => $deliveryFee,
+				'admin_delivery_fee' => $adminDeliveryFee,
+			];
+		}
+		$fix_km = $free_delivery_distance ? data_get($free_delivery_distance->payload, 'km') : null;
+		$freeDeliveryData = $user->free_delivery; // burada json formatında gəlir
+		$kmDeliveryFee = $helper->getPriceByDistance($km, $shop, $rate) / $rate;
+		$shopType = $shop->type;
+		Log::info('km:', ['km:', $km]);
+		Log::info('fix_km:', ['fix_km:', $fix_km]);
+		Log::info('price:', ['price:', $price]);
+		Log::info('shopType:', ['shopType:', $shopType]);
+
+		Log::info('data free:', ['freedel data:', $helper->isFreeDeliveryAvailable($freeDeliveryData, $target_type, $shopType)]);
+		if ($helper->isFreeDeliveryAvailable($freeDeliveryData, $target_type, $shopType)) {
+			Log::info('İstifadəçinin pulsuz çatdırılması aktivdir Order service');
+
+			Log::info('IF yoxlanilir', [
+				'km' => $km,
+				'fix_km' => $fix_km,
+				'comparison' => $km < $fix_km
+			]);
+
+			if ($km < $fix_km) {
+				Log::info('1 ci merheler az km');
+				$deliveryFee = 0;
+			} else {
+				Log::info('1 ci merheler artiq km');
+				$adminDeliveryFee = $helper->getPriceByDistance($fix_km, $shop, $rate) / $rate;
+				$deliveryFee = $kmDeliveryFee - $adminDeliveryFee;
+			}
+		} else if (!is_null($fix_price) && $price >= $fix_price) {
+			Log::info('Shop price üçün Order service');
+			if ($km <= $fix_km) {
+				Log::info('2 ci merheler az km');
+				$deliveryFee = 0;
+			} else {
+				Log::info('2 ci merheler artiq km');
+				$adminDeliveryFee = $helper->getPriceByDistance((float)$fix_km, $shop, $rate) / $rate;
+				$deliveryFee = $kmDeliveryFee - $adminDeliveryFee;
+			}
+		}
+
+		if ($deliveryFee == 0) {
+			$adminDeliveryFee = $helper->getPriceByDistance($km, $shop, $rate) / $rate;
+		}
+		Log::info('sonda hesablanan deliveryFee:', ['DelivFEe:', $deliveryFee]);
+		Log::info('sonda hesablanan admindeliveryFee:', ['AdminDelivFEe:', $adminDeliveryFee]);
+
+
+		return [
+			'delivery_fee' => $deliveryFee,
+			'admin_delivery_fee' => $adminDeliveryFee,
+		];
+	}
+
 
 
 	private function calculateOrderFreeDelivery($km, $shop, $data, $rate)
