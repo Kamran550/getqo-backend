@@ -99,6 +99,7 @@ class Kernel extends HttpKernel
         'block.ip'          => BlockIpMiddleware::class,
         'role'              => RoleMiddleware::class,
         'check.shop'        => CheckSellerShop::class,
+      	'verify.function.token' => \App\Http\Middleware\VerifyFunctionToken::class,
     ];
 }
 

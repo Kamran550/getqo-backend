@@ -4,6 +4,7 @@ use App\Http\Controllers\API\v1\{GalleryController, PushNotificationController, 
 use App\Http\Controllers\API\v1\Auth\{LoginController, RegisterController, VerifyAuthController};
 use App\Http\Controllers\API\v1\Dashboard\{Admin, Cook, Deliveryman, Payment, Seller, User, Waiter};
 use App\Http\Controllers\API\v1\Dashboard\Payment\OderoController;
+use App\Http\Controllers\API\v1\OrderAutoStatusController; // Sübhan əlavə edib
 use App\Http\Controllers\Web\TelegramBotController;
 use App\Models\Page;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +19,9 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+
+Route::post('/v1/order/auto-status', [OrderAutoStatusController::class, 'autoStatus']);
+
 
 Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
     // Methods without AuthCheck
@@ -527,11 +531,19 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
         // SELLER BLOCK
         Route::group(['prefix' => 'seller', 'middleware' => ['sanctum.check', 'role:seller|moderator'], 'as' => 'seller.'], function () {
 
+          
+          	// SELLER block daxilində
+			Route::post('order/{id}/start-cooking',  [Seller\OrderController::class, 'startCooking']);
+			Route::post('order/{id}/cooking-time',   [Seller\OrderController::class, 'changeCookingTime']);
+	
+          
             /* Dashboard */
             Route::get('statistics',                [Seller\DashboardController::class, 'ordersStatistics']);
             Route::get('statistics/orders/chart',   [Seller\DashboardController::class, 'ordersChart']);
             Route::get('statistics/products',       [Seller\DashboardController::class, 'productsStatistic']);
             Route::get('statistics/users',          [Seller\DashboardController::class, 'usersStatistic']);
+            Route::post('orders/{id}/start-cooking',        [Seller\OrderController::class, 'startCooking']);
+            Route::post('orders/{id}/change-cooking-time',  [Seller\OrderController::class, 'changeCookingTime']);
 
             Route::get('sales-history',             [Seller\Report\Sales\HistoryController::class, 'history']);
             Route::get('sales-cards',               [Seller\Report\Sales\HistoryController::class, 'cards']);
@@ -650,6 +662,10 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::get('orders/pending/transaction',    [Seller\OrderController::class, 'ordersPendingTransaction']);
             Route::post('order/details/{id}/cook',      [Seller\OrderDetailController::class, 'orderCookUpdate']);
             Route::post('order/details/{id}/status',    [Seller\OrderDetailController::class, 'orderStatusUpdate']);
+          
+          	// NEW: COOKING TIME — seller seçir və timer işə düşür
+            Route::post('order/{id}/start-cooking',     [Seller\OrderController::class, 'startCooking']);
+            Route::post('order/{id}/cooking-time',      [Seller\OrderController::class, 'changeCookingTime']);
 
             /* Transaction */
             Route::get('transactions/paginate', [Seller\TransactionController::class, 'paginate']);

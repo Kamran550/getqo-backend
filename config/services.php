@@ -1,11 +1,7 @@
 <?php
 
 return [
+    // ... başqa xidmət ayarların ...
 
-    // Başqa servis konfiqləri varsa onlar da burda olacaq...
-
-'firebase_function' => [
-    'token' => env('MY_FUNCTION_TOKEN'),
-],
-
+    'function_token' => env('FIREBASE_FUNCTION_TOKEN'), // <-- BUNU ƏLAVƏ ET
 ];
