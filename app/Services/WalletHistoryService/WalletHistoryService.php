@@ -14,6 +14,7 @@ use App\Models\WalletHistory;
 use App\Services\CoreService;
 use App\Traits\Notification;
 use DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -21,10 +22,10 @@ class WalletHistoryService extends CoreService
 {
 	use Notification;
 
-    protected function getModelClass(): string
-    {
-        return WalletHistory::class;
-    }
+	protected function getModelClass(): string
+	{
+		return WalletHistory::class;
+	}
 
 	/**
 	 * @param array $data
@@ -32,15 +33,19 @@ class WalletHistoryService extends CoreService
 	 * @throws Throwable
 	 */
 	public function create(array $data): array
-    {
-        if (!data_get($data, 'type') || !data_get($data, 'price') || !data_get($data, 'user')
-        ) {
-            return [
-                'status'  => false,
-                'code'    => ResponseError::ERROR_502,
-                'message' => __('errors.' . ResponseError::TYPE_PRICE_USER, locale: $this->language)
-            ];
-        }
+	{
+
+		Log::info('wallet hist service data:', ['data:', $data]);
+		Log::info('wallet hist service price:', ['price:', data_get($data, 'price')]);
+		if (
+			!data_get($data, 'type') || !data_get($data, 'price') || !data_get($data, 'user')
+		) {
+			return [
+				'status'  => false,
+				'code'    => ResponseError::ERROR_502,
+				'message' => __('errors.' . ResponseError::TYPE_PRICE_USER, locale: $this->language)
+			];
+		}
 
 		$walletHistory = DB::transaction(function () use ($data) {
 			/** @var User $user */
@@ -75,45 +80,42 @@ class WalletHistoryService extends CoreService
 			if (data_get($data, 'type') == 'topup') {
 
 				$user->wallet()->increment('price', data_get($data, 'price'));
-
 			} else if (data_get($data, 'type') == 'withdraw') {
 
 				$user->wallet()->decrement('price', data_get($data, 'price'));
-
 			}
 
 			return $walletHistory;
 		});
 
-        return ['status' => true, 'code' => ResponseError::NO_ERROR, 'data' => $walletHistory];
-    }
+		return ['status' => true, 'code' => ResponseError::NO_ERROR, 'data' => $walletHistory];
+	}
 
-    public function changeStatus(string $uuid, string $status = null): array
-    {
-        /** @var WalletHistory $walletHistory */
-        $walletHistory = $this->model()->firstWhere('uuid', $uuid);
+	public function changeStatus(string $uuid, string $status = null): array
+	{
+		/** @var WalletHistory $walletHistory */
+		$walletHistory = $this->model()->firstWhere('uuid', $uuid);
 
-        if (!$walletHistory) {
-            return [
-                'status'  => false,
-                'code'    => ResponseError::ERROR_404,
-                'message' => __('errors.' . ResponseError::ERROR_404, locale: $this->language)
-            ];
-        }
+		if (!$walletHistory) {
+			return [
+				'status'  => false,
+				'code'    => ResponseError::ERROR_404,
+				'message' => __('errors.' . ResponseError::ERROR_404, locale: $this->language)
+			];
+		}
 
-        if ($walletHistory->status === WalletHistory::PROCESSED) {
+		if ($walletHistory->status === WalletHistory::PROCESSED) {
 
-            $isCancel = $status === WalletHistory::REJECTED || $status === WalletHistory::CANCELED;
+			$isCancel = $status === WalletHistory::REJECTED || $status === WalletHistory::CANCELED;
 
-            $walletHistory->update([
-                'status' => $status,
-                'price' => $isCancel ? $walletHistory->wallet->price + $walletHistory->price : $walletHistory->price
-            ]);
+			$walletHistory->update([
+				'status' => $status,
+				'price' => $isCancel ? $walletHistory->wallet->price + $walletHistory->price : $walletHistory->price
+			]);
+		}
 
-        }
-
-        return ['status' => true, 'code' => ResponseError::NO_ERROR];
-    }
+		return ['status' => true, 'code' => ResponseError::NO_ERROR];
+	}
 
 	/**
 	 * @param $request
@@ -214,7 +216,6 @@ class WalletHistoryService extends CoreService
 					[$sendingUser->id],
 					$message,
 				);
-
 			}
 
 			return [

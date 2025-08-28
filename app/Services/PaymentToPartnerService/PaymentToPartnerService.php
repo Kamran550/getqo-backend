@@ -83,6 +83,7 @@ class PaymentToPartnerService extends CoreService
 						Log::info('deliverymana odenis');
 
 						if (empty($deliveryman)) {
+							Log::info('emptydir');
 							$errors[] = [
 								'order_id' 	=> $order->id,
 								'user' 		=> $deliveryman,
@@ -99,6 +100,9 @@ class PaymentToPartnerService extends CoreService
 						}
 
 						if (!empty($deliveryman)) {
+							Log::info('empty deyil', ['ord:', $order]);
+							Log::info('empty deyil', ['deliveryman:', $deliveryman]);
+							Log::info('empty deyil', ['payment:', $payment]);
 							$this->addForDeliveryman($order, $deliveryman, $payment);
 						}
 					}
@@ -187,18 +191,21 @@ class PaymentToPartnerService extends CoreService
 	{
 
 		if ($payment->tag === 'wallet') {
-
+			$amount = abs((float)$order->delivery_fee) + abs((float)$order->admin_delivery_fee);
+			Log::info('amount:', ['amount:', $amount]);
 			(new WalletHistoryService)->create([
-				'type'  	=> $order->delivery_fee ? 'topup' : 'withdraw',
-				'price' 	=> (float)str_replace('-', '', $order->delivery_fee),
+				'type'  	=> $amount > 0 ? 'topup' : 'withdraw',
+				// 'price' 	=> (float)str_replace('-', '', $order->delivery_fee),
+				'price'     => $amount,
 				'note'  	=> "For Deliveryman Order payment #$order->id",
 				'status'	=> WalletHistory::PAID,
 				'user'  	=> $deliveryman,
 			]);
 
 			(new WalletHistoryService)->create([
-				'type'  	=> $order->delivery_fee ? 'withdraw' : 'topup',
-				'price' 	=> (float)str_replace('-', '', $order->delivery_fee),
+				'type'  	=> $amount > 0 ? 'withdraw' : 'topup',
+				// 'price' 	=> (float)str_replace('-', '', $order->delivery_fee),
+				'price'     => $amount,
 				'note'  	=> "Payment for Deliveryman. Order #$order->id",
 				'status'	=> WalletHistory::PAID,
 				'user'  	=> auth('sanctum')->user(),
@@ -211,8 +218,12 @@ class PaymentToPartnerService extends CoreService
 			'type'		=> PaymentToPartner::DELIVERYMAN,
 		]);
 
+		$sonCem = $order->delivery_fee + $order->admin_delivery_fee;
+
+		Log::info('sonCem:', ['sonCem:', $sonCem]);
+
 		$deliveryManPartner->createTransaction([
-			'price'                 => $order->delivery_fee,
+			'price'                 => abs((float)($order->delivery_fee)) + abs((float)$order->admin_delivery_fee),
 			'user_id'               => $deliveryman->id,
 			'payment_sys_id'        => $payment->id,
 			'note'                  => 'Transaction for deliveryman payment to #' . $order->id,

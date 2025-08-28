@@ -194,6 +194,13 @@ class UserService extends CoreService implements UserServiceInterface
             }
             if (!empty($data['referral'])) {
                 Log::info('menim reff:', ['reff:' => $data['referral']]);
+                if ($data['referral'] === $user->my_referral) {
+                    return [
+                        'status' => false,
+                        'code'   => ResponseError::ERROR_513, 
+                        'data'   => null,
+                    ];
+                }
 
                 $referral = User::where('my_referral', $data['referral'])->first();
 

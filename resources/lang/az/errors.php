@@ -84,6 +84,7 @@ return [
     $e::ERROR_510 => 'Ünvan yanlışdır.',
     $e::ERROR_511 => 'Əlavə etmək mümkün deyil.',
     $e::ERROR_512 => 'Server Error baş verdi',
+    $e::ERROR_513 => 'Siz öz referral kodunuzu istifadə edə bilməzsiniz',
 
     $e::CONFIRMATION_CODE => 'Təsdiq kodu: :code',
     $e::NEW_ORDER => 'Sizin üçün yeni sifariş # :id',

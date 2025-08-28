@@ -96,6 +96,7 @@ return [
     $e::ERROR_510 => 'Address in correct.',
     $e::ERROR_511 => 'You cannot attach.',
     $e::ERROR_512 => 'Internal Server Error',
+    $e::ERROR_513 => 'You cannot use your own referral code.',
 
     $e::CONFIRMATION_CODE               => 'Confirmation code :code',
     $e::NEW_ORDER                       => 'New order for you # :id',

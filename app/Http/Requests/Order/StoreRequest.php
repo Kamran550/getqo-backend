@@ -45,6 +45,7 @@ class StoreRequest extends BaseRequest
             'delivery_type'         => ['required', Rule::in(Order::DELIVERY_TYPES)],
             'coupon'                => 'nullable|string',
             'location'              => 'array',
+            'origin_price'          => 'nullable|numeric',
             'location.latitude'     => 'numeric',
             'location.longitude'    => 'numeric',
             'address'               => 'array',
