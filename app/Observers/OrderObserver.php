@@ -26,7 +26,9 @@ class OrderObserver
      */
     public function created(Order $order): void
     {
-        if ($order->status === Order::STATUS_READY && empty($order->deliveryman) && $this->autoDeliveryMan()) {
+        Log::info('observe create');
+        if ($order->status === Order::STATUS_READY && empty($order->deliveryman) && $this->autoDeliveryMan() && !$order->courier_search_started) {
+            Log::info('ATTACH DELIVERY MAN');
             AttachDeliveryMan::dispatchAfterResponse($order, $this->language());
         }
 
@@ -41,8 +43,20 @@ class OrderObserver
      */
     public function updated(Order $order): void
     {
+        Log::info('observe update');
+        Log::info('Order conditions check', [
+            'order_id' => $order->id,
+            'status' => $order->status,
+            'STATUS_READY_constant' => Order::STATUS_READY,
+            'status_equals_ready' => $order->status === Order::STATUS_READY,
+            'deliveryman' => $order->deliveryman,
+            'deliveryman_empty' => empty($order->deliveryman),
+            'autoDeliveryMan' => $this->autoDeliveryMan()
+        ]);
+
         if ($order->status === Order::STATUS_READY && empty($order->deliveryman) && $this->autoDeliveryMan()) {
-			AttachDeliveryMan::dispatchAfterResponse($order, $this->language());
+            Log::info('ATTACH DELIVERY MAN updated');
+            AttachDeliveryMan::dispatchAfterResponse($order, $this->language());
         }
 
         (new ModelLogService)->logging($order, $order->getAttributes(), 'updated');
@@ -56,22 +70,23 @@ class OrderObserver
      */
     public function deleted(Order $order): void
     {
-		try {
-			$order->transactions()->delete();
-			$order->reviews()->delete();
-			$order->galleries()->delete();
-			$order->coupon()->delete();
-			$order->pointHistories()->delete();
-			$order->orderDetails()->delete();
-			DB::table('push_notifications')
-				->where(function ($query) {
-					$query
-						->where('type', PushNotification::NEW_ORDER)
-						->orWhere('type', PushNotification::STATUS_CHANGED);
-				})
-				->where('title', $order->id)
-				->delete();
-		} catch (Throwable|InvalidArgumentException) {}
+        try {
+            $order->transactions()->delete();
+            $order->reviews()->delete();
+            $order->galleries()->delete();
+            $order->coupon()->delete();
+            $order->pointHistories()->delete();
+            $order->orderDetails()->delete();
+            DB::table('push_notifications')
+                ->where(function ($query) {
+                    $query
+                        ->where('type', PushNotification::NEW_ORDER)
+                        ->orWhere('type', PushNotification::STATUS_CHANGED);
+                })
+                ->where('title', $order->id)
+                ->delete();
+        } catch (Throwable | InvalidArgumentException) {
+        }
 
         (new ModelLogService)->logging($order, $order->getAttributes(), 'deleted');
     }
@@ -107,5 +122,4 @@ class OrderObserver
 
         return (int)data_get($autoDeliveryMan, 'value', 0) === 1;
     }
-
 }

@@ -1389,6 +1389,12 @@ Route::group(['prefix' => 'v1', 'middleware' => ['block.ip']], function () {
             Route::delete('delivery-point-closed-dates/delete', [Admin\DeliveryPointClosedDateController::class, 'destroy']);
             Route::get('delivery-point-closed-dates/drop/all',  [Admin\DeliveryPointClosedDateController::class, 'dropAll']);
 
+
+            /* Cooking time */
+
+            Route::post('order/{id}/cooking-time',  [Admin\OrderController::class, 'setCookingTime']);
+
+
             /* Combo */
             Route::apiResource('combos', Admin\ComboController::class);
             Route::delete('combos/delete', [Admin\ComboController::class, 'destroy']);

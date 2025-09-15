@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\API\v1\Dashboard\Admin;
 
+use App\Events\OrderCookingStarted;
 use App\Exports\OrderExport;
 use App\Helpers\ResponseError;
 use App\Http\Requests\FilterParamsRequest;
@@ -16,7 +17,10 @@ use App\Http\Requests\Order\UpdateRequest;
 use App\Http\Requests\Order\WaiterUpdateRequest;
 use App\Http\Resources\OrderResource;
 use App\Imports\OrderImport;
+use App\Jobs\SetOrderReady;
+use App\Jobs\StartCourierSearch;
 use App\Models\Order;
+use App\Models\OrderStatus;
 use App\Models\PushNotification;
 use App\Models\Settings;
 use App\Models\Shop;
@@ -27,6 +31,7 @@ use App\Repositories\OrderRepository\AdminOrderRepository;
 use App\Services\Interfaces\OrderServiceInterface;
 use App\Services\OrderService\OrderStatusUpdateService;
 use App\Traits\Notification;
+use DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -553,4 +558,136 @@ class OrderController extends AdminBaseController
 			return $this->errorResponse(statusCode: ResponseError::ERROR_508, message: $e->getMessage());
 		}
 	}
+
+
+	// Cooking Time
+
+	public function setCookingTime(Request $request, $orderId)
+	{
+
+		Log::info('req:', ['req:', $request->all()]);
+		Log::info('orderID:', ['ordID:', $orderId]);
+		$request->validate([
+			'cooking_time' => 'required|integer'
+		]);
+
+		DB::beginTransaction();
+		try {
+			$order = Order::findOrFail($orderId);
+
+			// Only allow setting cooking time for accepted orders
+			if ($order->status !== Order::STATUS_ACCEPTED) {
+				return response()->json([
+					'success' => false,
+					'message' => 'Order must be in accepted status to set cooking time'
+				], 400);
+			}
+
+			$cookingTime = $request->cooking_time;
+			$now = now();
+
+			// Calculate ready time
+			$readyAt = $now->copy()->addMinutes($cookingTime);
+
+
+			Log::info('readyAt:', ['ready:', $readyAt]);
+
+			Log::info('Calculated cooking timeline', [
+				'order_id' => $order->id,
+				'cooking_time_minutes' => $cookingTime,
+				'cooking_started_at' => $now,
+				'ready_at' => $readyAt,
+				'courier_search_at' => $readyAt->copy()->subMinutes(5)
+			]);
+
+			// Update order
+			$order->update([
+				'cooking_time' => $cookingTime,
+				'cooking_started_at' => $now,
+				'ready_at' => $readyAt,
+				'status' => Order::STATUS_COOKING
+			]);
+
+
+			Log::info('1111 order:', ['order:', $order->status]);
+
+			// Schedule automatic status updates
+			$this->scheduleAutomaticStatusUpdates($order);
+
+			// Dispatch event for real-time updates
+			event(new OrderCookingStarted($order));
+
+			DB::commit();
+
+			return response()->json([
+				'success' => true,
+				'message' => 'Cooking time set successfully',
+				'data' => [
+					'order_id' => $order->id,
+					'cooking_time' => $cookingTime,
+					'ready_at' => $readyAt->toISOString(),
+					'status' => Order::STATUS_COOKING
+				]
+			]);
+		} catch (\Exception $e) {
+			DB::rollback();
+
+			return response()->json([
+				'success' => false,
+				'message' => 'Failed to set cooking time',
+				'error' => config('app.debug') ? $e->getMessage() : null
+			], 500);
+		}
+	}
+	private function scheduleAutomaticStatusUpdates(Order $order)
+	{
+		// Schedule job to mark order as ready
+		Log::info('Scheduling automatic status updates', [
+			'order_id' => $order->id,
+			'ready_at' => $order->ready_at,
+			'cooking_time_minutes' => $order->cooking_time
+		]);
+
+		$readyTime = $order->ready_at->copy()->subMinutes(5);
+
+		// Əgər hesablanmış vaxt hazırkından keçmişdirsə, dərhal ready edirik
+		if ($readyTime <= now()) {
+			Log::info('derhal cagir');
+			SetOrderReady::dispatch($order);
+		} else {
+			Log::info('5 deq gozle sora cagir');
+			SetOrderReady::dispatch($order)->delay($readyTime);
+		}
+
+		// SetOrderReady::dispatch($order)
+		// 	->delay($order->ready_at);
+
+		Log::info('SetOrderReady job scheduled', [
+			'order_id' => $order->id,
+			'will_execute_at' => $readyTime
+		]);
+
+
+		// Schedule job to start looking for courier 5 minutes before ready
+		// $courierSearchTime = $order->ready_at->copy()->subMinutes(5);
+
+
+		Log::info('22222 order:', ['ord:', $order->status]);
+
+		// // Only schedule if courier search time is in the future
+		// if ($courierSearchTime > now()) {
+		// 	Log::info('courierSearchTime nowdan boyukdur', ['courierSearchTime:', $courierSearchTime]);
+		// 	StartCourierSearch::dispatch($order)
+		// 		->delay($courierSearchTime);
+		// } else {
+		// 	Log::info('courierSearchTime nowdan kicikdir');
+
+		// 	// If less than 5 minutes, start courier search immediately
+		// 	StartCourierSearch::dispatch($order);
+		// }
+	}
+
+
+
+	// 
 }

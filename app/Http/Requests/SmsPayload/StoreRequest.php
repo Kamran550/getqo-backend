@@ -26,7 +26,7 @@ class StoreRequest extends BaseRequest
                 Rule::in(SmsPayload::TYPES),
                 Rule::unique('sms_payloads', 'type')->whereNull('deleted_at')
             ],
-            'default' => 'required|in:0,1',
+            'default' => 'nullable|in:0,1',
             'payload' => 'required|array',
             'payload.*' => ['required']
         ];
