@@ -46,7 +46,6 @@ class SmsPayloadController extends AdminBaseController
 
         $validated = $request->validated();
 
-
         LOg::info('validate:', ['val:', $validated]);
 
 

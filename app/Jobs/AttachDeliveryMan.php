@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Queue\{InteractsWithQueue, SerializesModels};
+use Illuminate\Support\Facades\Log;
 
 class AttachDeliveryMan implements ShouldQueue
 {
@@ -45,6 +46,9 @@ class AttachDeliveryMan implements ShouldQueue
 		try {
 			$order = $this->order;
 
+			Log::info('6666666order:', ['order:', $order->status]);
+
+
 			$second = Settings::where('key', 'deliveryman_order_acceptance_time')->first();
 
 			if (empty($order) || $order->delivery_type !== Order::DELIVERY) {
@@ -54,13 +58,15 @@ class AttachDeliveryMan implements ShouldQueue
 			$items = [];
 
 			$users = User::with('deliveryManSetting')
-				->whereHas('deliveryManSetting', fn(Builder $query) => $query
-					->where('online', 1)
-					->where(function ($q) {
-						$q
-							->where('updated_at', '>=', date('Y-m-d H:i', strtotime('-15 minutes')))
-							->orWhere('created_at', '>=', date('Y-m-d H:i', strtotime('-15 minutes')));
-					})
+				->whereHas(
+					'deliveryManSetting',
+					fn(Builder $query) => $query
+						->where('online', 1)
+						->where(function ($q) {
+							$q
+								->where('updated_at', '>=', date('Y-m-d H:i', strtotime('-15 minutes')))
+								->orWhere('created_at', '>=', date('Y-m-d H:i', strtotime('-15 minutes')));
+						})
 				)
 				->whereNotNull('firebase_token')
 				->select(['firebase_token', 'id'])
@@ -71,7 +77,6 @@ class AttachDeliveryMan implements ShouldQueue
 					'firebase_token' => $user->firebase_token,
 					'user'           => $user,
 				];
-
 			}
 
 			$url = "https://fcm.googleapis.com/v1/projects/{$this->projectId()}/messages:send";
@@ -115,12 +120,10 @@ class AttachDeliveryMan implements ShouldQueue
 							]
 						],
 					]);
-
 				}
 
 				sleep(data_get($second, 'value', 30));
 			}
-
 		} catch (Exception $e) {
 			$this->error($e);
 		}

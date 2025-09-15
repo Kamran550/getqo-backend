@@ -26,8 +26,6 @@ class SmsPayloadService extends CoreService
             return $prepareValidate;
         }
 
-
-        Log::info('5555555555555555555555555555555');
         try {
 
             if ((int)data_get($data, 'default') === 1) {
@@ -37,8 +35,6 @@ class SmsPayloadService extends CoreService
                     ]);
                 });
             }
-
-            Log::info('666666666666666666666666666666');
 
             $payload = $this->model()->create($data);
 
@@ -165,6 +161,17 @@ class SmsPayloadService extends CoreService
                 ];
             }
             return ['status' => true];
+        } else if (data_get($data, 'type') === SmsPayload::POCTGOYERCINI) {
+            Log::info('poctgoyercini');
+            $validator = $this->poctgoyercini($data);
+            if ($validator->fails()) {
+                return [
+                    'status' => false,
+                    'code'   => ResponseError::ERROR_422,
+                    'params' => $validator->errors()->toArray(),
+                ];
+            }
+            return ['status' => true];
         }
 
         return [
@@ -226,6 +233,16 @@ class SmsPayloadService extends CoreService
             'payload.twilio_account_id' => ['required', 'string'],
             'payload.twilio_auth_token' => ['required', 'string'],
             'payload.twilio_number'     => ['required', 'string'],
+        ]);
+    }
+
+    public function poctgoyercini(array $data): \Illuminate\Contracts\Validation\Validator|\Illuminate\Validation\Validator
+    {
+
+        Log::info('3 cu validate', ['arr:', $data]);
+        return Validator::make($data, [
+            'payload.poctgoyercini_user' => ['required', 'string'],
+            'payload.poctgoyercini_pass' => ['required', 'string'],
         ]);
     }
 }
