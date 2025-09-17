@@ -36,15 +36,16 @@ class OrderStatusUpdateService extends CoreService
         return Order::class;
     }
 
-	/**
-	 * @param Order $order
-	 * @param string|null $status
-	 * @param bool $isDelivery
-	 * @param string|null $detailStatus
-	 * @return array
-	 */
+    /**
+     * @param Order $order
+     * @param string|null $status
+     * @param bool $isDelivery
+     * @param string|null $detailStatus
+     * @return array
+     */
     public function statusUpdate(Order $order, ?string $status, bool $isDelivery = false, ?string $detailStatus = null): array
     {
+        \Log::info('OrderStatusUpdateService ile update olur with job');
         if ($order->status == $status) {
             return [
                 'status'  => false,
@@ -53,36 +54,35 @@ class OrderStatusUpdateService extends CoreService
             ];
         }
 
-		$order = $order->fresh([
-			'user',
-			'shop',
-			'pointHistories',
-			'orderRefunds',
-			'orderDetails',
-			'transaction.paymentSystem',
-		]);
+        $order = $order->fresh([
+            'user',
+            'shop',
+            'pointHistories',
+            'orderRefunds',
+            'orderDetails',
+            'transaction.paymentSystem',
+        ]);
 
         try {
             $order = DB::transaction(function () use ($order, $status, $detailStatus) {
 
-				$paymentCash = Payment::where('tag', Payment::TAG_CASH)->value('id');
+                $paymentCash = Payment::where('tag', Payment::TAG_CASH)->value('id');
 
-				if (in_array(request('transaction_status'), Transaction::STATUSES)) {
+                if (in_array(request('transaction_status'), Transaction::STATUSES)) {
 
-					$paymentId = $order?->transaction?->payment_sys_id ?? $paymentCash;
+                    $paymentId = $order?->transaction?->payment_sys_id ?? $paymentCash;
 
-					$order->createTransaction([
-						'price'              => $order->total_price,
-						'user_id'            => $order?->user_id,
-						'payment_sys_id'     => $paymentId,
-						'payment_trx_id'     => $order?->transaction?->payment_trx_id,
-						'note'               => $order->id,
-						'perform_time'       => now(),
-						'status_description' => "Transaction for model #$order->id",
-						'status'             => request('transaction_status'),
-					]);
-
-				}
+                    $order->createTransaction([
+                        'price'              => $order->total_price,
+                        'user_id'            => $order?->user_id,
+                        'payment_sys_id'     => $paymentId,
+                        'payment_trx_id'     => $order?->transaction?->payment_trx_id,
+                        'note'               => $order->id,
+                        'perform_time'       => now(),
+                        'status_description' => "Transaction for model #$order->id",
+                        'status'             => request('transaction_status'),
+                    ]);
+                }
 
                 if ($status == Order::STATUS_DELIVERED) {
 
@@ -94,18 +94,18 @@ class OrderStatusUpdateService extends CoreService
                         ->where('key', $status)
                         ->first()?->value;
 
-					$paymentWallet = Payment::where('tag', Payment::TAG_WALLET)->value('id');
+                    $paymentWallet = Payment::where('tag', Payment::TAG_WALLET)->value('id');
 
-					$isWallet = $order?->transaction?->payment_sys_id === $paymentWallet;
+                    $isWallet = $order?->transaction?->payment_sys_id === $paymentWallet;
 
-					if ($isWallet) {
-						$this->adminWalletTopUp($order);
-					}
+                    if ($isWallet) {
+                        $this->adminWalletTopUp($order);
+                    }
 
-					$order = $order->loadMissing([
-						'coupon',
-						'pointHistories',
-					]);
+                    $order = $order->loadMissing([
+                        'coupon',
+                        'pointHistories',
+                    ]);
 
                     $point = Point::getActualPoint($order->total_price, $order->shop_id);
 
@@ -136,28 +136,27 @@ class OrderStatusUpdateService extends CoreService
 
                     PayReferral::dispatchAfterResponse($order->user, 'increment');
 
-					if ($order?->transaction?->paymentSystem?->tag == Payment::TAG_CASH) {
+                    if ($order?->transaction?->paymentSystem?->tag == Payment::TAG_CASH) {
 
-						$trxStatus = request('transaction_status');
-						$trxStatus = in_array($trxStatus, Transaction::STATUSES) ? $trxStatus : Transaction::STATUS_PAID;
+                        $trxStatus = request('transaction_status');
+                        $trxStatus = in_array($trxStatus, Transaction::STATUSES) ? $trxStatus : Transaction::STATUS_PAID;
 
-						$order->transaction->update(['status' => $trxStatus]);
-					}
-
+                        $order->transaction->update(['status' => $trxStatus]);
+                    }
                 }
 
                 if ($status == Order::STATUS_CANCELED && $order->orderRefunds?->count() === 0) {
 
                     $user = $order->user;
 
-					$order->transaction?->update([
-						'status' => Transaction::STATUS_CANCELED,
-					]);
+                    $order->transaction?->update([
+                        'status' => Transaction::STATUS_CANCELED,
+                    ]);
 
                     if ($order->pointHistories?->count() > 0) {
                         foreach ($order->pointHistories as $pointHistory) {
                             /** @var PointHistory $pointHistory */
-							$user?->wallet?->decrement('price', $pointHistory->price);
+                            $user?->wallet?->decrement('price', $pointHistory->price);
                             $pointHistory->delete();
                         }
                     }
@@ -169,12 +168,11 @@ class OrderStatusUpdateService extends CoreService
                     $order->orderDetails->map(function (OrderDetail $orderDetail) {
                         $orderDetail->stock()->increment('quantity', $orderDetail->quantity);
                     });
-
                 }
 
-				if (in_array($order->status, $order->shop?->email_statuses ?? []) && ($order->email || $order->user?->email)) {
-					(new EmailSendService)->sendOrder($order);
-				}
+                if (in_array($order->status, $order->shop?->email_statuses ?? []) && ($order->email || $order->user?->email)) {
+                    (new EmailSendService)->sendOrder($order);
+                }
 
                 $order->update([
                     'status'  => $status,
@@ -182,17 +180,15 @@ class OrderStatusUpdateService extends CoreService
                     'note'    => request('note') . " | $order->note",
                 ]);
 
-				if (!empty($detailStatus)) {
+                if (!empty($detailStatus)) {
 
-					foreach ($order->orderDetails as $orderDetail) {
+                    foreach ($order->orderDetails as $orderDetail) {
 
-						$order->update(['status' => $detailStatus]);
+                        $order->update(['status' => $detailStatus]);
 
-						$orderDetail->children()->update(['status' => $detailStatus]);
-
-					}
-
-				}
+                        $orderDetail->children()->update(['status' => $detailStatus]);
+                    }
+                }
 
                 return $order;
             });
@@ -264,11 +260,11 @@ class OrderStatusUpdateService extends CoreService
         return ['status' => true, 'code' => ResponseError::NO_ERROR, 'data' => $order];
     }
 
-	/**
-	 * @param Order $order
-	 * @return void
-	 * @throws Throwable
-	 */
+    /**
+     * @param Order $order
+     * @return void
+     * @throws Throwable
+     */
     private function adminWalletTopUp(Order $order): void
     {
         /** @var User $admin */
@@ -289,5 +285,4 @@ class OrderStatusUpdateService extends CoreService
 
         (new WalletHistoryService)->create($request);
     }
-
 }
