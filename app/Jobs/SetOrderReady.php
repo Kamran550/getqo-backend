@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Events\OrderReady;
 use App\Models\Language;
 use App\Models\Order;
+use App\Services\OrderService\OrderStatusUpdateService;
 use DB;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -47,7 +48,13 @@ class SetOrderReady implements ShouldQueue
             'current_time' => now()
         ]);
 
-        $order = Order::find($this->order->id);
+        // $order = Order::find($this->order->id);
+        $order = Order::with([
+            'shop.seller',
+            'deliveryMan',
+            'user.wallet',
+        ])->find($this->order->id);
+
 
         if (!$order || $order->status !== Order::STATUS_COOKING) {
 
@@ -60,11 +67,11 @@ class SetOrderReady implements ShouldQueue
             return; // Order might have been cancelled or manually changed
         }
 
-        DB::beginTransaction();
         try {
-            $order->fill(['status' => Order::STATUS_READY]);
-            $order->save(); // save() triggers updated event
-            $order->refresh();
+            DB::beginTransaction();
+
+            $result = (new \App\Services\OrderService\OrderStatusUpdateService)
+                ->statusUpdate($order, Order::STATUS_READY, true);
 
             // event(new OrderReady($order));
             Log::info("'111111111111111111111111111'");
@@ -87,6 +94,56 @@ class SetOrderReady implements ShouldQueue
             ]);
         }
     }
+
+    // public function handle()
+    // {
+
+    //     \Log::info('SetOrderReady job started', [
+    //         'order_id' => $this->order->id,
+    //         'scheduled_ready_time' => $this->order->ready_at,
+    //         'current_time' => now()
+    //     ]);
+
+    //     $order = Order::find($this->order->id);
+
+    //     if (!$order || $order->status !== Order::STATUS_COOKING) {
+
+    //         \Log::info('SetOrderReady: Order status changed, skipping', [
+    //             'order_id' => $order->id,
+    //             'current_status' => $order->status,
+    //             'expected_status' => Order::STATUS_COOKING
+    //         ]);
+
+    //         return; // Order might have been cancelled or manually changed
+    //     }
+
+    //     DB::beginTransaction();
+    //     try {
+    //         $order->fill(['status' => Order::STATUS_READY]);
+    //         $order->save(); // save() triggers updated event
+    //         $order->refresh();
+
+    //         // event(new OrderReady($order));
+    //         Log::info("'111111111111111111111111111'");
+    //         // Trigger courier search if not already started
+    //         // if (!$order->courier_search_started) {
+    //         //     event(new OrderReady($order));
+    //         //     $this->startCourierSearch($order);
+    //         // }
+
+    //         DB::commit();
+    //         \Log::info('SetOrderReady job completed successfully', [
+    //             'order_id' => $order->id,
+    //             'order_status' => $order->status
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         DB::rollback();
+    //         \Log::error('Failed to set order as ready', [
+    //             'order_id' => $order->id,
+    //             'error' => $e->getMessage()
+    //         ]);
+    //     }
+    // }
 
 
     private function startCourierSearch(Order $order)
