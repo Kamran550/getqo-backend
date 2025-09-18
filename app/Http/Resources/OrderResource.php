@@ -103,7 +103,9 @@ class OrderResource extends JsonResource
 			'created_at'                    => $this->when($this->created_at, $this->created_at?->format('Y-m-d H:i:s') . 'Z'),
 			'updated_at'                    => $this->when($this->updated_at, $this->updated_at?->format('Y-m-d H:i:s') . 'Z'),
 			'km'                            => $this->when($location, $location),
-
+			'cooking_started_at'            => $this->when($this->cooking_started_at, $this->cooking_started_at),
+			'cooking_time'                  => $this->when($this->cooking_time, $this->cooking_time),
+			'ready_at'                      => $this->when($this->ready_at, $this->ready_at),
 			'deliveryman'                   => UserResource::make($this->whenLoaded('deliveryMan')),
 			'waiter'                        => UserResource::make($this->whenLoaded('waiter')),
 			'shop'                          => ShopResource::make($this->whenLoaded('shop')),
