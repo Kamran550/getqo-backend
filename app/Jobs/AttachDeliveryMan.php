@@ -121,7 +121,7 @@ class AttachDeliveryMan implements ShouldQueue
 						],
 					]);
 				}
-
+				Log::info('kuryer cagirilir');
 				sleep(data_get($second, 'value', 30));
 			}
 		} catch (Exception $e) {
