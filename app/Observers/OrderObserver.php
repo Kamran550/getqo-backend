@@ -56,7 +56,7 @@ class OrderObserver
 
         if ($order->status === Order::STATUS_READY && empty($order->deliveryman) && $this->autoDeliveryMan()) {
             Log::info('ATTACH DELIVERY MAN updated');
-            AttachDeliveryMan::dispatchAfterResponse($order, $this->language());
+            AttachDeliveryMan::dispatch($order, $this->language());
         }
 
         (new ModelLogService)->logging($order, $order->getAttributes(), 'updated');
