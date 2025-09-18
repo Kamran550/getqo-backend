@@ -68,11 +68,11 @@ class SetOrderReady implements ShouldQueue
         }
 
         try {
-            DB::beginTransaction();
 
             $result = (new \App\Services\OrderService\OrderStatusUpdateService)
                 ->statusUpdate($order, Order::STATUS_READY, true);
 
+            $order->refresh();
             // event(new OrderReady($order));
             Log::info("'111111111111111111111111111'");
             // Trigger courier search if not already started
@@ -80,8 +80,6 @@ class SetOrderReady implements ShouldQueue
             //     event(new OrderReady($order));
             //     $this->startCourierSearch($order);
             // }
-
-            DB::commit();
             \Log::info('SetOrderReady job completed successfully', [
                 'order_id' => $order->id,
                 'order_status' => $order->status

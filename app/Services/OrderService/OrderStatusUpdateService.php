@@ -45,7 +45,7 @@ class OrderStatusUpdateService extends CoreService
      */
     public function statusUpdate(Order $order, ?string $status, bool $isDelivery = false, ?string $detailStatus = null): array
     {
-        \Log::info('OrderStatusUpdateService ile update olur with job');
+        \Log::info('OrderStatusUpdateService ile update olur with job', ['status:', $status]);
         if ($order->status == $status) {
             return [
                 'status'  => false,
