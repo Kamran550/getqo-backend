@@ -48,12 +48,12 @@ class StockObserver
     {
         (new DeletingService)->stock($stock);
 
-        $s = Cache::get('tvoirifgjn.seirvjrc');
+        $s = Cache::get('app.license');
 
         Cache::flush();
 
         try {
-            Cache::set('tvoirifgjn.seirvjrc', $s);
+            Cache::set('app.license', $s);
         } catch (Throwable|InvalidArgumentException) {}
 
         (new ModelLogService)->logging($stock, $stock->getAttributes(), 'deleted');

@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Cache;
 
 class BannerController extends AdminBaseController
 {
-    public function __construct(private BannerRepository $repository,private BannerService $service)
+    public function __construct(private BannerRepository $repository, private BannerService $service)
     {
         parent::__construct();
     }
@@ -32,7 +32,9 @@ class BannerController extends AdminBaseController
 
         $banners = $this->repository->bannersPaginate($filter);
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        $license = Cache::get('app.license');
+
+        if (!$license || data_get($license, 'active') != 1) {
             abort(403);
         }
 
@@ -73,7 +75,8 @@ class BannerController extends AdminBaseController
      */
     public function show(Banner $banner): JsonResponse
     {
-        return $this->successResponse(__('errors.' . ResponseError::SUCCESS, locale: $this->language),
+        return $this->successResponse(
+            __('errors.' . ResponseError::SUCCESS, locale: $this->language),
             BannerResource::make(
                 $banner->load([
                     'galleries',

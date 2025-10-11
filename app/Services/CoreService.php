@@ -96,12 +96,14 @@ abstract class CoreService
             }
         }
 
-        $s = Cache::get('tvoirifgjn.seirvjrc');
+        $licenseCacheKey = 'app.license'; // yeni şəxsi açar üçün key
+        $myLicense = Cache::get($licenseCacheKey);
 
+        // flush etmədən əvvəl saxla
         Cache::flush();
 
         try {
-            Cache::set('tvoirifgjn.seirvjrc', $s);
+            Cache::set($licenseCacheKey, $myLicense);
         } catch (Throwable | InvalidArgumentException) {
         }
     }
@@ -127,12 +129,12 @@ abstract class CoreService
             }
         }
 
-        $s = Cache::get('tvoirifgjn.seirvjrc');
+        $s = Cache::get('app.license');
 
         Cache::flush();
 
         try {
-            Cache::set('tvoirifgjn.seirvjrc', $s);
+            Cache::set('app.license', $s);
         } catch (Throwable | InvalidArgumentException) {
         }
     }
@@ -147,12 +149,12 @@ abstract class CoreService
         DB::table($name ?: $this->model()->getTable())->truncate();
         DB::statement("SET foreign_key_checks = 1");
 
-        $s = Cache::get('tvoirifgjn.seirvjrc');
+        $s = Cache::get('app.license');
 
         Cache::flush();
 
         try {
-            Cache::set('tvoirifgjn.seirvjrc', $s);
+            Cache::set('app.license', $s);
         } catch (Throwable | InvalidArgumentException) {
         }
     }
@@ -171,12 +173,12 @@ abstract class CoreService
             }
         }
 
-        $s = Cache::get('tvoirifgjn.seirvjrc');
+        $s = Cache::get('app.license');
 
         Cache::flush();
 
         try {
-            Cache::set('tvoirifgjn.seirvjrc', $s);
+            Cache::set('app.license', $s);
         } catch (Throwable | InvalidArgumentException) {
         }
     }
@@ -188,12 +190,12 @@ abstract class CoreService
     public function delete(array $ids)
     {
         $this->destroy($ids);
-        $s = Cache::get('tvoirifgjn.seirvjrc');
+        $s = Cache::get('app.license');
 
         Cache::flush();
 
         try {
-            Cache::set('tvoirifgjn.seirvjrc', $s);
+            Cache::set('app.license', $s);
         } catch (Throwable | InvalidArgumentException) {
         }
     }

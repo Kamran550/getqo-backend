@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Cache;
 class BlogController extends AdminBaseController
 {
     use Notification;
-    public function __construct(private BlogRepository $repository,private BlogService $service)
+    public function __construct(private BlogRepository $repository, private BlogService $service)
     {
         parent::__construct();
     }
@@ -33,8 +33,9 @@ class BlogController extends AdminBaseController
     public function paginate(Request $request): AnonymousResourceCollection
     {
         $blogs = $this->repository->blogsPaginate($request->all());
+        $license = Cache::get('app.license');
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!$license || data_get($license, 'active') != 1) {
             abort(403);
         }
 
@@ -165,8 +166,8 @@ class BlogController extends AdminBaseController
             ]);
         }
 
-		/** @var Blog $blog */
-		$result = $this->service->blogPublish($blog);
+        /** @var Blog $blog */
+        $result = $this->service->blogPublish($blog);
 
         if (!data_get($result, 'status')) {
             return $this->onErrorResponse($result);
@@ -216,5 +217,4 @@ class BlogController extends AdminBaseController
             __('errors.' . ResponseError::RECORD_WAS_SUCCESSFULLY_DELETED, locale: $this->language)
         );
     }
-
 }

@@ -62,7 +62,7 @@ class ShopController extends AdminBaseController
     {
         $shops = $this->repository->shopsPaginate($request->all());
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
@@ -101,7 +101,7 @@ class ShopController extends AdminBaseController
             return $this->onErrorResponse($result);
         }
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
@@ -130,7 +130,7 @@ class ShopController extends AdminBaseController
             ]);
         }
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
@@ -169,10 +169,9 @@ class ShopController extends AdminBaseController
             return $this->onErrorResponse($result);
         }
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
-
         return $this->successResponse(
             __('errors.' . ResponseError::RECORD_WAS_SUCCESSFULLY_UPDATED, locale: $this->language),
             ShopResource::make(data_get($result, 'data'))

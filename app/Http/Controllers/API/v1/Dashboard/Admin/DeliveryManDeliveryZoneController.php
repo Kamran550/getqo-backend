@@ -32,7 +32,7 @@ class DeliveryManDeliveryZoneController extends AdminBaseController
     {
         $deliveryZone = $this->repository->paginate($request->all());
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
@@ -49,7 +49,7 @@ class DeliveryManDeliveryZoneController extends AdminBaseController
     {
         $deliveryZone = $this->repository->list($request->all());
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 

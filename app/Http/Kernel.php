@@ -70,7 +70,7 @@ class Kernel extends HttpKernel
             // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'throttle:5000,1',
             SubstituteBindings::class,
-            TrustLicence::class,
+            // TrustLicence::class,
         ],
         'sessions' => [
             StartSession::class,

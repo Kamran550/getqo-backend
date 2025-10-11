@@ -60,7 +60,7 @@ class OrderController extends SellerBaseController
 			data_get($filter, 'status')
         );
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
@@ -96,7 +96,7 @@ class OrderController extends SellerBaseController
             return $this->onErrorResponse($result);
         }
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
@@ -145,10 +145,9 @@ class OrderController extends SellerBaseController
             );
         }
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
-
         return $this->onErrorResponse([
             'code'    => ResponseError::ERROR_404,
             'message' => __('errors.' . ResponseError::ORDER_NOT_FOUND, locale: $this->language)
@@ -208,7 +207,7 @@ class OrderController extends SellerBaseController
             return $this->onErrorResponse($result);
         }
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
@@ -299,7 +298,7 @@ class OrderController extends SellerBaseController
 			data_get($filter, 'status')
         );
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
