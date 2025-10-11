@@ -153,6 +153,7 @@ class ShopController extends AdminBaseController
     public function update(StoreRequest $request, string $uuid): JsonResponse
     {
         Log::info('update gelir:', ['update:', $request->all()]);
+        Log::info('update gelir uuid:', ['update:', $uuid]);
         $shop = Shop::where(['user_id' => $request->input('user_id'), 'uuid' => $uuid])->first();
 
         $seller = User::find($request->input('user_id'));

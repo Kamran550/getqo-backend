@@ -227,6 +227,7 @@ class ShopService extends CoreService implements ShopServiceInterface
             'verify'         => data_get($data, 'verify', $shop?->verify ?? 0),
             'wifi_password'  => data_get($data, 'wifi_password'),
             'wifi_name'      => data_get($data, 'wifi_name'),
+            'service_fee'    => data_get($data, 'service_fee'),
             'type'           => data_get($data, 'type', $shop?->type),
             'free_delivery_price'           => data_get($data, 'free_delivery_price', $shop?->free_delivery_price),
             'max_small_order_fee'       => data_get($data, 'max_small_order_fee', $shop?->max_small_order_fee),
