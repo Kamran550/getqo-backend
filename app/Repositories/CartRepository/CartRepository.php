@@ -105,7 +105,7 @@ class CartRepository extends CoreRepository
         $locale   = data_get(Language::languagesList()->where('default', 1)->first(), 'locale');
         $currency = Currency::currenciesList()->where('id', data_get($data, 'currency_id'))->first();
         $cart = Cart::with([
-            'shop:id,location,tax,price,price_per_km,uuid,logo_img,status,free_delivery_price,type,min_amount,max_small_order_fee',
+            'shop:id,location,tax,price,price_per_km,uuid,logo_img,status,free_delivery_price,type,min_amount,max_small_order_fee,service_fee',
             'shop.translation' => fn($q) => $q->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale)),
             'shop.bonus' => fn($q) => $q->where('expired_at', '>', now())->where('status', true),
             'userCarts.cartDetails' => fn($q) => $q->whereNull('parent_id'),
@@ -254,7 +254,9 @@ class CartRepository extends CoreRepository
         $totalPrice  -= $discount;
 
         $shopTax     = max((($totalPrice) / $rate) / 100 * $cart->shop->tax, 0) * $rate;
-        $serviceFee  = (float)Settings::where('key', 'service_fee')->first()?->value ?: 0;
+        // $serviceFee  = (float)Settings::where('key', 'service_fee')->first()?->value ?: 0;
+        $serviceFee = (float) $cart->shop->service_fee ?? 0;
+        Log::info('shopun service feesi:', ['serfee:', $serviceFee]);
         $serviceFee  *= $rate;
 
         $coupon = Coupon::checkCoupon(data_get($data, 'coupon'), $cart->shop_id)->first();

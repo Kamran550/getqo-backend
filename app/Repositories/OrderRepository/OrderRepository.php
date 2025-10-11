@@ -340,7 +340,8 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 		$couponPrice = 0;
 
 		Log::info('calc stock shop:', ['shop:', $shop->min_amount]);
-		$globalServiceFee = (float)Settings::where('key', 'service_fee')->first()?->value ?? 0;
+		// $globalServiceFee = (float)Settings::where('key', 'service_fee')->first()?->value ?? 0;
+		$globalServiceFee = (float) $shop?->service_fee ?? 0;
 		$serviceFee2 = null;
 
 		if ($totalPrice < $shop->min_amount) {
@@ -891,7 +892,7 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 			});
 		Log::info('orders:', ['orders:', $orders]);
 
-			
+
 
 		$sumOrders = $orders->get();
 

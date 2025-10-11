@@ -393,7 +393,10 @@ class OrderService extends CoreService implements OrderServiceInterface
 
 
 
-		$globalServiceFee = (float) Settings::where('key', 'service_fee')->value('value') ?? 0;
+		// $globalServiceFee = (float) Settings::where('key', 'service_fee')->value('value') ?? 0;
+		$globalServiceFee = (float) $shop?->service_fee ?? 0;
+		Log::info('calculateorder  global service fee:', ['serf:', $globalServiceFee]);
+
 		$serviceFee = $serviceFee2 + $globalServiceFee;
 		$totalPrice = max(max($totalPrice, 0) - max($totalDiscount, 0), 0);
 		Log::info('sonda service fee:', ['service fee:', $serviceFee]);
@@ -565,7 +568,9 @@ class OrderService extends CoreService implements OrderServiceInterface
 
 
 
-		$globalServiceFee = (float) Settings::where('key', 'service_fee')->value('value') ?? 0;
+		// $globalServiceFee = (float) Settings::where('key', 'service_fee')->value('value') ?? 0;
+		$globalServiceFee = (float) $shop?->service_fee ?? 0;
+		Log::info('calculateorder 2 global service fee:', ['serf:', $globalServiceFee]);
 		$serviceFee = $serviceFee2 + $globalServiceFee;
 		$totalPrice = max(max($totalPrice, 0) - max($totalDiscount, 0), 0);
 		Log::info('sonda service fee:', ['service fee:', $serviceFee]);
@@ -996,8 +1001,10 @@ class OrderService extends CoreService implements OrderServiceInterface
 			$deliveryFee   = $deliveryPoint * $rate;
 		}
 
-		$serviceFee  = (float)Settings::where('key', 'service_fee')->first()?->value;
-		$serviceFee  = $serviceFee ?: 0;
+		// $serviceFee  = (float)Settings::where('key', 'service_fee')->first()?->value;
+		// $serviceFee  = $serviceFee ?: 0;
+		$serviceFee = (float) $shop?->service_fee ?: 0;
+		Log::info('serOrder params serv fee:', ['serf:', $serviceFee]);
 
 
 		$price = data_get($cart, 'total_price');
@@ -1105,9 +1112,11 @@ class OrderService extends CoreService implements OrderServiceInterface
 		// }
 
 
-		$serviceFee  = (float)Settings::where('key', 'service_fee')->first()?->value;
-		$serviceFee  = $serviceFee ?: 0;
+		// $serviceFee  = (float)Settings::where('key', 'service_fee')->first()?->value;
+		// $serviceFee  = $serviceFee ?: 0;
+		$serviceFee = (float) $shop?->service_fee ?: 0;
 
+		Log::info('shop ucun service fee:', ['serfec:', $serviceFee]);
 
 		$price = data_get($cart, 'total_price');
 		// if ($price < $shop->min_amount) {
