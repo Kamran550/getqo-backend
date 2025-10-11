@@ -193,7 +193,7 @@ class ProductController extends SellerBaseController
     {
         $this->productService->delete($request->input('ids', []), $this->shop->id);
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
@@ -219,8 +219,7 @@ class ProductController extends SellerBaseController
                 'message'   => __('errors.' . ResponseError::ERROR_404, locale: $this->language)
             ]);
         }
-
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
@@ -260,7 +259,7 @@ class ProductController extends SellerBaseController
             return $this->onErrorResponse($result);
         }
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
@@ -276,7 +275,7 @@ class ProductController extends SellerBaseController
             $request->merge(['shop_id' => $this->shop->id])->all()
         );
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 

@@ -56,7 +56,9 @@ class RemoveExpiredShopClosedDates extends Command
             }
         }
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        $license = Cache::get('app.license');
+
+        if (!$license || data_get($license, 'active') != 1) {
             abort(403);
         }
 

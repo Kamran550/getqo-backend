@@ -24,6 +24,7 @@ use App\Repositories\ShopPaymentRepository\ShopPaymentRepository;
 use App\Services\ShopServices\ShopReviewService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Str;
@@ -264,6 +265,16 @@ class ShopController extends RestBaseController
     public function products(int $id, FilterParamsRequest $request): JsonResponse
     {
         $shop = Shop::find($id);
+
+        $license = Cache::get('app.license');
+
+
+        \Log::info('lisence:', ['lis:', $license]);
+
+        if (!$license || data_get($license, 'active') != 1) {
+            abort(403);
+        }
+
 
         if (empty($shop)) {
             return $this->onErrorResponse([

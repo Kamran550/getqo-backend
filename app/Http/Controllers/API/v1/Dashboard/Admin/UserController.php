@@ -39,7 +39,7 @@ class UserController extends AdminBaseController
     {
         $users = $this->userRepository->usersPaginate($request->all());
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
@@ -70,7 +70,7 @@ class UserController extends AdminBaseController
             return $this->onErrorResponse($result);
         }
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
@@ -98,8 +98,7 @@ class UserController extends AdminBaseController
                 'message'   => __('errors.' . ResponseError::ERROR_404, locale: $this->language)
             ]);
         }
-
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
@@ -126,7 +125,7 @@ class UserController extends AdminBaseController
             return $this->onErrorResponse($result);
         }
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
@@ -153,7 +152,7 @@ class UserController extends AdminBaseController
             return $this->onErrorResponse($result);
         }
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 

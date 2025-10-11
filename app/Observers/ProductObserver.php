@@ -34,12 +34,12 @@ class ProductObserver
 	 */
     public function created(Product $product): void
     {
-        $s = Cache::get('tvoirifgjn.seirvjrc');
+        $s = Cache::get('app.license');
 
         Cache::flush();
 
         try {
-            Cache::set('tvoirifgjn.seirvjrc', $s);
+            Cache::set('app.license', $s);
         } catch (Throwable|InvalidArgumentException) {}
 
         (new ModelLogService)->logging($product, $product->getAttributes(), 'created');
@@ -53,7 +53,7 @@ class ProductObserver
 	 */
     public function updated(Product $product): void
     {
-        $s = Cache::get('tvoirifgjn.seirvjrc');
+        $s = Cache::get('app.license');
 
         Cache::flush();
 
@@ -65,7 +65,7 @@ class ProductObserver
 		}
 
         try {
-            Cache::set('tvoirifgjn.seirvjrc', $s);
+            Cache::set('app.license', $s);
         } catch (Throwable|InvalidArgumentException) {}
 
         (new ModelLogService)->logging($product, $product->getAttributes(), 'updated');
@@ -88,12 +88,12 @@ class ProductObserver
             'addons'
         ]));
 
-        $s = Cache::get('tvoirifgjn.seirvjrc');
+        $s = Cache::get('app.license');
 
         Cache::flush();
 
         try {
-            Cache::set('tvoirifgjn.seirvjrc', $s);
+            Cache::set('app.license', $s);
         } catch (Throwable|InvalidArgumentException) {}
 
         (new ModelLogService)->logging($product, $product->getAttributes(), 'deleted');

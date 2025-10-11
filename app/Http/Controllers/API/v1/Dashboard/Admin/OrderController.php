@@ -72,6 +72,7 @@ class OrderController extends AdminBaseController
 	 */
 	public function paginate(FilterParamsRequest $request): JsonResponse
 	{
+		Log::info('salammm');
 		$filter = $request->all();
 
 		$orders = $this->adminRepository->ordersPaginate($filter);
@@ -83,7 +84,9 @@ class OrderController extends AdminBaseController
 			data_get($filter, 'status')
 		);
 
-		if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+		Log::info('lisence acar:', ['lis acar:', Cache::get('app.license')]);
+		if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
+			\Log::info('lisenziya acarimiz yoxdur');
 			abort(403);
 		}
 
@@ -121,7 +124,7 @@ class OrderController extends AdminBaseController
 			data_get($filter, 'status')
 		);
 
-		if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+		if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
 			abort(403);
 		}
 
@@ -174,7 +177,7 @@ class OrderController extends AdminBaseController
 			return $this->onErrorResponse($result);
 		}
 
-		if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+		if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
 			abort(403);
 		}
 
@@ -202,7 +205,7 @@ class OrderController extends AdminBaseController
 			]);
 		}
 
-		if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+		if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
 			abort(403);
 		}
 
@@ -233,7 +236,7 @@ class OrderController extends AdminBaseController
 			return $this->onErrorResponse($result);
 		}
 
-		if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+		if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
 			abort(403);
 		}
 
@@ -276,7 +279,7 @@ class OrderController extends AdminBaseController
 			return $this->onErrorResponse($result);
 		}
 
-		if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+		if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
 			abort(403);
 		}
 
@@ -336,7 +339,7 @@ class OrderController extends AdminBaseController
 			return $this->onErrorResponse($result);
 		}
 
-		if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+		if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
 			abort(403);
 		}
 
@@ -365,7 +368,7 @@ class OrderController extends AdminBaseController
 			data_get($filter, 'status')
 		);
 
-		if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+		if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
 			abort(403);
 		}
 

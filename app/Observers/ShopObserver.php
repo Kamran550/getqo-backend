@@ -25,12 +25,12 @@ class ShopObserver
     public function creating(Shop $shop): void
     {
 
-        $s = Cache::get('tvoirifgjn.seirvjrc');
+        $s = Cache::get('app.license');
 
         Cache::flush();
 
         try {
-            Cache::set('tvoirifgjn.seirvjrc', $s);
+            Cache::set('app.license', $s);
         } catch (Throwable|InvalidArgumentException) {}
 
         $shop->uuid = Str::uuid();
@@ -44,12 +44,12 @@ class ShopObserver
      */
     public function created(Shop $shop): void
     {
-        $s = Cache::get('tvoirifgjn.seirvjrc');
+        $s = Cache::get('app.license');
 
         Cache::flush();
 
         try {
-            Cache::set('tvoirifgjn.seirvjrc', $s);
+            Cache::set('app.license', $s);
         } catch (Throwable|InvalidArgumentException) {}
 
         (new ModelLogService)->logging($shop, $shop->getAttributes(), 'created');
@@ -73,12 +73,12 @@ class ShopObserver
             $shop->seller?->invitations()?->delete();
         }
 
-        $s = Cache::get('tvoirifgjn.seirvjrc');
+        $s = Cache::get('app.license');
 
         Cache::flush();
 
         try {
-            Cache::set('tvoirifgjn.seirvjrc', $s);
+            Cache::set('app.license', $s);
         } catch (Throwable|InvalidArgumentException) {}
 
         (new ModelLogService)->logging($shop, $shop->getAttributes(), 'updated');
@@ -94,12 +94,12 @@ class ShopObserver
     {
         (new DeletingService)->shop($shop);
 
-        $s = Cache::get('tvoirifgjn.seirvjrc');
+        $s = Cache::get('app.license');
 
         Cache::flush();
 
         try {
-            Cache::set('tvoirifgjn.seirvjrc', $s);
+            Cache::set('app.license', $s);
         } catch (Throwable|InvalidArgumentException) {}
 
         (new ModelLogService)->logging($shop, $shop->getAttributes(), 'deleted');

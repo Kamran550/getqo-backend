@@ -39,7 +39,7 @@ class AttachDeliveryManListener
             $order = $event->order;
             $second = Settings::where('key', 'deliveryman_order_acceptance_time')->first();
 
-            if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+            if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
                 abort(403);
             }
 
@@ -53,24 +53,26 @@ class AttachDeliveryManListener
                 'deliveryManSetting',
                 'invitations' => fn($q) => $q->where('shop_id', $order->shop_id)
             ])
-            ->whereHas('deliveryManSetting', fn(Builder $query) => $query->where('online', 1)
-                ->where(function ($q) {
-                    $q->where('created_at', '>=', date('Y-m-d H:i', strtotime('-15 minutes')))
-                        ->where('created_at', '<=', date('Y-m-d H:i'));
-                })
-                ->orWhere(function ($q) {
-                    $q->where('updated_at', '>=', date('Y-m-d H:i', strtotime('-15 minutes')))
-                        ->where('updated_at', '<=', date('Y-m-d H:i'));
-                })
-                ->orWhereBetween('updated_at', [
-                    date('Y-m-d H:i', strtotime('-15 minutes')),
-                    date('Y-m-d H:i')
-                ])
-            )
-            ->whereHas('invitations', fn($q) => $q->where('shop_id', $order->shop_id))
-            ->where('firebase_token', '!=', null)
-            ->select(['firebase_token', 'id'])
-            ->get();
+                ->whereHas(
+                    'deliveryManSetting',
+                    fn(Builder $query) => $query->where('online', 1)
+                        ->where(function ($q) {
+                            $q->where('created_at', '>=', date('Y-m-d H:i', strtotime('-15 minutes')))
+                                ->where('created_at', '<=', date('Y-m-d H:i'));
+                        })
+                        ->orWhere(function ($q) {
+                            $q->where('updated_at', '>=', date('Y-m-d H:i', strtotime('-15 minutes')))
+                                ->where('updated_at', '<=', date('Y-m-d H:i'));
+                        })
+                        ->orWhereBetween('updated_at', [
+                            date('Y-m-d H:i', strtotime('-15 minutes')),
+                            date('Y-m-d H:i')
+                        ])
+                )
+                ->whereHas('invitations', fn($q) => $q->where('shop_id', $order->shop_id))
+                ->where('firebase_token', '!=', null)
+                ->select(['firebase_token', 'id'])
+                ->get();
 
             $serverKey = Settings::where('key', 'server_key')->pluck('value')->first();
 
@@ -84,7 +86,8 @@ class AttachDeliveryManListener
             foreach ($users as $user) {
 
                 /** @var User $user */
-                if (!empty($order->deliveryman) ||
+                if (
+                    !empty($order->deliveryman) ||
                     !$user->firebase_token ||
                     $user->invitations?->where('shop_id', $order->shop_id)?->first()?->shop_id !== $order->shop_id
                 ) {
@@ -95,7 +98,6 @@ class AttachDeliveryManListener
                     'firebase_token' => $user->firebase_token,
                     'user' =>  $user,
                 ];
-
             }
 
             foreach (collect($items)->sort(SORT_ASC) as $item) {

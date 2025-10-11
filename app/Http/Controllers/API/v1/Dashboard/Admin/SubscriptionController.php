@@ -44,9 +44,9 @@ class SubscriptionController extends AdminBaseController
 			->orderBy($request->input('column', 'id'), $request->input('sort', 'desc'))
 			->paginate($request->input('perPage', 15));
 
-		if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
-			abort(403);
-		}
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
+            abort(403);
+        }
 
 		return $this->successResponse(
 			__('errors.' . ResponseError::SUCCESS, locale: $this->language),

@@ -50,9 +50,7 @@ class AfterSheet extends Command
             foreach ($result as $images) {
 
                 $this->downloadImages($images->toArray());
-
             }
-
         } catch (Throwable $e) {
             $this->error($e);
         }
@@ -61,15 +59,20 @@ class AfterSheet extends Command
 
         $this->info("total gallery mb $memoryUsage " . date('Y-m-d H:i:s'));
 
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        $license = Cache::get('app.license');
+
+
+
+        if (!$license || data_get($license, 'active') != 1) {
             abort(403);
         }
 
-//        Log::error("total gallery mb $memoryUsage " . date('Y-m-d H:i:s'));
+        //        Log::error("total gallery mb $memoryUsage " . date('Y-m-d H:i:s'));
 
     }
 
-    public function downloadImages($images) {
+    public function downloadImages($images)
+    {
 
         $isAws = Settings::where('key', 'aws')->first();
 
@@ -96,7 +99,6 @@ class AfterSheet extends Command
                 'parent'     => $image->parent,
                 'ch'         => $ch
             ];
-
         }
 
         $running = 0;
@@ -106,7 +108,7 @@ class AfterSheet extends Command
             curl_multi_select($mh);
         } while ($running > 0);
 
-//        $handles = collect($handles)->groupBy(['model_id', 'model_type']);
+        //        $handles = collect($handles)->groupBy(['model_id', 'model_type']);
 
         foreach ($handles as $data) {
 
@@ -167,14 +169,12 @@ class AfterSheet extends Command
                         ->update([
                             $key => $name,
                         ]);
-
                 }
 
                 $deleteImages[] = $data['id'];
             }
 
             curl_multi_remove_handle($mh, $handle);
-
         }
 
         curl_multi_close($mh);
@@ -184,8 +184,6 @@ class AfterSheet extends Command
         DB::table('before_galleries')
             ->whereIn('id', $deleteImages)
             ->delete();
-//        $this->info("mb:" . memory_get_usage(true) / (1024 * 1024));
+        //        $this->info("mb:" . memory_get_usage(true) / (1024 * 1024));
     }
-
-
 }

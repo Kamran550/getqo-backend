@@ -22,7 +22,7 @@ class TransactionRepository extends CoreRepository
      */
     public function paginate(array $filter): LengthAwarePaginator
     {
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
@@ -44,7 +44,7 @@ class TransactionRepository extends CoreRepository
      */
     public function show(int $id, ?int $shopId = null): ?Transaction
     {
-        if (!Cache::get('tvoirifgjn.seirvjrc') || data_get(Cache::get('tvoirifgjn.seirvjrc'), 'active') != 1) {
+        if (!Cache::get('app.license') || data_get(Cache::get('app.license'), 'active') != 1) {
             abort(403);
         }
 
