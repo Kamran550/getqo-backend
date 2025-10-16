@@ -137,6 +137,7 @@ class AdminShopRepository extends CoreRepository
             ->select('id', 'shop_id', 'type', 'end', 'price', 'active', 'start'),
         'shopPayments:id,payment_id,shop_id,status,client_id,secret_id',
         'shopPayments.payment:id,tag,input,sandbox,active',
+        'shopPaymentMethods.payment:id,tag',
         'tags:id,img',
         'tags.translation' => fn($q) => $q->where(fn($q) => $q->where('locale', $this->language)->orWhere('locale', $locale)),
     ]);

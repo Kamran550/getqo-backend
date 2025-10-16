@@ -6,6 +6,8 @@ use App\Helpers\ResponseError;
 use App\Http\Requests\FilterParamsRequest;
 use App\Http\Resources\PaymentResource;
 use App\Models\Payment;
+use App\Models\Shop;
+use App\Models\User;
 use App\Repositories\PaymentRepository\PaymentRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -89,7 +91,89 @@ class PaymentController extends RestBaseController
         ]);
     }
 
-
+    /**
+     * Get payments for specific shop based on shop_payment_methods table
+     * Returns only active payment methods configured for the shop
+     * 
+     * @param FilterParamsRequest $request
+     * @return JsonResponse
+     */
+    public function getPaymentsForUser3(FilterParamsRequest $request): JsonResponse
+    {
+        Log::info('getPaymentsForUser3');
+        
+        /** @var User $user */
+        $user = auth('sanctum')->user();
+        
+        $orderCount = $user->orders()->count();
+        
+        Log::info('orderCount:', ['orderCount:', $orderCount]);
+        
+        // Get shop_id from request
+        $shopId = $request->input('shop_id');
+        
+        if (!$shopId) {
+            return response()->json([
+                'status' => false,
+                'message' => 'shop_id is required',
+            ], 400);
+        }
+        
+        // Find shop and load payment methods
+        $shop = Shop::with(['shopPaymentMethods.payment' => function($query) {
+            $query->where('active', 1);
+        }])->find($shopId);
+        
+        Log::info('shop:', ['shop:', $shop]);
+        
+        if (!$shop) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Shop not found',
+            ], 404);
+        }
+        
+        // Check if shop has configured payment methods
+        if ($shop->shopPaymentMethods->isEmpty()) {
+            // Shop has no payment methods configured - return all active payments (old logic)
+            Log::info('Shop has no payment methods configured, using default payments');
+            
+            $payments = Payment::where('active', 1)
+                ->get()
+                ->sortBy(function ($payment) {
+                    if ($payment->tag === 'odero') return 0;
+                    if ($payment->tag === 'cash') return 1;
+                    if ($payment->tag === 'wallet') return 2;
+                    return 99;
+                })
+                ->values();
+        } else {
+            // Shop has configured payment methods - use shop-specific payments
+            Log::info('Shop has configured payment methods');
+            
+            $payments = $shop->shopPaymentMethods
+                ->pluck('payment')
+                ->filter() // Remove null values (inactive payments)
+                ->sortBy(function ($payment) {
+                    if ($payment->tag === 'odero') return 0;
+                    if ($payment->tag === 'cash') return 1;
+                    if ($payment->tag === 'wallet') return 2;
+                    return 99;
+                })
+                ->values();
+        }
+        
+        Log::info('final payments:', ['shop_id' => $shopId, 'payments_count' => $payments->count()]);
+        
+        return response()->json([
+            'data' => PaymentResource::collection($payments),
+            'test' => [
+                'order_count' => $orderCount,
+                'shop_id' => $shopId,
+                'using_shop_specific_payments' => !$shop->shopPaymentMethods->isEmpty()
+            ]
+        ]);
+    }
 
     /**
      * Display the specified resource.

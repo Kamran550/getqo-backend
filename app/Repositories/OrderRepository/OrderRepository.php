@@ -327,8 +327,8 @@ class OrderRepository extends CoreRepository implements OrderRepoInterface
 				$helper      = new Utility;
 				$km          = $helper->getDistance($shop->location, data_get($filter, 'address'));
 
-				$deliveryFee = $order->delivery_fee;
-				$adminDeliveryFee = $order->admin_delivery_fee;
+				$deliveryFee = $order?->delivery_fee;
+				$adminDeliveryFee = $order?->admin_delivery_fee;
 				$deliveryFee = $helper->getPriceByDistance($km, $shop, (float)data_get($filter, 'rate', 1));
 				['delivery_fee' => $deliveryFee, 'admin_delivery_fee' => $adminDeliveryFee] =
 					$this->calculateOrderFreeDelivery3($km, $shop, $userId, (float)data_get($filter, 'rate', 1), $totalPrice);

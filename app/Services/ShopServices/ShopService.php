@@ -4,7 +4,10 @@ namespace App\Services\ShopServices;
 
 use App\Helpers\FileHelper;
 use App\Helpers\ResponseError;
+use App\Models\Payment;
 use App\Models\Shop;
+use App\Models\ShopPayment;
+use App\Models\ShopPaymentMethod;
 use App\Models\User;
 use App\Services\CoreService;
 use App\Services\Interfaces\ShopServiceInterface;
@@ -58,6 +61,9 @@ class ShopService extends CoreService implements ShopServiceInterface
                     $shop->tags()->sync(data_get($data, 'tags', []));
                 }
 
+                // Sync payment methods
+                $this->syncPaymentMethods($shop, $data);
+
                 try {
                     Cache::forget('shops-location');
                 } catch (Throwable) {
@@ -77,6 +83,7 @@ class ShopService extends CoreService implements ShopServiceInterface
                     'seller'                  => fn($q) => $q->select('id', 'firstname', 'lastname', 'uuid'),
                     'subscription.subscription',
                     'seller.roles',
+                    'shopPaymentMethods.payment:id,tag',
                 ])->find($shopId)
             ];
         } catch (Throwable $e) {
@@ -134,6 +141,9 @@ class ShopService extends CoreService implements ShopServiceInterface
                 $shop->tags()->sync(data_get($data, 'tags', []));
             }
 
+            // Sync payment methods
+            $this->syncPaymentMethods($shop, $data);
+
             return [
                 'status' => true,
                 'code' => ResponseError::NO_ERROR,
@@ -147,6 +157,7 @@ class ShopService extends CoreService implements ShopServiceInterface
                     'seller.roles',
                     'workingDays',
                     'closedDates',
+                    'shopPaymentMethods.payment:id,tag',
                 ])->find($shop->id)
             ];
         } catch (Exception $e) {
@@ -295,5 +306,57 @@ class ShopService extends CoreService implements ShopServiceInterface
             'status' => true,
             'data'     => $shop
         ];
+    }
+
+    /**
+     * Sync payment methods for shop using shop_payment_methods table
+     * @param Shop $shop
+     * @param array $data
+     * @return void
+     */
+    private function syncPaymentMethods(Shop $shop, array $data): void
+    {
+        // Process payment_methods from frontend format (payment_methods[0], payment_methods[1], etc.)
+        $paymentTags = [];
+        foreach ($data as $key => $value) {
+            if (str_starts_with($key, 'payment_methods[')) {
+                $paymentTags[] = $value;
+            }
+        }
+
+        // If no payment_methods in indexed format, try direct array
+        if (empty($paymentTags) && isset($data['payment_methods']) && is_array($data['payment_methods'])) {
+            $paymentTags = $data['payment_methods'];
+        }
+
+        // If payment methods are provided, sync them
+        if (!empty($paymentTags)) {
+            // Get payment IDs by tags
+            $selectedPaymentIds = Payment::whereIn('tag', $paymentTags)
+                ->pluck('id')
+                ->toArray();
+
+            // Get existing shop payment methods
+            $existingPaymentIds = ShopPaymentMethod::where('shop_id', $shop->id)
+                ->pluck('payment_id')
+                ->toArray();
+
+            // Add new payment methods
+            $newPaymentIds = array_diff($selectedPaymentIds, $existingPaymentIds);
+            foreach ($newPaymentIds as $paymentId) {
+                ShopPaymentMethod::create([
+                    'shop_id' => $shop->id,
+                    'payment_id' => $paymentId,
+                ]);
+            }
+
+            // Remove unselected payment methods
+            $removedPaymentIds = array_diff($existingPaymentIds, $selectedPaymentIds);
+            if (!empty($removedPaymentIds)) {
+                ShopPaymentMethod::where('shop_id', $shop->id)
+                    ->whereIn('payment_id', $removedPaymentIds)
+                    ->delete();
+            }
+        }
     }
 }
