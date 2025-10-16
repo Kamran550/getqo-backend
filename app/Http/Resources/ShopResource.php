@@ -67,6 +67,7 @@ class ShopResource extends JsonResource
             'products_count'    => $this->whenLoaded('products', $this->products_count, 0),
             'translation'       => TranslationResource::make($this->whenLoaded('translation')),
             'tags'              => ShopTagResource::collection($this->whenLoaded('tags')),
+            'payment_methods'   => ShopPaymentMethodResource::collection($this->whenLoaded('shopPaymentMethods')),
             'translations'      => TranslationResource::collection($this->whenLoaded('translations')),
             'locales'           => $this->when($locales, $locales),
             'seller'            => UserResource::make($this->whenLoaded('seller')),

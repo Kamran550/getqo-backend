@@ -266,6 +266,11 @@ class Shop extends Model
         return $this->hasMany(ShopPayment::class);
     }
 
+    public function shopPaymentMethods(): HasMany
+    {
+        return $this->hasMany(ShopPaymentMethod::class);
+    }
+
     public function users(): HasManyThrough
     {
         return $this->hasManyThrough(
