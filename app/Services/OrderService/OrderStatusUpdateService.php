@@ -145,6 +145,13 @@ class OrderStatusUpdateService extends CoreService
                     }
                 }
 
+                if ($status == Order::STATUS_ACCEPTED) {
+                    $order->orderDetails->map(function (OrderDetail $orderDetail) {
+                        $orderDetail->stock()->decrement('quantity', $orderDetail->quantity);
+                    });
+                }
+
+
                 if ($status == Order::STATUS_CANCELED && $order->orderRefunds?->count() === 0) {
 
                     $user = $order->user;
@@ -165,9 +172,11 @@ class OrderStatusUpdateService extends CoreService
                         PayReferral::dispatchAfterResponse($user, 'decrement');
                     }
 
-                    $order->orderDetails->map(function (OrderDetail $orderDetail) {
-                        $orderDetail->stock()->increment('quantity', $orderDetail->quantity);
-                    });
+                    if (in_array($order->status, [Order::STATUS_ACCEPTED, Order::STATUS_READY, Order::STATUS_ON_A_WAY, Order::STATUS_DELIVERED])) {
+                        $order->orderDetails->map(function (OrderDetail $orderDetail) {
+                            $orderDetail->stock()->increment('quantity', $orderDetail->quantity);
+                        });
+                    }
                 }
 
                 if (in_array($order->status, $order->shop?->email_statuses ?? []) && ($order->email || $order->user?->email)) {
